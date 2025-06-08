@@ -264,7 +264,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     let optionIndex;
     try {
       const userInfo = await program.account.user.fetch(userPDA);
-      optionIndex = userInfo.optionIndex.toNumber();
+      optionIndex = userInfo.optionIndex.toNumber() + 1;
     } catch {
       optionIndex = 1;
     }
