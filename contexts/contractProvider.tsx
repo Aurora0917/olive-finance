@@ -109,7 +109,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const getCustodies = async (program: Program<OptionContract>) => {
     if (connected && publicKey != null && program) {
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const custodies = new Map<string, any>();
@@ -138,7 +138,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     const expiredpinfo = [];
     const doneInfo = [];
     const [pool] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+      [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
       program.programId
     );
     const [custody] = PublicKey.findProgramAddressSync(
@@ -250,7 +250,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     // try {
     if (!program || !publicKey || !connected || !wallet) return false;
     const [pool] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+      [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
       program.programId
     );
     const [custody] = PublicKey.findProgramAddressSync(
@@ -264,7 +264,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     let optionIndex;
     try {
       const userInfo = await program.account.user.fetch(userPDA);
-      optionIndex = userInfo.optionIndex.toNumber() + 1;
+      optionIndex = userInfo.optionIndex.toNumber();
     } catch {
       optionIndex = 1;
     }
@@ -298,7 +298,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         strike: strike,
         period: new BN(period),
         expiredTime: new BN(expiredTime),
-        poolName: "SOL-USDC",
+        poolName: "SOL-USDC-V2",
       })
       .accountsPartial({
         owner: publicKey,
@@ -337,7 +337,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (!program || !publicKey || !connected || !wallet) return;
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const [custody] = PublicKey.findProgramAddressSync(
@@ -394,7 +394,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       const transaction = await program.methods
-        .closeOption({ optionIndex: new BN(optionIndex), poolName: "SOL-USDC" })
+        .closeOption({ optionIndex: new BN(optionIndex), poolName: "SOL-USDC-V2" })
         .accountsPartial({
           owner: publicKey,
           fundingAccount,
@@ -428,7 +428,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       if (!program || !publicKey || !connected || !wallet) return;
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const [custody] = PublicKey.findProgramAddressSync(
@@ -469,7 +469,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const onExerciseOption = async (optionIndex: number) => {
     if (!program || !optionIndex || !publicKey || !connected || !wallet) return;
     const [pool] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+      [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
       program.programId
     );
     const [custody] = PublicKey.findProgramAddressSync(
@@ -515,7 +515,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!wallet) return;
 
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const [custody] = PublicKey.findProgramAddressSync(
@@ -543,7 +543,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         .addLiquidity({
           amountIn: new BN(amount),
           minLpAmountOut: new BN(1),
-          poolName: "SOL-USDC",
+          poolName: "SOL-USDC-V2",
         })
         .accountsPartial({
           owner: publicKey,
@@ -580,7 +580,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       if (!wallet) return;
 
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const [custody] = PublicKey.findProgramAddressSync(
@@ -603,7 +603,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         oracles.push({ pubkey: ora, isSigner: false, isWritable: true });
       }
       const [poolPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const [contract] = PublicKey.findProgramAddressSync(
@@ -627,7 +627,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
       const [lpTokenMint] = PublicKey.findProgramAddressSync(
-        [Buffer.from("lp_token_mint"), Buffer.from("SOL-USDC")],
+        [Buffer.from("lp_token_mint"), Buffer.from("SOL-USDC-V2")],
         program.programId
       );
       const lpTokenAccount = getAssociatedTokenAddressSync(
@@ -640,7 +640,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         .removeLiquidity({
           lpAmountIn: new BN(amount),
           minAmountOut: new BN(0),
-          poolName: "SOL-USDC",
+          poolName: "SOL-USDC-V2",
         })
         .accountsPartial({
           owner: publicKey,
