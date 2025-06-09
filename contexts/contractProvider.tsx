@@ -53,15 +53,15 @@ interface ContractContextType {
 export const ContractContext = createContext<ContractContextType>({
   program: undefined,
   pub: undefined,
-  getCustodies: () => {},
-  getDetailInfos: () => {},
-  onOpenOption: async () => {},
-  onCloseOption: () => {},
-  onClaimOption: () => {},
-  onExerciseOption: () => {},
-  onAddLiquidity: () => {},
-  onRemoveLiquidity: () => {},
-  getOptionDetailAccount: () => {},
+  getCustodies: () => { },
+  getDetailInfos: () => { },
+  onOpenOption: async () => { },
+  onCloseOption: () => { },
+  onClaimOption: () => { },
+  onExerciseOption: () => { },
+  onAddLiquidity: () => { },
+  onRemoveLiquidity: () => { },
+  getOptionDetailAccount: () => { },
 });
 
 export const clusterUrl = "https://api.devnet.solana.com";
@@ -122,7 +122,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         ratios.set(
           mint.toBase58(),
           poolData.ratios[
-            poolData.custodies.findIndex((e) => e.equals(custody))
+          poolData.custodies.findIndex((e) => e.equals(custody))
           ]
         );
       }
@@ -137,44 +137,44 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     const pinfo = [];
     const expiredpinfo = [];
     const doneInfo = [];
-    
+
     const [pool] = PublicKey.findProgramAddressSync(
       [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
       program.programId
     );
-    
+
     // Get both custody addresses
     const [solCustody] = PublicKey.findProgramAddressSync(
       [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
       program.programId
     );
-    
+
     const [usdcCustody] = PublicKey.findProgramAddressSync(
       [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
       program.programId
     );
-    
+
     const [userPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
-    
+
     const userInfo = await program.account.user.fetch(userPDA).catch((e) => {
       return null;
     });
-    
+
     if (!userInfo) return [[], [], []];
     const optionIndex = userInfo.optionIndex.toNumber();
-    
+
     if (optionIndex == 0) return [[], [], []];
-    
+
     for (let i = 1; i <= optionIndex; i++) {
       try {
         // Try to find option detail with both possible custodies
         let optionDetailAccount;
         let detail;
         let actualCustody;
-        
+
         // First try SOL custody
         try {
           const solOptionDetail = getOptionDetailAccount(i, pool, solCustody);
@@ -197,22 +197,22 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             continue;
           }
         }
-        
+
         if (!detail || !optionDetailAccount) continue;
-        
+
         // 1. Option type is determined by what's locked by the protocol
         const isCallOption = detail.lockedAsset.equals(solCustody);   // SOL locked = Call
         const isPutOption = detail.lockedAsset.equals(usdcCustody);   // USDC locked = Put
         const optionType = isCallOption ? "Call" : "Put";
-        
+
         // 2. Token/symbol/logo is determined by what the USER PAID (premiumAsset)
         const isPremiumSOL = detail.premiumAsset.equals(solCustody);
         const isPremiumUSDC = detail.premiumAsset.equals(usdcCustody);
-        
+
         const token = isPremiumSOL ? "SOL" : "USDC";
-        const symbol = isPremiumSOL ? "SOL" : "USDC"; 
+        const symbol = isPremiumSOL ? "SOL" : "USDC";
         const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
-        
+
         // 3. Size calculation based on what was locked by protocol
         let optionSize;
         if (isCallOption) {
@@ -223,11 +223,11 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           const usdcAmount = detail.amount.toNumber() / (10 ** USDC_DECIMALS);
           optionSize = detail.strikePrice > 0 ? usdcAmount / detail.strikePrice : 0;
         }
-        
+
         // 4. PnL calculation (always based on SOL price movement)
         const currentPrice = priceData.price || 0;
         const strikePrice = detail.strikePrice || 0;
-        
+
         let pnl;
         if (isCallOption) {
           // Call PnL: profit when current price > strike price
@@ -236,7 +236,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           // Put PnL: profit when current price < strike price  
           pnl = strikePrice - currentPrice;
         }
-        
+
         // console.log(`Option ${i} Analysis:`, {
         //   optionType,
         //   lockedAsset: detail.lockedAsset.toBase58(),
@@ -249,7 +249,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         //   currentPrice,
         //   pnl
         // });
-        
+
         if (
           detail?.expiredDate.toNumber() > Math.round(Date.now() / 1000) &&
           detail?.valid
@@ -286,7 +286,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             "Crypto.SOL/USD",
             detail?.expiredDate.toNumber()
           );
-          
+
           // Calculate profit at expiry in USD
           let profitAtExpiry;
           if (isCallOption) {
@@ -296,7 +296,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             // Put profit: max(strikePrice - expiryPrice, 0) * size  
             profitAtExpiry = Math.max(strikePrice - (expiryPrice || 0), 0) * optionSize;
           }
-          
+
           expiredpinfo.push({
             index: detail.index.toNumber(),
             token: token,                    // What user PAID with
@@ -327,13 +327,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         continue;
       }
     }
-    
+
     console.log("Final results:", {
       activeOptions: pinfo.length,
-      expiredOptions: expiredpinfo.length, 
+      expiredOptions: expiredpinfo.length,
       doneOptions: doneInfo.length
     });
-    
+
     return [pinfo, expiredpinfo, doneInfo];
   };
 
@@ -491,6 +491,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         wallet.publicKey
       );
 
+      const custodyData = await program.account.custody.fetch(custody);
+      const payCustodyData = await program.account.custody.fetch(payCustody);
+
+      const custodyOracleAccount = custodyData.oracle;
+      const payCustodyOracleAccount = payCustodyData.oracle;
+
       const transaction = await program.methods
         .closeOption({ optionIndex: new BN(optionIndex), poolName: "SOL-USDC-V2" })
         .accountsPartial({
@@ -502,6 +508,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           optionDetail: optionDetail,
           lockedCustody: lockedCustody,
           payCustody: payCustody,
+          custodyOracleAccount: custodyOracleAccount,
+          payCustodyOracleAccount: payCustodyOracleAccount,
         })
         .transaction();
 
