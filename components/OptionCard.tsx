@@ -74,8 +74,6 @@ export default function OptionCard(
 
   const isPositive = marketData.change24h !== null && marketData.change24h > 0;
 
-  console.log(defaultStrikePrices)
-
   useEffect(() => {
     onCurrencyChange(payCurrency)
   }, [payCurrency]);

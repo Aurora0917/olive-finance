@@ -18,7 +18,7 @@ export const connection = new Connection(clusterUrl, "confirmed");
 export const USDC_MINT = new PublicKey(
   "8Kib2yCyFRkh9wyWtULzTvP8My5jryjeHGEikQTpWGGB"
 );
-export const USDC_DECIMALS = 6;
+export const USDC_DECIMALS = 9;
 export const WSOL_MINT = new PublicKey(
   "3LjPWcxZtR8T5w4Ct33fagUuJ2nkSgo1Nx3gP3rcQ6xW"
 );

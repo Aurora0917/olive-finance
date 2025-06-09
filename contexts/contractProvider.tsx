@@ -137,52 +137,133 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     const pinfo = [];
     const expiredpinfo = [];
     const doneInfo = [];
+    
     const [pool] = PublicKey.findProgramAddressSync(
       [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
       program.programId
     );
-    const [custody] = PublicKey.findProgramAddressSync(
+    
+    // Get both custody addresses
+    const [solCustody] = PublicKey.findProgramAddressSync(
       [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
       program.programId
     );
+    
+    const [usdcCustody] = PublicKey.findProgramAddressSync(
+      [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+      program.programId
+    );
+    
     const [userPDA] = PublicKey.findProgramAddressSync(
       [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
+    
     const userInfo = await program.account.user.fetch(userPDA).catch((e) => {
       return null;
     });
+    
     if (!userInfo) return [[], [], []];
     const optionIndex = userInfo.optionIndex.toNumber();
-
+    
     if (optionIndex == 0) return [[], [], []];
+    
     for (let i = 1; i <= optionIndex; i++) {
       try {
-        const optionDetailAccount = getOptionDetailAccount(i, pool, custody);
-        if (!optionDetailAccount) continue;
-        const detail = await program.account.optionDetail.fetch(
-          optionDetailAccount
-        );
-        if (!detail) continue;
-        const pnl =
-          priceData.price && detail.strikePrice
-            ? priceData.price - detail.strikePrice
-            : 0;
+        // Try to find option detail with both possible custodies
+        let optionDetailAccount;
+        let detail;
+        let actualCustody;
+        
+        // First try SOL custody
+        try {
+          const solOptionDetail = getOptionDetailAccount(i, pool, solCustody);
+          if (solOptionDetail) {
+            detail = await program.account.optionDetail.fetch(solOptionDetail);
+            optionDetailAccount = solOptionDetail;
+            actualCustody = solCustody;
+          }
+        } catch (e) {
+          // If SOL fails, try USDC custody
+          try {
+            const usdcOptionDetail = getOptionDetailAccount(i, pool, usdcCustody);
+            if (usdcOptionDetail) {
+              detail = await program.account.optionDetail.fetch(usdcOptionDetail);
+              optionDetailAccount = usdcOptionDetail;
+              actualCustody = usdcCustody;
+            }
+          } catch (e2) {
+            console.log(`Failed to fetch option ${i} with both custodies:`, e2);
+            continue;
+          }
+        }
+        
+        if (!detail || !optionDetailAccount) continue;
+        
+        // 1. Option type is determined by what's locked by the protocol
+        const isCallOption = detail.lockedAsset.equals(solCustody);   // SOL locked = Call
+        const isPutOption = detail.lockedAsset.equals(usdcCustody);   // USDC locked = Put
+        const optionType = isCallOption ? "Call" : "Put";
+        
+        // 2. Token/symbol/logo is determined by what the USER PAID (premiumAsset)
+        const isPremiumSOL = detail.premiumAsset.equals(solCustody);
+        const isPremiumUSDC = detail.premiumAsset.equals(usdcCustody);
+        
+        const token = isPremiumSOL ? "SOL" : "USDC";
+        const symbol = isPremiumSOL ? "SOL" : "USDC"; 
+        const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
+        
+        // 3. Size calculation based on what was locked by protocol
+        let optionSize;
+        if (isCallOption) {
+          // Call: locked SOL amount represents the option size
+          optionSize = detail.amount.toNumber() / (10 ** WSOL_DECIMALS);
+        } else {
+          // Put: locked USDC amount, convert to SOL equivalent using strike
+          const usdcAmount = detail.amount.toNumber() / (10 ** USDC_DECIMALS);
+          optionSize = detail.strikePrice > 0 ? usdcAmount / detail.strikePrice : 0;
+        }
+        
+        // 4. PnL calculation (always based on SOL price movement)
+        const currentPrice = priceData.price || 0;
+        const strikePrice = detail.strikePrice || 0;
+        
+        let pnl;
+        if (isCallOption) {
+          // Call PnL: profit when current price > strike price
+          pnl = currentPrice - strikePrice;
+        } else {
+          // Put PnL: profit when current price < strike price  
+          pnl = strikePrice - currentPrice;
+        }
+        
+        // console.log(`Option ${i} Analysis:`, {
+        //   optionType,
+        //   lockedAsset: detail.lockedAsset.toBase58(),
+        //   premiumAsset: detail.premiumAsset.toBase58(),
+        //   paidWith: token,
+        //   solCustody: solCustody.toBase58(),
+        //   usdcCustody: usdcCustody.toBase58(),
+        //   optionSize,
+        //   strikePrice,
+        //   currentPrice,
+        //   pnl
+        // });
+        
         if (
           detail?.expiredDate.toNumber() > Math.round(Date.now() / 1000) &&
           detail?.valid
         ) {
+          // Active options
           pinfo.push({
-            index: detail?.index.toNumber(),
-            token: detail?.lockedAsset.equals(custody) ? "SOL" : "USDC",
-            logo: "/images/solana.png",
-            symbol: "SOL",
-            strikePrice: detail?.strikePrice ?? 0,
-            type: detail?.lockedAsset.equals(custody) ? "Call" : "Put",
-            expiry: new Date(detail?.expiredDate.toNumber() * 1000).toString(),
-            size: detail?.lockedAsset.equals(custody)
-              ? detail.amount.toNumber() / 10 ** WSOL_DECIMALS
-              : detail.amount.toNumber() / 10 ** USDC_DECIMALS,
+            index: detail.index.toNumber(),
+            token: token,                    // What user PAID with (SOL or USDC)
+            logo: logo,                      // Logo matches payment currency
+            symbol: symbol,                  // Symbol matches payment currency  
+            strikePrice: strikePrice,
+            type: optionType,                // "Call" or "Put" (based on locked asset)
+            expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
+            size: detail.amount.toNumber() / (10 ** WSOL_DECIMALS),                // Size in SOL units (underlying asset)
             pnl: pnl,
             greeks: {
               delta: 0.6821,
@@ -190,52 +271,69 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               theta: -0.2113,
               vega: 0.0619,
             },
+            // Debug info
+            rawAmount: detail.amount.toString(),
+            lockedAsset: detail.lockedAsset.toBase58(),
+            premiumAsset: detail.premiumAsset.toBase58(),
+            custodyUsed: actualCustody!.toBase58(),
           });
         } else if (
           detail?.expiredDate.toNumber() < Math.round(Date.now() / 1000) &&
           detail?.valid
         ) {
+          // Expired options
           const expiryPrice = await getPythPrice(
             "Crypto.SOL/USD",
             detail?.expiredDate.toNumber()
           );
+          
+          // Calculate profit at expiry in USD
+          let profitAtExpiry;
+          if (isCallOption) {
+            // Call profit: max(expiryPrice - strikePrice, 0) * size
+            profitAtExpiry = Math.max((expiryPrice || 0) - strikePrice, 0) * optionSize;
+          } else {
+            // Put profit: max(strikePrice - expiryPrice, 0) * size  
+            profitAtExpiry = Math.max(strikePrice - (expiryPrice || 0), 0) * optionSize;
+          }
+          
           expiredpinfo.push({
-            index: detail?.index.toNumber() ?? 1,
-            token: detail?.lockedAsset.equals(custody) ? "SOL" : "USDC",
-            iconPath: "/images/solana.png",
-            symbol: "SOL",
-            strikePrice: detail?.strikePrice ?? 0,
-            qty: 100,
-            expiryPrice: expiryPrice!,
-            transaction: detail?.lockedAsset.equals(custody) ? "Call" : "Put",
-            tokenAmount: detail?.lockedAsset.equals(custody)
-              ? detail.amount.toNumber() / 10 ** WSOL_DECIMALS
-              : detail.amount.toNumber() / 10 ** USDC_DECIMALS,
-            dollarAmount: detail?.lockedAsset.equals(custody)
-              ? detail.profit * (expiryPrice ?? 1)
-              : detail.profit,
+            index: detail.index.toNumber(),
+            token: token,                    // What user PAID with
+            iconPath: logo,                  // Logo matches payment currency
+            symbol: symbol,                  // Symbol matches payment currency
+            strikePrice: strikePrice,
+            qty: 100, // You might want to adjust this to optionSize * 100
+            expiryPrice: expiryPrice || 0,
+            transaction: optionType,         // "Call" or "Put"
+            tokenAmount: optionSize,         // Size in SOL units
+            dollarAmount: profitAtExpiry,    // Profit in USD
           });
         } else {
+          // Exercised/closed options
           doneInfo.push({
             transactionID: `SOL-${formatDate(
               new Date(detail.exercised * 1000)
-            )}-${detail.strikePrice}-${
-              detail?.lockedAsset.equals(custody) ? "C" : "P"
-            }`,
+            )}-${strikePrice}-${optionType.charAt(0)}`,
             token: coins[0],
-            transactionType: detail?.lockedAsset.equals(custody)
-              ? "Call"
-              : "Put",
+            transactionType: optionType,
             optionType: "American",
-            strikePrice: detail.strikePrice,
+            strikePrice: strikePrice,
             expiry: format(new Date(detail.exercised), "dd MMM, yyyy HH:mm:ss"),
           });
         }
       } catch (e) {
-        console.log(e);
+        console.log(`Error processing option index ${i}:`, e);
         continue;
       }
     }
+    
+    console.log("Final results:", {
+      activeOptions: pinfo.length,
+      expiredOptions: expiredpinfo.length, 
+      doneOptions: doneInfo.length
+    });
+    
     return [pinfo, expiredpinfo, doneInfo];
   };
 
