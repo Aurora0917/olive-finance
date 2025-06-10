@@ -16,11 +16,11 @@ export const connection = new Connection(clusterUrl, "confirmed");
 
 // Devnet
 export const USDC_MINT = new PublicKey(
-  "3eU9Q4Ry3krQzE8HLjuGSmXLgRJh4hAuzDAfRzMHK3pj"
+  "Fe7yM1wqx5ySZmSHJjNzkLuvBCU8BEnYpmxcpGwwBkZq"
 );
-export const USDC_DECIMALS = 6;
+export const USDC_DECIMALS = 9;
 export const WSOL_MINT = new PublicKey(
-  "6wqZ7FCpzh3hTjWv1vVbGJpZwnQiGqPczpPqgqZExrQb"
+  "6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY"
 );
 export const WSOL_DECIMALS = 9;
 export const LP_DECIMALS = 6;
@@ -28,7 +28,7 @@ export const SOL_USD_PYTH_ACCOUNT = new PublicKey(
   "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"
 );
 export const Option_Program_Address = new PublicKey(
-  "CJYzrMd3i4XmsKAKXL5uwJnj8uZjV2MAFUepJJu3rif4"
+  "GSmqNhxAhrLJjcxd9G2ts3obF9va9QBRezm6PMQJuE9b"
 );
 
 export const WSOL_ORACLE = new PublicKey(
@@ -44,3 +44,5 @@ export const SOL_PRICE_FEED_ID =
 export const HELIUS_API_KEY = "0b2c2894-dced-471c-a773-f7b4d6ff1671";
 export const HELIUS_ENDPOINT = `https://api-devnet.helius.xyz/v0/addresses`;
 export const HELIUS_RPC_ENDPOINT = `https://devnet.helius-rpc.com/`;
+
+

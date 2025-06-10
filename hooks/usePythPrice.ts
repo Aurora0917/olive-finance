@@ -104,6 +104,8 @@ export function usePythPrice(token: string): UsePythPriceResult {
         const confidence =
           parseFloat(priceInfo.conf) * Math.pow(10, priceInfo.expo);
 
+        console.log("price", price, confidence, priceInfo.publishTime);
+
         const newPriceData = {
           price,
           confidence,

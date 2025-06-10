@@ -84,7 +84,7 @@ export default function SellCard() {
           provider
         );
         const [pool] = PublicKey.findProgramAddressSync(
-          [Buffer.from("pool"), Buffer.from("SOL-USDC-V2")],
+          [Buffer.from("pool"), Buffer.from("SOL-USDC")],
           program.programId
         );
         const [custody] = PublicKey.findProgramAddressSync(
