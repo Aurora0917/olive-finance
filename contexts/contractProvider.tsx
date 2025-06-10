@@ -27,6 +27,7 @@ import {
   getAssociatedTokenAddressSync,
   TOKEN_PROGRAM_ID,
   ASSOCIATED_TOKEN_PROGRAM_ID,
+  createAssociatedTokenAccountInstruction,
 } from "@solana/spl-token";
 import {
   USDC_DECIMALS,
@@ -676,7 +677,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const lockedOracle = lockedCustodyData.oracle;
   
       // Determine custody mint and locked custody mint
-      const custodyMint = custody.equals(solCustody) ? WSOL_MINT : USDC_MINT;
+      const custodyMint = custody?.equals(solCustody) ? WSOL_MINT : USDC_MINT;
       const lockedCustodyMint = lockedCustody.equals(solCustody) ? WSOL_MINT : USDC_MINT;
   
       console.log("Custody mint:", custodyMint.toBase58());
@@ -949,16 +950,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       const custodyData = await program.account.custody.fetch(custody);
-
-      // The fees structure contains:
-      // ratioMult: Fee multiplier
-      // addLiquidity: Fee for adding liquidity
-      // removeLiquidity: Fee for removing liquidity
-      return {
+      
+      // The fees are stored in the contract as basis points (1 basis point = 0.01%)
+      // We need to convert them to percentages for display
+      const fees = {
         ratioMultiplier: custodyData.fees.ratioMult.toString(),
         addLiquidityFee: custodyData.fees.addLiquidity.toString(),
         removeLiquidityFee: custodyData.fees.removeLiquidity.toString()
       };
+
+      return fees;
     } catch (error) {
       console.error("Error fetching pool fees:", error);
       return null;
