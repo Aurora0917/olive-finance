@@ -388,6 +388,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
 
+    console.log(paycustody.toBase58());
+
     const paycustodyData = await program.account.custody.fetch(paycustody);
 
     const transaction = await program.methods

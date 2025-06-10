@@ -16,11 +16,11 @@ export const connection = new Connection(clusterUrl, "confirmed");
 
 // Devnet
 export const USDC_MINT = new PublicKey(
-  "8Kib2yCyFRkh9wyWtULzTvP8My5jryjeHGEikQTpWGGB"
+  "3eU9Q4Ry3krQzE8HLjuGSmXLgRJh4hAuzDAfRzMHK3pj"
 );
-export const USDC_DECIMALS = 9;
+export const USDC_DECIMALS = 6;
 export const WSOL_MINT = new PublicKey(
-  "3LjPWcxZtR8T5w4Ct33fagUuJ2nkSgo1Nx3gP3rcQ6xW"
+  "6wqZ7FCpzh3hTjWv1vVbGJpZwnQiGqPczpPqgqZExrQb"
 );
 export const WSOL_DECIMALS = 9;
 export const LP_DECIMALS = 6;
@@ -28,7 +28,7 @@ export const SOL_USD_PYTH_ACCOUNT = new PublicKey(
   "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"
 );
 export const Option_Program_Address = new PublicKey(
-  "4dTNtPCimhf6UkE4trJTqcsVZ7PXaBPEtnhanJit5Mgi"
+  "CJYzrMd3i4XmsKAKXL5uwJnj8uZjV2MAFUepJJu3rif4"
 );
 
 export const WSOL_ORACLE = new PublicKey(

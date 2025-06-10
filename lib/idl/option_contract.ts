@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/option_contract.json`.
  */
 export type OptionContract = {
-  "address": "4dTNtPCimhf6UkE4trJTqcsVZ7PXaBPEtnhanJit5Mgi",
+  "address": "CJYzrMd3i4XmsKAKXL5uwJnj8uZjV2MAFUepJJu3rif4",
   "metadata": {
     "name": "optionContract",
     "version": "0.1.0",
