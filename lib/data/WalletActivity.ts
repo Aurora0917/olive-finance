@@ -9,6 +9,7 @@ export interface Transaction{
     optionType: string
     expiry: string
     strikePrice: number
+    timestamp?: number
 }
 
 export interface FuturesTransaction{

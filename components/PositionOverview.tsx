@@ -6,52 +6,41 @@ interface PositionOverviewProps{
     size: number
     pnl: number
     strikePrice: number
+    purchaseDate?: string
 }
 
-export default function PositionOverview({type, expiry, size, pnl, strikePrice} : PositionOverviewProps){
+export default function PositionOverview({type, expiry, size, pnl, strikePrice, purchaseDate} : PositionOverviewProps){
     return (
-        <div className='w-full flex flex-col space-y-1'>
-            <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <PositionTypeIcon />
-                    <span>Position Type:</span>
+        <div className="w-full flex flex-col space-y-4 text-xs">
+            <div className="w-full space-y-2">
+                <div className="flex justify-between items-center">
+                    <span className="text-secondary-foreground">Type</span>
+                    <span className="text-foreground">{type}</span>
                 </div>
-                <span>{type}</span>
-            </div>
-            <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <ExpiryIcon />
-                    <span>Expiry:</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-secondary-foreground">Strike Price</span>
+                    <span className="text-foreground">${strikePrice}</span>
                 </div>
-                <span>{expiry}</span>
-            </div>
-            <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <SizeIcon />
-                    <span>Size:</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-secondary-foreground">Size</span>
+                    <span className="text-foreground">{size}</span>
                 </div>
-                <span>{size}</span>
-            </div>
-            <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <StrikePriceIcon />
-                    <span>Strike Price:</span>
+                <div className="flex justify-between items-center">
+                    <span className="text-secondary-foreground">Expiry</span>
+                    <span className="text-foreground">{new Date(expiry).toLocaleString()}</span>
                 </div>
-                <span>{strikePrice}</span>
-            </div>
-            <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <ValueIcon />
-                    <span>Value:</span>
+                {purchaseDate && (
+                    <div className="flex justify-between items-center">
+                        <span className="text-secondary-foreground">Purchase Date</span>
+                        <span className="text-foreground">{new Date(purchaseDate).toLocaleString()}</span>
+                    </div>
+                )}
+                <div className="flex justify-between items-center">
+                    <span className="text-secondary-foreground">P&L</span>
+                    <span className={`${pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : 'text-foreground'}`}>
+                        {pnl > 0 ? '+' : ''}{pnl.toFixed(2)}
+                    </span>
                 </div>
-                <span>value</span>
-            </div>
-            <div className='w-full flex justify-between text-sm text-[#FF6889] font-normal'>
-                <div className='flex space-x-2 items-center'>
-                    <RedArrowPnl />
-                    <span>P&L:</span>
-                </div>
-                <span>{pnl}</span>
             </div>
         </div>
     )

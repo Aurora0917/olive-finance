@@ -248,12 +248,12 @@ export default function EarnSidebar({
 
     try {
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL-USDC")],
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
 
       const [lpTokenMint] = PublicKey.findProgramAddressSync(
-        [Buffer.from("lp_token_mint"), Buffer.from("SOL-USDC")],
+        [Buffer.from("lp_token_mint"), Buffer.from("SOL/USDC")],
         program.programId
       );
 

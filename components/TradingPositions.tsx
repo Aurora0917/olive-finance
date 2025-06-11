@@ -22,45 +22,50 @@ import { ContractContext, ExpiredOption } from "@/contexts/contractProvider";
 import { Transaction } from "@/lib/data/WalletActivity";
 import { BN } from "@coral-xyz/anchor";
 import Pagination from "./Pagination";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function TradingPositions() {
   const [activeTab, setActiveTab] = useState<string>("Positions");
-  const [optioninfos, setOptionInfos] = useState<Position[]>([]);
-  const [expiredInfos, setExpiredInfos] = useState<ExpiredOption[]>([]);
-  const [doneInfo, setDoneInfo] = useState<Transaction[]>([]);
-  const { program, getDetailInfos, pub, onClaimOption, onExerciseOption } =
-    useContext(ContractContext);
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
+  
+  const { 
+    positions, 
+    expiredPositions, 
+    donePositions, 
+    refreshPositions, 
+    positionsLoading, 
+    onClaimOption, 
+    onExerciseOption 
+  } = useContext(ContractContext);
 
   const handleClickTab = (state: string) => {
     if (activeTab !== state) {
       setActiveTab(state);
     }
   };
+  
   const onClaim = (optionindex: number, solPrice: number) => {
     onClaimOption(optionindex, solPrice);
   };
-  const onExercise =(index: number)=>{
-    onExerciseOption(index);
-  }
-  useEffect(() => {
-    (async () => {
-      if (program && pub) {
-        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(
-          program,
-          pub
-        );
-        setOptionInfos(pinfo);
-        setExpiredInfos(expiredpinfo);
-        setDoneInfo(doneinfo);
-      }
-    })();
-  }, [program]);
-
-  const [currentPage, setCurrentPage] = useState(1)
-  const itemsPerPage = 5;
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
   
+  const onExercise = (index: number) => {
+    onExerciseOption(index);
+  };
+
+  // Set up an interval to refresh positions data
+  useEffect(() => {
+    // Initial load
+    refreshPositions();
+    
+    // Set up interval for periodic refresh (every 30 seconds)
+    const intervalId = setInterval(() => {
+      refreshPositions();
+    }, 30000);
+    
+    // Clean up interval on component unmount
+    return () => clearInterval(intervalId);
+  }, []); // Empty dependency array to run only once on mount
 
   return (
     <div className="w-full h-fit border rounded-sm flex flex-col">
@@ -91,8 +96,12 @@ export default function TradingPositions() {
           </TabsList>
         </Tabs>
         <div className="hidden md:flex gap-3 items-center">
-          <Button className="bg-secondary p-2 w-full h-auto rounded-sm">
-            <RotateCw className="text-secondary-foreground" />
+          <Button 
+            className="bg-secondary p-2 w-full h-auto rounded-sm"
+            onClick={() => refreshPositions()}
+            disabled={positionsLoading}
+          >
+            <RotateCw className={`text-secondary-foreground ${positionsLoading ? 'animate-spin' : ''}`} />
           </Button>
           <Button className="bg-secondary w-full h-auto py-[6px] px-[10px] rounded-sm">
             <Ban className="text-secondary-foreground p-0" />
@@ -111,8 +120,11 @@ export default function TradingPositions() {
             align="end"
             className="p-1 min-w-fit rounded-[12px]"
           >
-            <DropdownMenuItem className="space-x-[6px] gap-0 w-fit">
-              <RotateCw className="w-fit text-secondary-foreground" />
+            <DropdownMenuItem 
+              className="space-x-[6px] gap-0 w-fit"
+              onClick={() => refreshPositions()}
+            >
+              <RotateCw className={`w-fit text-secondary-foreground ${positionsLoading ? 'animate-spin' : ''}`} />
               <span>Reload</span>
             </DropdownMenuItem>
             <DropdownMenuItem className="w-fit space-x-[6px] gap-0">
@@ -124,70 +136,58 @@ export default function TradingPositions() {
       </div>
       {activeTab === "Positions" && (
         <div className="px-3 md:px-6 py-4 pb-[10px] space-y-[10px]">
-          {optioninfos &&
-            optioninfos.map((position, index) => (
-              <OpenPositions
-                key={index}
-                index={position.index}
-                token={position.token}
-                logo={position.logo}
-                symbol={position.symbol}
-                type={position.type}
-                strikePrice={position.strikePrice}
-                expiry={position.expiry}
-                size={position.size}
-                pnl={position.pnl}
-                greeks={position.greeks}
-                onExercise={()=>onExercise(position.index)}
-              />
-            ))}
-            <div className="pb-4 w-full">
-                <Pagination
-                    currentPage={currentPage}
-                    totalItems={optioninfos.length}
-                    itemsPerPage={itemsPerPage}
-                    onPageChange={setCurrentPage}
+          <AnimatePresence>
+            {positions && positions.length > 0 ? (
+              positions.map((position, index) => (
+                <OpenPositions
+                  key={position.index}
+                  index={position.index}
+                  token={position.token}
+                  logo={position.logo}
+                  symbol={position.symbol}
+                  type={position.type}
+                  strikePrice={position.strikePrice}
+                  expiry={position.expiry}
+                  size={position.size}
+                  pnl={position.pnl}
+                  purchaseDate={position.purchaseDate}
+                  greeks={position.greeks}
+                  onExercise={() => onExercise(position.index)}
                 />
+              ))
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="w-full text-center py-4 text-secondary-foreground"
+              >
+                {positionsLoading ? "Loading positions..." : "No open positions"}
+              </motion.div>
+            )}
+          </AnimatePresence>
+          {positions && positions.length > 0 && (
+            <div className="pb-4 w-full">
+              <Pagination
+                currentPage={currentPage}
+                totalItems={positions.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={setCurrentPage}
+              />
             </div>
-            
+          )}
         </div>
       )}
       {activeTab === "Expired" && (
         <div className="md:pb-[44px]">
-          <ExpiredOptions infos={expiredInfos} onClaim={onClaim} />
+          <ExpiredOptions infos={expiredPositions} onClaim={onClaim} />
         </div>
       )}
       {activeTab === "History" && (
         <div className="px-3 md:px-6 py-4 pb-[20px] md:pb-[10px]">
-          <OrderHistory doneOptioninfos={doneInfo} />
+          <OrderHistory doneOptioninfos={donePositions} />
         </div>
       )}
-      {/* <div className="px-3 md:px-6 pb-4 flex justify-end">
-        <div className="w-full flex items-center md:gap-5 justify-between md:justify-end">
-          <button className="p-2 rounded-[12px] bg-secondary flex items-center h-9 w-9">
-            <ChevronLeft className="w-fit h-fit  text-secondary-foreground" />
-          </button>
-          <div className="space-x-2">
-            <button className="p-[6px] w-9 h-9 rounded-[12px] bg-backgroundSecondary">
-              1
-            </button>
-            <button className="p-[6px] w-9 h-9 rounded-[12px] bg-backgroundSecondary">
-              2
-            </button>
-            <button className="p-[6px] w-9 h-9 rounded-[12px] bg-backgroundSecondary">
-              3
-            </button>
-            <span>...</span>
-            <button className="py-[6px] px-2 rounded-[12px] bg-backgroundSecondary w-fit h-fit">
-              109
-            </button>
-          </div>
-
-          <button className="p-2 rounded-[12px] bg-secondary flex items-center h-9 w-9">
-            <ChevronRight className="w-fit h-fit  text-secondary-foreground" />
-          </button>
-        </div>
-      </div> */}
     </div>
   );
 }

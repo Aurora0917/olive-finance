@@ -33,8 +33,7 @@ export function useOptionsPricing({
     }
 
     const calculatedPremium = black_scholes(
-      // currentPrice,
-      139.81,
+      currentPrice,
       strikePrice,
       time,
       isCall(type)

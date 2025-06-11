@@ -18,7 +18,7 @@ export const connection = new Connection(clusterUrl, "confirmed");
 export const USDC_MINT = new PublicKey(
   "Fe7yM1wqx5ySZmSHJjNzkLuvBCU8BEnYpmxcpGwwBkZq"
 );
-export const USDC_DECIMALS = 9;
+export const USDC_DECIMALS = 6;
 export const WSOL_MINT = new PublicKey(
   "6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY"
 );
@@ -32,10 +32,10 @@ export const Option_Program_Address = new PublicKey(
 );
 
 export const WSOL_ORACLE = new PublicKey(
-  "J83w4HKfqxwcq3BEMMkPFSppX3gqekLyLJBexebFVkix"
+  "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE"
 );
 export const USDC_ORACLE = new PublicKey(
-  "5SSkXsEKQepHHAewytPVwdej4epN1nxgLVM84L4KXgy7"
+  "Dpw1EAVrSB1ibxiDQyTAW6Zip3J4Btk2x4SgApQCeFbX"
 );
 
 export const HERMES_URL = "https://hermes.pyth.network/";

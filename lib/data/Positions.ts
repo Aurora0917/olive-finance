@@ -8,6 +8,7 @@ export interface Position{
     expiry: string
     size: number
     pnl: number
+    purchaseDate?: string
     greeks: {
         delta: number
         gamma: number

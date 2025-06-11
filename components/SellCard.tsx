@@ -71,61 +71,66 @@ export default function SellCard() {
 
   useEffect(() => {
     (async () => {
-      let provider: Provider;
-      if (wallet && connected) {
-        try {
-          provider = getProvider();
-        } catch {
-          provider = new AnchorProvider(connection, wallet, {});
-        }
+      try {
+        let provider: Provider;
+        if (wallet && connected) {
+          try {
+            provider = getProvider();
+          } catch {
+            provider = new AnchorProvider(connection, wallet, {});
+          }
 
-        const program = new Program<OptionContract>(
-          idl as OptionContract,
-          provider
-        );
-        const [pool] = PublicKey.findProgramAddressSync(
-          [Buffer.from("pool"), Buffer.from("SOL-USDC")],
-          program.programId
-        );
-        const [custody] = PublicKey.findProgramAddressSync(
-          [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
-          program.programId
-        );
-        const [userPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("user"), wallet.publicKey.toBuffer()],
-          program.programId
-        );
-        const userData = await program.account.user
-          .fetch(userPDA)
-          .catch((e) => null);
-        if (!userData) return [];
-        const optionDatas: Option[] = [];
-        for (let i = 1; i <= userData.optionIndex.toNumber(); i++) {
-          const optionDetailAccount = sc.getOptionDetailAccount(
-            i,
-            pool,
-            custody
+          const program = new Program<OptionContract>(
+            idl as OptionContract,
+            provider
           );
-          const optionData = await program.account.optionDetail.fetch(
-            optionDetailAccount
+          const [pool] = PublicKey.findProgramAddressSync(
+            [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+            program.programId
           );
-          const lockedAssetData = await program.account.custody.fetch(optionData.lockedAsset);
-          console.log("premium", i, optionData.premium.toNumber())
-          optionDatas.push({
-            id: optionData.index.toNumber(),
-            type: optionData.lockedAsset.equals(custody) ? "Call" : "Put",
-            strikePrice: optionData.strikePrice,
-            size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
-            status: optionData.valid ? "Active" : "Invalid",
-            expiration: new Date(optionData.expiredDate.toNumber() * 1000),
-            purchaseDate: new Date(
-              (optionData.expiredDate.toNumber() -
-                optionData.period * 3600 * 24) *
-                1000
-            ),
-          });
+          const [custody] = PublicKey.findProgramAddressSync(
+            [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+            program.programId
+          );
+          const [userPDA] = PublicKey.findProgramAddressSync(
+            [Buffer.from("user"), wallet.publicKey.toBuffer()],
+            program.programId
+          );
+          const userData = await program.account.user
+            .fetch(userPDA)
+            .catch((e) => null);
+          if (!userData) return [];
+          const optionDatas: Option[] = [];
+          for (let i = 1; i <= userData.optionIndex.toNumber() - 1; i++) {
+            const optionDetailAccount = sc.getOptionDetailAccount(
+              i,
+              pool,
+              custody
+            );
+            const optionData = await program.account.optionDetail.fetch(
+              optionDetailAccount
+            );
+            const lockedAssetData = await program.account.custody.fetch(optionData.lockedAsset);
+            console.log("premium", i, optionData.premium.toNumber())
+            optionDatas.push({
+              id: optionData.index.toNumber(),
+              type: optionData.lockedAsset.equals(custody) ? "Call" : "Put",
+              strikePrice: optionData.strikePrice,
+              size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
+              status: optionData.valid ? "Active" : "Invalid",
+              expiration: new Date(optionData.expiredDate.toNumber() * 1000),
+              purchaseDate: new Date(
+                (optionData.expiredDate.toNumber() -
+                  optionData.period * 3600 * 24) *
+                  1000
+              ),
+            });
+          }
+          setOptions(optionDatas);
         }
-        setOptions(optionDatas);
+      } catch (error) {
+        console.error("Error fetching options:", error);
+        // Handle the error appropriately, e.g., show an error message to the user
       }
     })();
   }, [connected]);

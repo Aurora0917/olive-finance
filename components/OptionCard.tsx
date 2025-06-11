@@ -26,7 +26,7 @@ import { formatPrice } from "@/utils/formatter";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import WalletModal from "./WalletModal";
 import { ContractContext } from "@/contexts/contractProvider";
-import { WSOL_DECIMALS } from "@/utils/const";
+import { USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const";
 import { toast } from "react-toastify";
 import BuyOption from "./toasts/BuyOption";
 
@@ -135,12 +135,12 @@ export default function OptionCard(
     const expTime = Math.floor(expiration.getTime() / 1000);
     const period = Math.floor((expTime - currentTime) / (3600 * 24)) + 1;
     await sc.onOpenOption(
-      parseFloat(optionSize) * 10 ** WSOL_DECIMALS,
+      parseFloat(optionSize) * 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS),
       parseFloat(strikePrice),
       period,
       expTime,
       selectedOption == "Call" ? true : false,
-      true
+      payCurrency === "Crypto.SOL/USD",
     );
   };
 

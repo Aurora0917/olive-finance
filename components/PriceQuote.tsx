@@ -24,8 +24,7 @@ export default function PriceQuote({value, active, priceData, premium, contractT
     const [moreInfo, setMoreInfo] = useState<boolean>(false);
     const tokens = tokenList;
     const usdc = USDC
-    // const s = priceData.price ?? 0;
-    const s = 139.81;
+    const s = priceData.price ?? 0;
 
     const total = currency === usdc.pythSymbol ? ((s/premium)/s) : (s/premium)
     const minRec = parseFloat(value) * total

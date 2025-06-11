@@ -278,16 +278,16 @@ export default function RecentTrades() {
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Bought"
                 ? (
-                  parseFloat(row.amount) /
-                  10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)
-                ).toFixed(2)
+                    parseFloat(row.amount) /
+                    10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)
+                  ).toFixed(2)
                 : row.tx == "Sold"
                   ? (
-                    ((parseFloat(row.amount) / 10) * 9) /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
-                  ).toFixed(2)
+                      ((parseFloat(row.amount) / 10) * 9) /
+                      (row.type == "Call"
+                        ? 10 ** WSOL_DECIMALS
+                        : 10 ** USDC_DECIMALS)
+                    ).toFixed(2)
                   : row.tx == "Exercised"
                     ? row.claimed != "0"
                       ? row.claimed
@@ -298,12 +298,12 @@ export default function RecentTrades() {
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Sold"
                 ? (
-                  parseFloat(row.amount) /
-                  10 /
-                  (row.type == "Call"
-                    ? 10 ** WSOL_DECIMALS
-                    : 10 ** USDC_DECIMALS)
-                ).toFixed(2)
+                    parseFloat(row.amount) /
+                    10 /
+                    (row.type == "Call"
+                      ? 10 ** WSOL_DECIMALS
+                      : 10 ** USDC_DECIMALS)
+                  ).toFixed(2)
                 : "0"}{" "}
               {row.type == "Call" ? "SOL" : "USDC"}
             </TableCell>
@@ -330,16 +330,18 @@ export default function RecentTrades() {
               $
               {row.purchasedPrice
                 ? (
-                  (Number(row.amount) * Number(row.purchasedPrice)) /
-                  (row.type == "Call"
-                    ? 10 ** WSOL_DECIMALS
-                    : 10 ** USDC_DECIMALS)
-                ).toFixed(2)
+                    (Number(row.amount) * Number(row.purchasedPrice)) /
+                    (row.type == "Call"
+                      ? 10 ** WSOL_DECIMALS
+                      : 10 ** USDC_DECIMALS)
+                  ).toFixed(2)
                 : "0"}{" "}
               USD
             </TableCell>
             <TableCell className="text-sm text-foreground font-normal text-justify pl-3 pr-5 py-[14px]">
-              {new Date(parseInt(row.executedDate) * 1000).toLocaleString()}
+              <span className="whitespace-nowrap">
+                {new Date(parseInt(row.executedDate) * 1000).toLocaleString()}
+              </span>
             </TableCell>
           </TableRow>
         ))}
@@ -384,7 +386,7 @@ export default function RecentTrades() {
               <TableHead className="text-xs text-secondary-foreground font-medium text-justify px-3 py-4">
                 Trade Size
               </TableHead>
-              <TableHead className="text-xs text-secondary-foreground font-medium text-justify pr-5 pl-3 py-4">
+              <TableHead className="text-xs text-secondary-foreground font-medium text-justify pr-5 pl-3 py-4 bg-primary/10">
                 Purchase Date
               </TableHead>
             </TableRow>

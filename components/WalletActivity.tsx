@@ -38,7 +38,7 @@ export default function WalletActivity(){
                                             <span className="px-1">
                                                 
                                             </span>
-                                            Vanilla
+                                            Buy
                                         </span>
                                     </div>
                                 </div>
