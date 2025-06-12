@@ -105,9 +105,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const wallet = useAnchorWallet();
   const [program, setProgram] = useState<Program<OptionContract>>();
   const [pub, setPubKey] = useState<PublicKey>();
-  const [positions, setPositions] = useState<Position[]>([]);
-  const [expiredPositions, setExpiredPositions] = useState<ExpiredOption[]>([]);
-  const [donePositions, setDonePositions] = useState<Transaction[]>([]);
+  const [positions, setPositions] = useState<any>([]);
+  const [expiredPositions, setExpiredPositions] = useState<any>([]);
+  const [donePositions, setDonePositions] = useState<any>([]);
   const [positionsLoading, setPositionsLoading] = useState<boolean>(false);
 
   const getOptionDetailAccount = (
