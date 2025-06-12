@@ -261,6 +261,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           pnl = strikePrice - currentPrice;
         }
 
+        console.log(detail);
+
         if (
           detail?.expiredDate.toNumber() > Math.round(Date.now() / 1000) &&
           detail?.valid
@@ -291,24 +293,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           });
         } else if (
           detail?.expiredDate.toNumber() < Math.round(Date.now() / 1000) &&
-          detail?.valid
+          detail?.claimed != 0
         ) {
-          // Expired options
-          const expiryPrice = await getPythPrice(
-            "Crypto.SOL/USD",
-            detail?.expiredDate.toNumber()
-          );
-
-          // Calculate profit at expiry in USD
-          let profitAtExpiry;
-          if (isCallOption) {
-            // Call profit: max(expiryPrice - strikePrice, 0) * size
-            profitAtExpiry = Math.max((expiryPrice || 0) - strikePrice, 0) * optionSize;
-          } else {
-            // Put profit: max(strikePrice - expiryPrice, 0) * size  
-            profitAtExpiry = Math.max(strikePrice - (expiryPrice || 0), 0) * optionSize;
-          }
-
           expiredpinfo.push({
             index: detail.index.toNumber(),
             token: token,                    // What user PAID with
@@ -316,10 +302,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             symbol: symbol,                  // Symbol matches payment currency
             strikePrice: strikePrice,
             qty: 100, // You might want to adjust this to optionSize * 100
-            expiryPrice: expiryPrice || 0,
+            expiryPrice: 0,
             transaction: optionType,         // "Call" or "Put"
             tokenAmount: optionSize,         // Size in SOL units
-            dollarAmount: profitAtExpiry,    // Profit in USD
+            dollarAmount: detail.profit,    // Profit in USD
           });
         } else {
           // Exercised/closed options
