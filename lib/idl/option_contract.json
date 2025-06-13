@@ -861,6 +861,14 @@
           }
         },
         {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
           "name": "custody",
           "writable": true,
           "pda": {
@@ -910,6 +918,7 @@
         },
         {
           "name": "option_detail",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -965,18 +974,13 @@
               },
               {
                 "kind": "account",
-                "path": "locked_custody.mint",
-                "account": "Custody"
+                "path": "locked_custody_mint"
               }
             ]
           }
         },
         {
           "name": "locked_oracle"
-        },
-        {
-          "name": "custody_mint",
-          "writable": true
         },
         {
           "name": "token_program",
@@ -1099,6 +1103,14 @@
           }
         },
         {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
           "name": "user",
           "pda": {
             "seeds": [
@@ -1148,6 +1160,7 @@
         },
         {
           "name": "option_detail",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1203,18 +1216,55 @@
               },
               {
                 "kind": "account",
-                "path": "locked_custody.mint",
-                "account": "Custody"
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "locked_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
               }
             ]
           }
         },
         {
           "name": "locked_oracle"
-        },
-        {
-          "name": "custody_mint",
-          "writable": true
         },
         {
           "name": "token_program",
@@ -1939,6 +1989,9 @@
         },
         {
           "name": "locked_oracle"
+        },
+        {
+          "name": "custody_oracle"
         },
         {
           "name": "token_program",

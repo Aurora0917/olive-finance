@@ -699,7 +699,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Get locked custody data to find oracle
       const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
+      const solCustodyData = await program.account.custody.fetch(solCustody);
       const lockedOracle = lockedCustodyData.oracle;
+      const solOracle = solCustodyData.oracle;
       console.log("Locked oracle:", lockedOracle.toBase58());
 
       // Determine custody mint and locked custody mint
@@ -755,6 +757,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           optionDetail: optionDetailAccount,
           lockedCustody: lockedCustody,
           lockedOracle: lockedOracle,
+          custodyOracle: solOracle,
           lockedCustodyTokenAccount: lockedCustodyTokenAccount,
           custodyMint: custodyMint,
           lockedCustodyMint: lockedCustodyMint,
@@ -769,9 +772,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
 
       // Optional: Simulate transaction for debugging
-      // transaction.feePayer = publicKey;
-      // const result = await connection.simulateTransaction(transaction);
-      // console.log("Simulation result:", result);
+      transaction.feePayer = publicKey;
+      const result = await connection.simulateTransaction(transaction);
+      console.log("Simulation result:", result);
 
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction({

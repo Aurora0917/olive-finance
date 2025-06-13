@@ -867,6 +867,14 @@ export type OptionContract = {
           }
         },
         {
+          "name": "custodyMint",
+          "writable": true
+        },
+        {
+          "name": "lockedCustodyMint",
+          "writable": true
+        },
+        {
           "name": "custody",
           "writable": true,
           "pda": {
@@ -916,6 +924,7 @@ export type OptionContract = {
         },
         {
           "name": "optionDetail",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -971,18 +980,13 @@ export type OptionContract = {
               },
               {
                 "kind": "account",
-                "path": "locked_custody.mint",
-                "account": "custody"
+                "path": "lockedCustodyMint"
               }
             ]
           }
         },
         {
           "name": "lockedOracle"
-        },
-        {
-          "name": "custodyMint",
-          "writable": true
         },
         {
           "name": "tokenProgram",
@@ -1105,6 +1109,14 @@ export type OptionContract = {
           }
         },
         {
+          "name": "custodyMint",
+          "writable": true
+        },
+        {
+          "name": "lockedCustodyMint",
+          "writable": true
+        },
+        {
           "name": "user",
           "pda": {
             "seeds": [
@@ -1154,6 +1166,7 @@ export type OptionContract = {
         },
         {
           "name": "optionDetail",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -1209,18 +1222,55 @@ export type OptionContract = {
               },
               {
                 "kind": "account",
-                "path": "locked_custody.mint",
-                "account": "custody"
+                "path": "lockedCustodyMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "lockedCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "lockedCustodyMint"
               }
             ]
           }
         },
         {
           "name": "lockedOracle"
-        },
-        {
-          "name": "custodyMint",
-          "writable": true
         },
         {
           "name": "tokenProgram",
@@ -1945,6 +1995,9 @@ export type OptionContract = {
         },
         {
           "name": "lockedOracle"
+        },
+        {
+          "name": "custodyOracle"
         },
         {
           "name": "tokenProgram",
