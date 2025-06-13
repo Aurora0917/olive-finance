@@ -6,7 +6,9 @@ import {
   clusterUrl,
   Option_Program_Address,
   USDC_DECIMALS,
+  USDC_MINT,
   WSOL_DECIMALS,
+  WSOL_MINT,
 } from "@/utils/const";
 
 import {
@@ -110,6 +112,11 @@ export default function RecentTrades() {
         (pool) => pool.programId === optionDetailAccount.pool.toString()
       );
 
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
       const purchaseTimestamp =
         parseInt(optionDetailAccount.expiredDate) * 1000 -
         parseInt(optionDetailAccount.period) * 86400 * 1000 -
@@ -120,9 +127,18 @@ export default function RecentTrades() {
 
       const priceData = await getPythPrice(selectedSymbol, purchaseTimestamp);
 
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
       const isCall =
-        optionDetailAccount.lockedAsset.toString() ==
-        optionDetailAccount.premiumAsset.toString();
+        optionDetailAccount.lockedAsset.equals(solCustody);
 
       const premium = parseFloat(optionDetailAccount.premium);
       const quantity = optionDetailAccount.quantity.toString();
@@ -278,32 +294,30 @@ export default function RecentTrades() {
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Bought"
                 ? (
-                    parseFloat(row.amount) /
-                    10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)
-                  ).toFixed(2)
+                  parseFloat(row.amount) /
+                  10 ** (row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? WSOL_DECIMALS : USDC_DECIMALS) : (row.lockedAsset == row.premiumAsset ? USDC_DECIMALS : WSOL_DECIMALS))
+                ).toFixed(2)
                 : row.tx == "Sold"
                   ? (
-                      ((parseFloat(row.amount) / 10) * 9) /
-                      (row.type == "Call"
-                        ? 10 ** WSOL_DECIMALS
-                        : 10 ** USDC_DECIMALS)
-                    ).toFixed(2)
+                    ((parseFloat(row.amount) / 10) * 9) /
+                    10 ** (row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? WSOL_DECIMALS : USDC_DECIMALS) : (row.lockedAsset == row.premiumAsset ? USDC_DECIMALS : WSOL_DECIMALS))
+                  ).toFixed(2)
                   : row.tx == "Exercised"
                     ? row.claimed != "0"
                       ? row.claimed
-                      : parseFloat(row.profit).toFixed(2)
+                      : (parseFloat(row.profit) / 10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)).toFixed(2)
                     : "0"}{" "}
-              {row.type == "Call" ? "SOL" : /* "USDC" */ " SOL"}
+              {(row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? "SOL" : "USDC") : (row.lockedAsset == row.premiumAsset ? "USDC" : "SOL"))}
             </TableCell>
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Sold"
                 ? (
-                    parseFloat(row.amount) /
-                    10 /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
-                  ).toFixed(2)
+                  parseFloat(row.amount) /
+                  10 /
+                  (row.type == "Call"
+                    ? 10 ** WSOL_DECIMALS
+                    : 10 ** USDC_DECIMALS)
+                ).toFixed(2)
                 : "0"}{" "}
               {row.type == "Call" ? "SOL" : "USDC"}
             </TableCell>
@@ -330,11 +344,11 @@ export default function RecentTrades() {
               $
               {row.purchasedPrice
                 ? (
-                    (Number(row.amount) * Number(row.purchasedPrice)) /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
-                  ).toFixed(2)
+                  (Number(row.amount) * Number(row.purchasedPrice)) /
+                  (row.type == "Call"
+                    ? 10 ** WSOL_DECIMALS
+                    : 10 ** USDC_DECIMALS)
+                ).toFixed(2)
                 : "0"}{" "}
               USD
             </TableCell>

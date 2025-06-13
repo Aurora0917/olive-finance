@@ -10,8 +10,8 @@ export default function OrderHistory({doneOptioninfos}:{doneOptioninfos:Transact
     return (
         <>
             <div className="w-full hidden md:flex flex-col space-y-[14px]">
-                {doneOptioninfos && doneOptioninfos.map((tx) => (
-                    <div className="w-full flex justify-between items-center" key={tx.transactionID}>
+                {doneOptioninfos && doneOptioninfos.map((tx, index) => (
+                    <div className="w-full flex justify-between items-center" key={`${tx.transactionID}-${index}`}>
                         <div className="w-full flex space-x-[10px] items-center">
                             <div className="flex flex-col -space-y-0.5 justify-center items-center h-9">
                                 <Image src={tx.token.logo} alt='eth icon' width={20} height={20} className="rounded-full" />

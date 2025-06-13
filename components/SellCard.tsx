@@ -63,7 +63,7 @@ export default function SellCard() {
   const onSellOptionHandler = async () => {
     console.log(1)
     if (selectedOption) {
-    console.log(2, selectedOption)
+      console.log(2, selectedOption)
 
       await sc.onCloseOption(selectedOption.id);
     }
@@ -96,35 +96,58 @@ export default function SellCard() {
             [Buffer.from("user"), wallet.publicKey.toBuffer()],
             program.programId
           );
+          const userInfo = await program.account.user.fetch(userPDA).catch((e) => {
+            return null;
+          });
+
+          if (!userInfo) {
+            setOptions([]);
+            return;
+          }
+          const optionIndex = userInfo!.optionIndex.toNumber();
+
+          if (optionIndex == 0) {
+            setOptions([]);
+            return;
+          }
           const userData = await program.account.user
             .fetch(userPDA)
             .catch((e) => null);
-          if (!userData) return [];
+          if (!userData) {
+            setOptions([]);
+            return;
+          }
           const optionDatas: Option[] = [];
-          for (let i = 1; i <= userData.optionIndex.toNumber() - 1; i++) {
-            const optionDetailAccount = sc.getOptionDetailAccount(
-              i,
-              pool,
-              custody
-            );
-            const optionData = await program.account.optionDetail.fetch(
-              optionDetailAccount
-            );
-            const lockedAssetData = await program.account.custody.fetch(optionData.lockedAsset);
-            console.log("premium", i, optionData.premium.toNumber())
-            optionDatas.push({
-              id: optionData.index.toNumber(),
-              type: optionData.lockedAsset.equals(custody) ? "Call" : "Put",
-              strikePrice: optionData.strikePrice,
-              size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
-              status: optionData.valid ? "Active" : "Invalid",
-              expiration: new Date(optionData.expiredDate.toNumber() * 1000),
-              purchaseDate: new Date(
-                (optionData.expiredDate.toNumber() -
-                  optionData.period * 3600 * 24) *
-                  1000
-              ),
-            });
+          for (let i = 1; i <= optionIndex; i++) {
+            try {
+              const optionDetailAccount = sc.getOptionDetailAccount(
+                i,
+                pool,
+                custody
+              );
+              const optionData = await program.account.optionDetail.fetch(
+                optionDetailAccount
+              );
+              const lockedAssetData = await program.account.custody.fetch(optionData.lockedAsset);
+              console.log("premium", i, optionData.premium.toNumber())
+              if (optionData.valid) {
+                optionDatas.push({
+                  id: optionData.index.toNumber(),
+                  type: optionData.lockedAsset.equals(custody) ? "Call" : "Put",
+                  strikePrice: optionData.strikePrice,
+                  size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
+                  status: optionData.valid ? "Active" : "Expired",
+                  expiration: new Date(optionData.expiredDate.toNumber() * 1000),
+                  purchaseDate: new Date(
+                    (optionData.expiredDate.toNumber() -
+                      optionData.period * 3600 * 24) *
+                    1000
+                  ),
+                });
+              }
+            } catch (e) {
+              console.log("Error fetching option:", e);
+            }
           }
           setOptions(optionDatas);
         }
@@ -161,11 +184,10 @@ export default function SellCard() {
       {/* Trading Direction and Status */}
       <div className="flex items-center space-x-3">
         <div
-          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md border ${
-            selectedOption.type === "Call"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
-              : "border-red-500 bg-red-500/10 text-red-500"
-          }`}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md border ${selectedOption.type === "Call"
+            ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
+            : "border-red-500 bg-red-500/10 text-red-500"
+            }`}
         >
           {selectedOption.type === "Call" ? (
             <>
