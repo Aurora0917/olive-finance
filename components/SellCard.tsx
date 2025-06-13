@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
+import Image from "next/image";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -23,6 +24,7 @@ import { OptionContract } from "@/lib/idl/option_contract";
 import * as idl from "../lib/idl/option_contract.json";
 import { ContractContext } from "@/contexts/contractProvider";
 import { PublicKey } from "@solana/web3.js";
+import { Position } from "@/lib/data/Positions";
 
 interface Option {
   id: number;
@@ -37,126 +39,35 @@ interface Option {
 export default function SellCard() {
   const { connected } = useWallet();
   const wallet = useAnchorWallet();
-  const [selectedOption, setSelectedOption] = useState<Option | null>(null);
-  const sc = useContext(ContractContext);
-  // Simulated options data
-  const [options, setOptions] = useState<Option[]>([]);
+  const [selectedOption, setSelectedOption] = useState<Position | null>(null);
+  const { positions, onCloseOption } = useContext(ContractContext);
 
   const formatPrice = (price: string) => {
     const num = parseFloat(price);
     return `$${num.toLocaleString()}`;
   };
 
-  const getStatusColor = (status: Option["status"]) => {
-    switch (status) {
-      case "Active":
-        return "text-emerald-500";
-      case "Expired":
-        return "text-red-500";
-      case "Exercised":
-        return "text-blue-500";
-      default:
-        return "text-red-400";
-    }
-  };
+  // const getStatusColor = (status: Option["status"]) => {
+  //   switch (status) {
+  //     case "Active":
+  //       return "text-emerald-500";
+  //     case "Expired":
+  //       return "text-red-500";
+  //     case "Exercised":
+  //       return "text-blue-500";
+  //     default:
+  //       return "text-red-400";
+  //   }
+  // };
 
   const onSellOptionHandler = async () => {
     console.log(1)
     if (selectedOption) {
       console.log(2, selectedOption)
 
-      await sc.onCloseOption(selectedOption.id);
+      await onCloseOption(selectedOption.index);
     }
   }
-
-  useEffect(() => {
-    (async () => {
-      try {
-        let provider: Provider;
-        if (wallet && connected) {
-          try {
-            provider = getProvider();
-          } catch {
-            provider = new AnchorProvider(connection, wallet, {});
-          }
-
-          const program = new Program<OptionContract>(
-            idl as OptionContract,
-            provider
-          );
-          const [pool] = PublicKey.findProgramAddressSync(
-            [Buffer.from("pool"), Buffer.from("SOL/USDC")],
-            program.programId
-          );
-          const [custody] = PublicKey.findProgramAddressSync(
-            [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
-            program.programId
-          );
-          const [userPDA] = PublicKey.findProgramAddressSync(
-            [Buffer.from("user"), wallet.publicKey.toBuffer()],
-            program.programId
-          );
-          const userInfo = await program.account.user.fetch(userPDA).catch((e) => {
-            return null;
-          });
-
-          if (!userInfo) {
-            setOptions([]);
-            return;
-          }
-          const optionIndex = userInfo!.optionIndex.toNumber();
-
-          if (optionIndex == 0) {
-            setOptions([]);
-            return;
-          }
-          const userData = await program.account.user
-            .fetch(userPDA)
-            .catch((e) => null);
-          if (!userData) {
-            setOptions([]);
-            return;
-          }
-          const optionDatas: Option[] = [];
-          for (let i = 1; i <= optionIndex; i++) {
-            try {
-              const optionDetailAccount = sc.getOptionDetailAccount(
-                i,
-                pool,
-                custody
-              );
-              const optionData = await program.account.optionDetail.fetch(
-                optionDetailAccount
-              );
-              const lockedAssetData = await program.account.custody.fetch(optionData.lockedAsset);
-              console.log("premium", i, optionData.premium.toNumber())
-              if (optionData.valid) {
-                optionDatas.push({
-                  id: optionData.index.toNumber(),
-                  type: optionData.lockedAsset.equals(custody) ? "Call" : "Put",
-                  strikePrice: optionData.strikePrice,
-                  size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
-                  status: optionData.valid ? "Active" : "Expired",
-                  expiration: new Date(optionData.expiredDate.toNumber() * 1000),
-                  purchaseDate: new Date(
-                    (optionData.expiredDate.toNumber() -
-                      optionData.period * 3600 * 24) *
-                    1000
-                  ),
-                });
-              }
-            } catch (e) {
-              console.log("Error fetching option:", e);
-            }
-          }
-          setOptions(optionDatas);
-        }
-      } catch (error) {
-        console.error("Error fetching options:", error);
-        // Handle the error appropriately, e.g., show an error message to the user
-      }
-    })();
-  }, [connected]);
 
   return selectedOption ? (
     <div className="w-full flex flex-col flex-grow bg-card rounded-sm rounded-t-none p-6 space-y-5 border border-t-0">
@@ -171,12 +82,13 @@ export default function SellCard() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-white">
-            W
-          </div>
-          <span className="font-semibold">WETH</span>
+
+          <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
+          <span className="font-semibold">{selectedOption.symbol}</span>
           <span className="text-sm text-secondary-foreground">
-            {format(selectedOption.purchaseDate, "dd MMM yyyy")}
+            {selectedOption.purchaseDate
+              ? format(selectedOption.purchaseDate, "dd MMM yyyy")
+              : "No Date Available"}
           </span>
         </div>
       </div>
@@ -202,11 +114,9 @@ export default function SellCard() {
           )}
         </div>
         <div
-          className={`px-4 py-2 rounded-md bg-secondary ${getStatusColor(
-            selectedOption.status
-          )}`}
+          className={`px-4 py-2 rounded-md bg-secondary text-emerald-500`}
         >
-          {selectedOption.status}
+          Active
         </div>
       </div>
 
@@ -227,7 +137,7 @@ export default function SellCard() {
         <label className="text-secondary-foreground text-sm">Expiration</label>
         <div className="grid grid-cols-1 gap-2">
           <div className="w-full flex items-center px-4 py-2 rounded-sm bg-backgroundSecondary text-primary">
-            {format(selectedOption.expiration, "dd MMM yyyy")}
+            {format(selectedOption.expiry, "dd MMM yyyy")}
           </div>
         </div>
       </div>
@@ -237,9 +147,7 @@ export default function SellCard() {
         <label className="text-secondary-foreground text-sm">Option Size</label>
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-            <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-xs text-white">
-              W
-            </div>
+            <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
           </div>
           <Input
             type="text"
@@ -251,13 +159,12 @@ export default function SellCard() {
       </div>
 
       {/* Action Buttons */}
-      {selectedOption.status === "Active" && (
-        <div className="pt-4">
-          <Button className="w-full" size="lg" onClick={onSellOptionHandler}>
-            Sell Option
-          </Button>
-        </div>
-      )}
+
+      <div className="pt-4">
+        <Button className="w-full" size="lg" onClick={onSellOptionHandler}>
+          Sell Option
+        </Button>
+      </div>
     </div>
   ) : (
     <div className="w-full flex flex-col flex-grow bg-card rounded-sm rounded-t-none p-6 space-y-6 border border-t-0">
@@ -265,12 +172,12 @@ export default function SellCard() {
         <h2 className="text-xl font-semibold">Your Options</h2>
       </div>
 
-      {options.length > 0 ? (
+      {positions.length > 0 ? (
         <ScrollArea className="h-[395px] w-full">
           <div className="space-y-2">
-            {options.map((option) => (
+            {positions.map((option) => (
               <Button
-                key={option.id}
+                key={option.index}
                 variant="outline"
                 className="w-full h-auto p-4 border-border rounded-sm hover:text-secondary-foreground"
                 onClick={() => setSelectedOption(option)}
@@ -285,11 +192,11 @@ export default function SellCard() {
                     <span>{option.type}</span>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span>{format(option.expiration, "MMM dd")}</span>
+                    <span>{format(option.expiry, "MMM dd")}</span>
                     <span
-                      className={`font-medium ${getStatusColor(option.status)}`}
+                      className={`font-medium text-emerald-500`}
                     >
-                      {option.status}
+                      active
                     </span>
                   </div>
                 </div>
