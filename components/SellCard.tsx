@@ -9,32 +9,12 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format, setDefaultOptions } from "date-fns";
+import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-import {
-  AnchorProvider,
-  getProvider,
-  Program,
-  Provider,
-} from "@coral-xyz/anchor";
-import { connection, WSOL_MINT } from "@/utils/const";
-import { OptionContract } from "@/lib/idl/option_contract";
-import * as idl from "../lib/idl/option_contract.json";
 import { ContractContext } from "@/contexts/contractProvider";
-import { PublicKey } from "@solana/web3.js";
 import { Position } from "@/lib/data/Positions";
-
-interface Option {
-  id: number;
-  type: "Call" | "Put";
-  strikePrice: number;
-  expiration: Date;
-  size: number;
-  purchaseDate: Date;
-  status: "Active" | "Expired" | "Exercised" | string;
-}
 
 export default function SellCard() {
   const { connected } = useWallet();
@@ -151,7 +131,7 @@ export default function SellCard() {
           </div>
           <Input
             type="text"
-            value={selectedOption.size}
+            value={selectedOption.quantity}
             readOnly
             className="pl-12 py-2 pr-2 border-border text-foreground"
           />

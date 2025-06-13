@@ -148,7 +148,7 @@ export default function TradingPositions() {
                   type={position.type}
                   strikePrice={position.strikePrice}
                   expiry={position.expiry}
-                  size={position.size}
+                  size={parseInt(position.quantity.toString())}
                   pnl={position.pnl}
                   purchaseDate={position.purchaseDate}
                   greeks={position.greeks}

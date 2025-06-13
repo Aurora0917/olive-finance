@@ -5,6 +5,7 @@ export interface Position{
     symbol: string
     type: string
     strikePrice: number
+    quantity: number
     expiry: string
     size: number
     pnl: number

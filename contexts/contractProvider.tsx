@@ -278,6 +278,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
             size: detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS)),                // Size in SOL units (underlying asset)
             pnl: pnl,
+            quantity: detail.quantity,
             purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
             greeks: {
               delta: 0.6821,
@@ -301,7 +302,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             iconPath: logo,                  // Logo matches payment currency
             symbol: symbol,                  // Symbol matches payment currency
             strikePrice: strikePrice,
-            qty: 100, // You might want to adjust this to optionSize * 100
+            quantity: detail.quantity,
             expiryPrice: 0,
             transaction: optionType,         // "Call" or "Put"
             tokenAmount: optionSize,         // Size in SOL units
@@ -315,6 +316,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             )}-${strikePrice}-${optionType.charAt(0)}`,
             token: coins[0],
             transactionType: optionType,
+            quantity: detail.quantity,
             optionType: "American",
             strikePrice: strikePrice,
             expiry: format(new Date(detail.expiredDate.toNumber() * 1000), "dd MMM, yyyy HH:mm:ss"),
