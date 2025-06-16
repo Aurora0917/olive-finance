@@ -459,95 +459,129 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const onCloseOption = async (optionIndex: number, closeQuantity: number) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return;
+      if (!program || !publicKey || !connected || !wallet) return false;
       
       const [pool] = PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
       
-      const [custody] = PublicKey.findProgramAddressSync(
+      // Get both custody addresses
+      const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
         program.programId
       );
       
-      const [lockedCustody] = PublicKey.findProgramAddressSync(
-        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
-        program.programId
-      );
-      
-      // Pay custody should be USDC for SOL/USDC pool
-      const [payCustody] = PublicKey.findProgramAddressSync(
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
         program.programId
       );
-      
-      const [payCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+  
+      // First, find the option detail account and fetch its data
+      let optionDetailAccount;
+      let optionDetailData;
+      let custody; // The custody used for the option detail PDA
+  
+      // Try to find option detail with both possible custodies
+      try {
+        const solOptionDetail = getOptionDetailAccount(optionIndex, pool, solCustody);
+        if (solOptionDetail) {
+          optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
+          optionDetailAccount = solOptionDetail;
+          custody = solCustody;
+        }
+      } catch (e) {
+        // If SOL fails, try USDC custody
+        try {
+          const usdcOptionDetail = getOptionDetailAccount(optionIndex, pool, usdcCustody);
+          if (usdcOptionDetail) {
+            optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
+            optionDetailAccount = usdcOptionDetail;
+            custody = usdcCustody;
+          }
+        } catch (e2) {
+          console.error(`Failed to fetch option ${optionIndex} with both custodies:`, e2);
+          return false;
+        }
+      }
+  
+      if (!optionDetailData || !optionDetailAccount) {
+        console.error("Option detail not found");
+        return false;
+      }
+  
+      // Validate close quantity
+      if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
+        throw new Error("Invalid close quantity");
+      }
+  
+      // Determine custodies based on option data
+      const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
+      const premiumAsset = optionDetailData.premiumAsset; // What user paid with
+  
+      // Determine if this is a call or put
+      const isCallOption = lockedAsset.equals(solCustody);  // SOL locked = Call
+      const isPutOption = lockedAsset.equals(usdcCustody); // USDC locked = Put
+  
+      // Set locked custody based on what's actually locked
+      const lockedCustody = lockedAsset;
+  
+      // Set pay custody based on what the user paid with (premium asset)
+      const payCustody = premiumAsset;
+  
+      // Determine the mint types
+      const lockedCustodyMint = isCallOption ? WSOL_MINT : USDC_MINT;
+      const isPremiumSOL = premiumAsset.equals(solCustody);
+      const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
+  
+      console.log("Option details:", {
+        optionIndex,
+        isCallOption,
+        isPutOption,
+        lockedAsset: lockedAsset.toBase58(),
+        premiumAsset: premiumAsset.toBase58(),
+        lockedCustodyMint: lockedCustodyMint.toBase58(),
+        payCustodyMint: payCustodyMint.toBase58()
+      });
+  
+      // Get locked custody token account (where refund comes from)
+      const [lockedCustodyTokenAccount] = PublicKey.findProgramAddressSync(
         [
           Buffer.from("custody_token_account"),
           pool.toBuffer(),
-          USDC_MINT.toBuffer(),
+          lockedCustodyMint.toBuffer(),
         ],
         program.programId
       );
   
-      const [wsolCustody] = PublicKey.findProgramAddressSync(
-        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
-        program.programId
-      );
-      
-      const [optionDetail] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("option"),
-          publicKey.toBuffer(),
-          new BN(optionIndex).toArrayLike(Buffer, "le", 8),
-          pool.toBuffer(),
-          wsolCustody.toBuffer(),
-        ],
-        program.programId
-      );
-  
-      // Add closed option detail account
+      // Create closed option detail account PDA
       const [closedOptionDetail] = PublicKey.findProgramAddressSync(
         [
           Buffer.from("option"),
           publicKey.toBuffer(),
           new BN(optionIndex).toArrayLike(Buffer, "le", 8),
           pool.toBuffer(),
-          wsolCustody.toBuffer(),
+          custody!.toBuffer(),
           Buffer.from("closed"),
         ],
         program.programId
       );
   
-      const optionDetailAccount = getOptionDetailAccount(
-        optionIndex,
-        pool,
-        custody
-      );
-      if (!optionDetailAccount) return;
-      
-      const optionDetailAccountData = await program.account.optionDetail.fetch(
-        optionDetailAccount
-      );
-  
-      // Validate close quantity
-      if (closeQuantity <= 0 || closeQuantity > optionDetailAccountData.quantity.toNumber()) {
-        throw new Error("Invalid close quantity");
-      }
-  
+      // Create funding account for the locked asset (where refund will be sent)
+      // Call option = get WSOL back, Put option = get USDC back
       const fundingAccount = getAssociatedTokenAddressSync(
-        optionDetailAccountData.premiumAsset.equals(custody)
-          ? WSOL_MINT
-          : USDC_MINT,
+        lockedCustodyMint,
         wallet.publicKey
       );
   
-      const custodyData = await program.account.custody.fetch(custody);
+      // Get custody data for oracles
+      const custodyData = await program.account.custody.fetch(custody!);
       const payCustodyData = await program.account.custody.fetch(payCustody);
+      const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
   
       const custodyOracleAccount = custodyData.oracle;
       const payCustodyOracleAccount = payCustodyData.oracle;
+      const lockedOracleAccount = lockedCustodyData.oracle;
   
       const transaction = await program.methods
         .closeOption({ 
@@ -558,22 +592,26 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         .accountsPartial({
           owner: publicKey,
           fundingAccount,
-          custodyMint: WSOL_MINT,
-          payCustodyMint: USDC_MINT, // Fixed: should be USDC for pay custody
-          payCustodyTokenAccount: payCustodyTokenAccount,
-          optionDetail: optionDetail,
-          closedOptionDetail: closedOptionDetail, // Added closed option detail
+          custodyMint: custody!.equals(solCustody) ? WSOL_MINT : USDC_MINT,
+          payCustodyMint: payCustodyMint,
+          lockedCustodyMint: lockedCustodyMint,
+          lockedCustodyTokenAccount: lockedCustodyTokenAccount,
+          optionDetail: optionDetailAccount,
+          closedOptionDetail: closedOptionDetail,
           lockedCustody: lockedCustody,
           payCustody: payCustody,
           custodyOracleAccount: custodyOracleAccount,
           payCustodyOracleAccount: payCustodyOracleAccount,
+          lockedOracle: lockedOracleAccount,
         })
         .transaction();
   
       const latestBlockHash = await connection.getLatestBlockhash();
-      // transaction.feePayer = publicKey;
-      // let result = await connection.simulateTransaction(transaction);
-      // console.log("result", result);
+      
+      // Optional: Simulate transaction for debugging
+      transaction.feePayer = publicKey;
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Simulation result:", result);
       
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction({
@@ -582,11 +620,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         signature: signature,
       });
   
+      console.log("Option closed successfully, signature:", signature);
+  
       // Refresh positions after successful transaction
       await refreshPositions();
       return true;
     } catch (e) {
-      console.log("Error", e);
+      console.log("Error closing option:", e);
       return false;
     }
   };

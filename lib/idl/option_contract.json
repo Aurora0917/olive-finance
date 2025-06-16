@@ -1407,6 +1407,18 @@
           }
         },
         {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "pay_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
           "name": "custody",
           "writable": true,
           "pda": {
@@ -1463,7 +1475,35 @@
           }
         },
         {
-          "name": "pay_custody_token_account",
+          "name": "locked_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "locked_custody_token_account",
           "writable": true,
           "pda": {
             "seeds": [
@@ -1499,37 +1539,7 @@
               },
               {
                 "kind": "account",
-                "path": "pay_custody.mint",
-                "account": "Custody"
-              }
-            ]
-          }
-        },
-        {
-          "name": "locked_custody",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  99,
-                  117,
-                  115,
-                  116,
-                  111,
-                  100,
-                  121
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              },
-              {
-                "kind": "account",
-                "path": "locked_custody.mint",
-                "account": "Custody"
+                "path": "locked_custody_mint"
               }
             ]
           }
@@ -1622,12 +1632,7 @@
           "name": "pay_custody_oracle_account"
         },
         {
-          "name": "custody_mint",
-          "writable": true
-        },
-        {
-          "name": "pay_custody_mint",
-          "writable": true
+          "name": "locked_oracle"
         },
         {
           "name": "token_program",
