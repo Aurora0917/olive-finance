@@ -3222,27 +3222,25 @@ export type OptionContract = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidWithdrawError"
+      "name": "invalidOracleAccount",
+      "msg": "Oracle Account is invalid"
     },
     {
       "code": 6001,
-      "name": "invalidPoolBalanceError"
+      "name": "staleOraclePrice",
+      "msg": "Stale oracle price"
     },
     {
       "code": 6002,
-      "name": "invalidSignerBalanceError"
+      "name": "insufficientAmountReturned"
     },
     {
       "code": 6003,
-      "name": "invalidCustodyTokenError"
+      "name": "tokenRatioOutOfRange"
     },
     {
       "code": 6004,
-      "name": "invalidPoolState"
-    },
-    {
-      "code": 6005,
-      "name": "invalidCustodyState"
+      "name": "custodyAmountLimit"
     }
   ],
   "types": [

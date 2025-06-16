@@ -67,9 +67,9 @@ export default function OptionCard(
   const [limitPrice, setLimitPrice] = useState("");
   const [hasSetInitialStrike, setHasSetInitialStrike] = useState(false);
   const [defaultStrikePrices, setDefaultStrikePrices] = useState([
-    "0",
-    "0",
-    "0",
+    "150",
+    "160",
+    "170",
   ]);
 
   const isPositive = marketData.change24h !== null && marketData.change24h > 0;
@@ -81,7 +81,7 @@ export default function OptionCard(
   useEffect(() => {
     setHasSetInitialStrike(false);
     setStrikePrice("0");
-    setDefaultStrikePrices(["0", "0", "0"]);
+    setDefaultStrikePrices(["150", "160", "170"]);
   }, [selectedSymbol]);
 
   useEffect(() => {

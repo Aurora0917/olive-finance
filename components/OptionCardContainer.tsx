@@ -41,7 +41,7 @@ export default function OptionCardContainer({onIdxChange, onSymbolChange, onPayA
             </Button>
             <Button 
               className={`w-full bg-inherit border-b rounded-none shadow-none h-[42px] hover:text-primary ${active === 'sell' ? 'text-primary border-primary': 'text-secondary-foreground border-transparent'}`}
-              onClick={() => setActive('sell')}
+              onClick={() => { setActive('sell'); onPayAmountChange('0.00'); }}
             >
               Sell
             </Button>

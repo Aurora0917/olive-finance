@@ -40,8 +40,8 @@ export function StrikePriceDialog({ open, onOpenChange, onSelectPrice,onStrikePr
 
   useEffect(() => {
     const prices: StrikePrice[] = [];
-    const lowerBound = marketPrice * 0.8;
-    const upperBound = marketPrice * 1.3;
+    const lowerBound = marketPrice * 0.7;
+    const upperBound = marketPrice * 1.2;
 
     let currentPrice = lowerBound
     while(currentPrice <= upperBound) {
@@ -74,7 +74,7 @@ export function StrikePriceDialog({ open, onOpenChange, onSelectPrice,onStrikePr
     }
     onDefaultStrikePrices(defaultStrikes);
     setStrikePrices(prices)
-  }, [marketPrice])
+  }, [marketPrice, onDefaultStrikePrices])
   
 
   const filteredStrikePrices = strikePrices.filter(strike => 

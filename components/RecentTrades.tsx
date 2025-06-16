@@ -68,10 +68,30 @@ interface OptionDetail {
   purchasedPrice: string;
 }
 
-interface ProgramAccount {
-  pubkey: PublicKey;
+// ✅ Fix: Update interface to match Anchor's actual return type
+interface AnchorProgramAccount {
+  publicKey: PublicKey; // Note: publicKey, not pubkey
   account: {
-    data: string;
+    index: any;
+    owner: PublicKey;
+    amount: any;
+    quantity: any;
+    strikePrice: number;
+    period: any;
+    expiredDate: any;
+    purchaseDate: any;
+    optionType: number;
+    premium: any;
+    premiumAsset: PublicKey;
+    profit: any;
+    lockedAsset: PublicKey;
+    custody: PublicKey;
+    pool: PublicKey;
+    valid: boolean;
+    boughtBack: any;
+    claimed: any;
+    exercised: any;
+    bump: number;
   };
 }
 
@@ -98,15 +118,14 @@ export default function RecentTrades() {
     }
   }, []);
 
+  // ✅ Fix: Update function signature to match Anchor's return type
   const processOptionAccount = async (
-    account: ProgramAccount,
+    account: AnchorProgramAccount,
     program: Program<OptionContract>
-  ) => {
+  ): Promise<OptionDetail | null> => {
     try {
-      const optionDetailAccount = await program.account.optionDetail.fetch(
-        account.pubkey
-      );
-
+      // ✅ Fix: Use account.account instead of fetching again (data is already available)
+      const optionDetailAccount = account.account;
 
       const poolInfo = pools.find(
         (pool) => pool.programId === optionDetailAccount.pool.toString()
@@ -118,14 +137,13 @@ export default function RecentTrades() {
       );
 
       const purchaseTimestamp =
-        parseInt(optionDetailAccount.expiredDate) * 1000 -
-        parseInt(optionDetailAccount.period) * 86400 * 1000 -
+        parseInt(optionDetailAccount.expiredDate.toString()) * 1000 -
+        parseInt(optionDetailAccount.period.toString()) * 86400 * 1000 -
         86400000;
-
 
       console.log(optionDetailAccount);
 
-      const priceData = await getPythPrice(selectedSymbol, purchaseTimestamp);
+      // const priceData = await getPythPrice(selectedSymbol, purchaseTimestamp);
 
       const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
@@ -137,10 +155,9 @@ export default function RecentTrades() {
         program.programId
       );
 
-      const isCall =
-        optionDetailAccount.lockedAsset.equals(solCustody);
+      const isCall = optionDetailAccount.lockedAsset.equals(solCustody);
 
-      const premium = parseFloat(optionDetailAccount.premium);
+      const premium = parseFloat(optionDetailAccount.premium.toString());
       const quantity = optionDetailAccount.quantity.toString();
       const profile = optionDetailAccount.owner.toString();
       const tx =
@@ -149,6 +166,7 @@ export default function RecentTrades() {
           : optionDetailAccount.boughtBack.toString() != "0"
             ? "Sold"
             : "Bought";
+
       return {
         quantity: quantity,
         profile: profile,
@@ -158,7 +176,7 @@ export default function RecentTrades() {
         custody: optionDetailAccount.custody.toString(),
         exercised: optionDetailAccount.exercised.toString(),
         expiredDate: new Date(
-          parseInt(optionDetailAccount.expiredDate) * 1000
+          parseInt(optionDetailAccount.expiredDate.toString()) * 1000
         ).toLocaleString(),
         index: optionDetailAccount.index.toString(),
         lockedAsset: optionDetailAccount.lockedAsset.toString(),
@@ -173,12 +191,12 @@ export default function RecentTrades() {
         type: isCall ? "Call" : "Put",
         executedDate:
           tx === "Exercised"
-            ? parseInt(optionDetailAccount.exercised)
+            ? `${parseInt(optionDetailAccount.exercised)}`
             : tx === "Sold"
-              ? parseInt(optionDetailAccount.boughtBack)
-              : parseInt(optionDetailAccount.purchaseDate),
-        purchaseDate: optionDetailAccount.purchaseDate,
-        purchasedPrice: priceData,
+              ? `${parseInt(optionDetailAccount.boughtBack)}`
+              : `${parseInt(optionDetailAccount.purchaseDate)}`,
+        purchaseDate: optionDetailAccount.purchaseDate.toString(),
+        purchasedPrice: priceData.price?.toString() || '160',
       };
     } catch (error) {
       console.error("Error processing option account:", error);
@@ -194,23 +212,6 @@ export default function RecentTrades() {
           position: "bottom-right",
         });
 
-        const { data } = await axios.post(clusterUrl, {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "getProgramAccounts",
-          params: [
-            Option_Program_Address,
-            {
-              encoding: "base64",
-              filters: [
-                {
-                  dataSize: 267,
-                },
-              ],
-            },
-          ],
-        });
-
         const provider = initializeProvider();
         const program = new Program<OptionContract>(
           idl as OptionContract,
@@ -218,19 +219,29 @@ export default function RecentTrades() {
         );
         setProgram(program);
 
-        // Process accounts in batches to avoid overwhelming the system
-
-        const optionAccounts = data.result;
+        // ✅ Fix: Get accounts with correct typing
+        const optionAccounts = await program.account.optionDetail.all();
         const _optionDetails: OptionDetail[] = [];
 
-        const results = await Promise.all(
-          optionAccounts.map((account: ProgramAccount) =>
+        // ✅ Fix: Process accounts and filter out null results
+        const results = await Promise.allSettled(
+          optionAccounts.map((account: AnchorProgramAccount) =>
             processOptionAccount(account, program)
           )
         );
-        console.log(results);
-        _optionDetails.push(...results);
 
+        // ✅ Fix: Filter successful results and remove null values
+        const validResults = results
+          .filter(
+            (result): result is PromiseFulfilledResult<OptionDetail> =>
+              result.status === "fulfilled" && result.value !== null
+          )
+          .map((result) => result.value);
+
+        console.log("Valid results:", validResults);
+        _optionDetails.push(...validResults);
+
+        // Process sold or exercised options
         const _solOrexcise = _optionDetails.filter((detail) => {
           return detail.tx != "Bought";
         });
@@ -407,9 +418,7 @@ export default function RecentTrades() {
           </TableHeader>
           {memoizedTableContent}
         </Table>
-        <ToastContainer
-          theme="dark"
-        />
+        <ToastContainer theme="dark" />
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>

@@ -3216,27 +3216,25 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidWithdrawError"
+      "name": "InvalidOracleAccount",
+      "msg": "Oracle Account is invalid"
     },
     {
       "code": 6001,
-      "name": "InvalidPoolBalanceError"
+      "name": "StaleOraclePrice",
+      "msg": "Stale oracle price"
     },
     {
       "code": 6002,
-      "name": "InvalidSignerBalanceError"
+      "name": "InsufficientAmountReturned"
     },
     {
       "code": 6003,
-      "name": "InvalidCustodyTokenError"
+      "name": "TokenRatioOutOfRange"
     },
     {
       "code": 6004,
-      "name": "InvalidPoolState"
-    },
-    {
-      "code": 6005,
-      "name": "InvalidCustodyState"
+      "name": "CustodyAmountLimit"
     }
   ],
   "types": [
