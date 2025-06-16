@@ -1576,6 +1576,52 @@ export type OptionContract = {
           }
         },
         {
+          "name": "closedOptionDetail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  115,
+                  101,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "custodyOracleAccount"
         },
         {
@@ -3291,6 +3337,10 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          },
+          {
+            "name": "closeQuantity",
+            "type": "u64"
           }
         ]
       }

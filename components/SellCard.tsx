@@ -16,38 +16,110 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { ContractContext } from "@/contexts/contractProvider";
 import { Position } from "@/lib/data/Positions";
 
+// Type guard to check if value is a BigNumber-like object
+const isBigNumber = (value: any): value is { toNumber: () => number } => {
+  return value && typeof value === 'object' && typeof value.toNumber === 'function';
+};
+
+// Helper function to safely convert BigNumber or number to JavaScript number
+const toNumber = (value: any): number => {
+  if (isBigNumber(value)) {
+    return value.toNumber();
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return parseFloat(value);
+  }
+  return 0;
+};
+
 export default function SellCard() {
   const { connected } = useWallet();
   const wallet = useAnchorWallet();
   const [selectedOption, setSelectedOption] = useState<Position | null>(null);
+  const [closeQuantity, setCloseQuantity] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { positions, onCloseOption } = useContext(ContractContext);
 
-  const formatPrice = (price: string) => {
-    const num = parseFloat(price);
+  // Reset close quantity when option changes
+  useEffect(() => {
+    if (selectedOption) {
+      const quantity = toNumber(selectedOption.quantity);
+      setCloseQuantity(quantity.toString());
+    }
+  }, [selectedOption]);
+
+  const formatPrice = (price: any): string => {
+    const num = toNumber(price);
     return `$${num.toLocaleString()}`;
   };
 
-  // const getStatusColor = (status: Option["status"]) => {
-  //   switch (status) {
-  //     case "Active":
-  //       return "text-emerald-500";
-  //     case "Expired":
-  //       return "text-red-500";
-  //     case "Exercised":
-  //       return "text-blue-500";
-  //     default:
-  //       return "text-red-400";
-  //   }
-  // };
-
-  const onSellOptionHandler = async () => {
-    console.log(1)
-    if (selectedOption) {
-      console.log(2, selectedOption)
-
-      await onCloseOption(selectedOption.index);
+  const validateCloseQuantity = (): { isValid: boolean; error?: string } => {
+    if (!selectedOption) return { isValid: false, error: "No option selected" };
+    
+    const quantity = parseFloat(closeQuantity);
+    const maxQuantity = toNumber(selectedOption.quantity);
+    
+    if (isNaN(quantity) || quantity <= 0) {
+      return { isValid: false, error: "Quantity must be a positive number" };
     }
-  }
+    
+    if (quantity > maxQuantity) {
+      return { isValid: false, error: `Cannot close more than ${maxQuantity} calls` };
+    }
+    
+    if (!Number.isInteger(quantity)) {
+      return { isValid: false, error: "Quantity must be a whole number" };
+    }
+    
+    return { isValid: true };
+  };
+
+  const onSellOptionHandler = async (): Promise<void> => {
+    if (!selectedOption) return;
+    
+    const validation = validateCloseQuantity();
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      console.log("Closing option:", selectedOption.index, "Quantity:", closeQuantity);
+      
+      const success = await onCloseOption(selectedOption.index, parseInt(closeQuantity));
+      
+      if (success) {
+        // Reset to list view after successful close
+        setSelectedOption(null);
+        setCloseQuantity("");
+      }
+    } catch (error) {
+      console.error("Error closing option:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleQuantityChange = (value: string): void => {
+    // Only allow numbers
+    const sanitized = value.replace(/[^0-9]/g, '');
+    setCloseQuantity(sanitized);
+  };
+
+  const setMaxQuantity = (): void => {
+    if (selectedOption) {
+      const maxQuantity = toNumber(selectedOption.quantity);
+      setCloseQuantity(maxQuantity.toString());
+    }
+  };
+
+  const validation = validateCloseQuantity();
+  const currentQuantity = selectedOption ? toNumber(selectedOption.quantity) : 0;
+  const isPartialClose = selectedOption && parseFloat(closeQuantity) < currentQuantity;
 
   return selectedOption ? (
     <div className="w-full flex flex-col flex-grow bg-card rounded-sm rounded-t-none p-6 space-y-5 border border-t-0">
@@ -107,7 +179,7 @@ export default function SellCard() {
         </label>
         <div className="grid grid-cols-1 gap-2">
           <div className="w-full flex items-center px-4 py-2 rounded-sm bg-backgroundSecondary text-primary">
-            {formatPrice(`${selectedOption.strikePrice}`)}
+            {formatPrice(selectedOption.strikePrice)}
           </div>
         </div>
       </div>
@@ -122,27 +194,72 @@ export default function SellCard() {
         </div>
       </div>
 
-      {/* Option Size */}
+      {/* Total Position Size */}
       <div className="space-y-2">
-        <label className="text-secondary-foreground text-sm">Option Size</label>
+        <label className="text-secondary-foreground text-sm">Total Position</label>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+            <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
+          </div>
+          <div className="pl-12 py-2 pr-2 border border-border rounded-sm bg-backgroundSecondary text-foreground flex items-center">
+            {currentQuantity} calls
+          </div>
+        </div>
+      </div>
+
+      {/* Close Quantity */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-secondary-foreground text-sm">
+            Quantity to Close
+          </label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={setMaxQuantity}
+            className="text-xs text-blue-500 hover:text-blue-600 h-auto p-1"
+          >
+            Max
+          </Button>
+        </div>
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
             <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
           </div>
           <Input
             type="text"
-            value={selectedOption.quantity}
-            readOnly
-            className="pl-12 py-2 pr-2 border-border text-foreground"
+            value={closeQuantity}
+            onChange={(e) => handleQuantityChange(e.target.value)}
+            placeholder="Enter quantity"
+            className={`pl-12 py-2 pr-2 border-border text-foreground ${
+              !validation.isValid && closeQuantity ? 'border-red-500' : ''
+            }`}
           />
         </div>
+        {!validation.isValid && closeQuantity && (
+          <p className="text-red-500 text-xs">{validation.error}</p>
+        )}
+        {isPartialClose && validation.isValid && (
+          <p className="text-blue-500 text-xs">
+            Partial close: {parseFloat(closeQuantity)} of {currentQuantity} calls
+          </p>
+        )}
       </div>
 
       {/* Action Buttons */}
-
       <div className="pt-4">
-        <Button className="w-full" size="lg" onClick={onSellOptionHandler}>
-          Sell Option
+        <Button 
+          className="w-full" 
+          size="lg" 
+          onClick={onSellOptionHandler}
+          disabled={!validation.isValid || isSubmitting}
+        >
+          {isSubmitting 
+            ? "Processing..." 
+            : isPartialClose 
+              ? `Partially Close Position (${closeQuantity}/${currentQuantity})`
+              : "Close Full Position"
+          }
         </Button>
       </div>
     </div>
@@ -173,6 +290,9 @@ export default function SellCard() {
                   </div>
                   <div className="flex items-center space-x-4">
                     <span>{format(option.expiry, "MMM dd")}</span>
+                    <span className="text-xs text-secondary-foreground">
+                      {toNumber(option.quantity)} calls
+                    </span>
                     <span
                       className={`font-medium text-emerald-500`}
                     >
