@@ -40,7 +40,9 @@ interface OptionCardProps {
   onPayAmountChange: (amount: string) => void;
   onCurrencyChange: (currency: string) => void;
   onContractTypeChange: (type: 'Call' | 'Put') => void;
+  onLimitPriceChange: (limitPrice: number) => void;
   active: number;
+  premium: number;
   priceData: PythPriceState;
   marketData: MarketDataState;
   priceLoading: boolean;
@@ -49,10 +51,10 @@ interface OptionCardProps {
 
 
 export default function OptionCard(
-  {orderType, onIdxChange, onSymbolChange, active, onPayAmountChange, selectedSymbol, priceData, priceLoading, marketData, marketLoading, onStrikePriceChange, onExpiryChange, onContractTypeChange, onCurrencyChange} 
-  : 
-  OptionCardProps) {
-    const { connected } = useWallet();
+  { orderType, onIdxChange, onSymbolChange, active, onPayAmountChange, onLimitPriceChange, premium, selectedSymbol, priceData, priceLoading, marketData, marketLoading, onStrikePriceChange, onExpiryChange, onContractTypeChange, onCurrencyChange }
+    :
+    OptionCardProps) {
+  const { connected } = useWallet();
   const wallet = useAnchorWallet();
 
   const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
@@ -64,7 +66,7 @@ export default function OptionCard(
   const [payCurrency, setPayCurrency] = useState(selectedSymbol);
   const [showStrikePriceModal, setShowStrikePriceModal] = useState(false);
   const [showExpirationModal, setShowExpirationModal] = useState(false);
-  const [limitPrice, setLimitPrice] = useState("");
+  const [limitPrice, setLimitPrice] = useState<number>(0);
   const [hasSetInitialStrike, setHasSetInitialStrike] = useState(false);
   const [defaultStrikePrices, setDefaultStrikePrices] = useState([
     "150",
@@ -134,14 +136,26 @@ export default function OptionCard(
     const currentTime = Math.floor(Date.now() / 1000);
     const expTime = Math.floor(expiration.getTime() / 1000);
     const period = Math.floor((expTime - currentTime) / (3600 * 24)) + 1;
-    await sc.onOpenOption(
-      parseFloat(optionSize) * 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS),
-      parseFloat(strikePrice),
-      period,
-      expTime,
-      selectedOption == "Call" ? true : false,
-      payCurrency === "Crypto.SOL/USD",
-    );
+    if (orderType === 'limit') {
+      await sc.onOpenLimitOption(
+        parseFloat(optionSize) * 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS),
+        parseFloat(strikePrice),
+        period,
+        expTime,
+        selectedOption == "Call" ? true : false,
+        payCurrency === "Crypto.SOL/USD",
+        limitPrice
+      );
+    } else {
+      await sc.onOpenOption(
+        parseFloat(optionSize) * 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS),
+        parseFloat(strikePrice),
+        period,
+        expTime,
+        selectedOption == "Call" ? true : false,
+        payCurrency === "Crypto.SOL/USD",
+      );
+    }
   };
 
   const formatChange = (change: number | null) => {
@@ -160,39 +174,21 @@ export default function OptionCard(
           active={active}
           type="chart"
         />
-        {orderType === "market" ? (
-          <div className="text-right h-12">
-            <div className="text-2xl font-semibold tracking-tight">
-              ${priceData.price ? formatPrice(priceData.price) : priceLoading}
-            </div>
-            <div
-              className={`text-sm font-medium ${
-                isPositive ? "text-green-500" : "text-red-500"
+        <div className="text-right h-12">
+          <div className="text-2xl font-semibold tracking-tight">
+            ${priceData.price ? formatPrice(priceData.price) : priceLoading}
+          </div>
+          <div
+            className={`text-sm font-medium ${isPositive ? "text-green-500" : "text-red-500"
               }`}
-            >
-              {isPositive ? "+" : "-"}
-              {marketData.change24h
-                ? formatChange(marketData.change24h)
-                : marketLoading}
-              %
-            </div>
+          >
+            {isPositive ? "+" : "-"}
+            {marketData.change24h
+              ? formatChange(marketData.change24h)
+              : marketLoading}
+            %
           </div>
-        ) : (
-          <div className="space-y-1">
-            <div className="w-32 rounded-sm p-2 h-12 flex flex-col border items-start justify-center focus-within:border-primary">
-              <span className="text-xs text-secondary-foreground">
-                Limit Price:
-              </span>
-              <Input
-                type="text"
-                value={limitPrice}
-                onChange={(e) => setLimitPrice(e.target.value)}
-                className="w-32 text-left h-fit border-none"
-                placeholder="0.00"
-              />
-            </div>
-          </div>
-        )}
+        </div>
       </div>
 
       {/* Trading Direction */}
@@ -205,18 +201,16 @@ export default function OptionCard(
               setSelectedOption("Call");
               onContractTypeChange("Call");
             }}
-            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${
-              selectedOption === "Call"
-                ? "bg-green-500/10 text-green-500 border-green-500 hover:bg-green-500/20"
-                : "hover:border-green-500 hover:text-green-500 border-border/40 hover:bg-green-500/20"
-            }`}
+            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${selectedOption === "Call"
+              ? "bg-green-500/10 text-green-500 border-green-500 hover:bg-green-500/20"
+              : "hover:border-green-500 hover:text-green-500 border-border/40 hover:bg-green-500/20"
+              }`}
           >
             <TrendingUp
-              className={`w-4 h-4 mr-2 ${
-                selectedOption === "Call"
-                  ? "text-green-500"
-                  : "text-muted-foreground group-hover:text-green-500"
-              }`}
+              className={`w-4 h-4 mr-2 ${selectedOption === "Call"
+                ? "text-green-500"
+                : "text-muted-foreground group-hover:text-green-500"
+                }`}
             />
             Call
           </Button>
@@ -226,18 +220,16 @@ export default function OptionCard(
               setSelectedOption("Put");
               onContractTypeChange("Put");
             }}
-            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${
-              selectedOption === "Put"
-                ? "bg-red-500/10 text-red-500 border-red-500 hover:bg-red-500/20"
-                : "hover:border-red-500 hover:text-red-500 border-border/40 hover:bg-red-500/20"
-            }`}
+            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${selectedOption === "Put"
+              ? "bg-red-500/10 text-red-500 border-red-500 hover:bg-red-500/20"
+              : "hover:border-red-500 hover:text-red-500 border-border/40 hover:bg-red-500/20"
+              }`}
           >
             <TrendingDown
-              className={`w-4 h-4 mr-2 ${
-                selectedOption === "Put"
-                  ? "text-red-500"
-                  : "text-muted-foreground group-hover:text-red-500"
-              }`}
+              className={`w-4 h-4 mr-2 ${selectedOption === "Put"
+                ? "text-red-500"
+                : "text-muted-foreground group-hover:text-red-500"
+                }`}
             />
             Put
           </Button>
@@ -259,11 +251,10 @@ export default function OptionCard(
                     setStrikePrice(price);
                     onStrikePriceChange(price);
                   }}
-                  className={`flex-1 py-2 px-4 rounded-sm ${
-                    strikePrice === price
-                      ? "bg-primary hover:bg-gradient-primary text-backgroundSecondary"
-                      : "bg-backgroundSecondary text-foreground hover:bg-secondary"
-                  }`}
+                  className={`flex-1 py-2 px-4 rounded-sm ${strikePrice === price
+                    ? "bg-primary hover:bg-gradient-primary text-backgroundSecondary"
+                    : "bg-backgroundSecondary text-foreground hover:bg-secondary"
+                    }`}
                 >
                   {selectedSymbol === "Crypto.BONK/USD"
                     ? "$" + formatPrice(parseFloat(price))
@@ -309,12 +300,11 @@ export default function OptionCard(
                     setExpiration(exp.value);
                     onExpiryChange(exp.value);
                   }}
-                  className={`flex-1 py-2 px-4 rounded-sm ${
-                    format(expiration, "yyyy-MM-dd") ===
+                  className={`flex-1 py-2 px-4 rounded-sm ${format(expiration, "yyyy-MM-dd") ===
                     format(exp.value, "yyyy-MM-dd")
-                      ? "bg-primary hover:bg-gradient-primary text-backgroundSecondary"
-                      : "bg-backgroundSecondary text-foreground hover:bg-secondary"
-                  }`}
+                    ? "bg-primary hover:bg-gradient-primary text-backgroundSecondary"
+                    : "bg-backgroundSecondary text-foreground hover:bg-secondary"
+                    }`}
                 >
                   {exp.label}
                 </Button>
@@ -389,6 +379,47 @@ export default function OptionCard(
           />
         </div>
       </div>
+      {
+        orderType == 'limit' && (
+          <div className="space-y-2">
+            <div className="flex justify-between items-center">
+              <div className="flex items-center gap-2">
+                <label className="text-sm text-secondary-foreground font-medium">
+                  Limit Premium Price
+                </label>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="w-4 h-4 text-secondary-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Enter the call price you want to open option order</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <span className="text-sm text-secondary-foreground">
+                Premium Price: ${premium.toFixed(2)}
+              </span>
+            </div>
+            <div className="relative">
+              <Input
+                type="number"
+                value={limitPrice}
+                onChange={(e) => {
+                  const value = parseFloat(e.target.value);
+                  setLimitPrice(isNaN(value) ? 0 : value);
+                  onLimitPriceChange(isNaN(value) ? 0 : value);
+                }}
+                placeholder="0.00"
+                className="pr-2 text-right h-11 text-base font-medium border-border rounded-sm placeholder:text-secondary-foreground focus:border-primary"
+                step="0.1"
+                min="0.1"
+              />
+            </div>
+          </div>
+        )
+      }
 
       {/* Submit Button */}
       {connected ? (

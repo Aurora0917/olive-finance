@@ -27,6 +27,7 @@ export default function Homepage(){
     const [selectedLogo, setSelectedLogo] = useState<string>('/images/solana.png')
     const { priceData, loading: priceLoading } = usePythPrice(selectedSymbol);
     const { marketData, loading: marketLoading } = usePythMarketData(selectedSymbol);
+    const [ limitPrice, setLimitPrice ] = useState<number>(0);
     const [payAmount, setPayAmount] = useState('')
     const [strikePrice, setStrikePrice] = useState('')
     const [expiry , setExpiry] = useState<Date>(addWeeks(new Date(), 1))
@@ -88,18 +89,6 @@ export default function Homepage(){
                     </div>
                   </div>
                   <div className={cn((active === 'trade' ? 'w-full' : 'hidden'),"lg:flex lg:col-span-4 flex-col space-y-4")}>
-                    {/* <OptionsCard 
-                      chartToken={selectedSymbol}
-                      chartTokenLogo={selectedLogo}
-                      onBuyingChange={(value) => handleBuyingAmountChange(value)}
-                      onValueChange={(value) => handleSellingAmountChange(value)}
-                      onStrikePriceChange={(value) => handleStrikePriceChange(value)}
-                      onPositionTypeChange={(value) => setPositionType(value)}
-                      onContractTypeChange={(value) => setContractType(value)}
-                      priceData={priceData}
-                      marketData={marketData}
-                      priceLoading={priceLoading}
-                    /> */}
                     <OptionCardContainer 
                       selectedSymbol={selectedSymbol}
                       onSymbolChange={handleSymbolChange} 
@@ -111,6 +100,8 @@ export default function Homepage(){
                       onContractTypeChange={setContractType}
                       onCurrencyChange={setCurrency}
                       priceData={priceData}
+                      onLimitPriceChange={setLimitPrice}
+                      premium={premium.premium}
                       marketData={marketData}
                       priceLoading={priceLoading}
                       marketLoading={marketLoading}

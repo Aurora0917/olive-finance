@@ -19,18 +19,20 @@ interface OptionCardContainerProps{
   onCurrencyChange: (currency: string) => void;
   onContractTypeChange: (type: 'Call' | 'Put') => void;
   index: number;
+  onLimitPriceChange: (limitPrice: number) => void;
+  premium: number;
   priceData: PythPriceState;
   marketData: MarketDataState;
   priceLoading: boolean;
   marketLoading: boolean;
 }
 
-export default function OptionCardContainer({onIdxChange, onSymbolChange, onPayAmountChange, onStrikePriceChange, onExpiryChange, onContractTypeChange, onCurrencyChange, index, selectedSymbol, priceData, marketData, priceLoading, marketLoading}:OptionCardContainerProps) {
+export default function OptionCardContainer({onIdxChange, onSymbolChange, onPayAmountChange, onStrikePriceChange, onExpiryChange, onContractTypeChange, onCurrencyChange, onLimitPriceChange, index, premium, selectedSymbol, priceData, marketData, priceLoading, marketLoading}:OptionCardContainerProps) {
   const [active, setActive] = useState('buy')
   const [orderType, setOrderType] = useState<'market'|'limit'>('market');
   
   return (
-      <div className="w-full flex flex-col h-[540px] space-y-0">
+      <div className="w-full flex flex-col space-y-0">
         <div className='w-full flex items-center justify-between border rounded-sm rounded-b-none px-4 py-1 h-[42px]'>
           <div className="flex gap-4">
             <Button 
@@ -72,6 +74,8 @@ export default function OptionCardContainer({onIdxChange, onSymbolChange, onPayA
             onContractTypeChange={onContractTypeChange}
             onCurrencyChange={onCurrencyChange}
             active={index}
+            onLimitPriceChange={onLimitPriceChange}
+            premium={premium}
             orderType={orderType}
             priceData={priceData}
             marketData={marketData}

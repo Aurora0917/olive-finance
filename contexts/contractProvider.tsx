@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-function-type */
 "use client";
 
 import { getPythPrice, usePythPrice } from "@/hooks/usePythPrice";
@@ -44,6 +45,8 @@ interface ContractContextType {
   pub: PublicKey | undefined;
   getCustodies: Function;
   getDetailInfos: Function;
+  onOpenLimitOption: Function;
+  onCloseLimitOption: Function;
   onOpenOption: Function;
   onCloseOption: Function;
   onClaimOption: Function;
@@ -68,6 +71,8 @@ export const ContractContext = createContext<ContractContextType>({
   pub: undefined,
   getCustodies: () => { },
   getDetailInfos: () => { },
+  onOpenLimitOption: async () => { },
+  onCloseLimitOption: () => { },
   onOpenOption: async () => { },
   onCloseOption: () => { },
   onClaimOption: () => { },
@@ -280,6 +285,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             pnl: pnl,
             quantity: detail.quantity,
             purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
+            limitPrice: detail.limitPrice ? detail.limitPrice / 100.0 : 0,
             greeks: {
               delta: 0.6821,
               gamma: 0.0415,
@@ -438,9 +444,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       })
       .transaction();
     const latestBlockHash = await connection.getLatestBlockhash();
-    // transaction.feePayer = publicKey;
-    // let result = await connection.simulateTransaction(transaction);
-    // console.log("result", result);
+    transaction.feePayer = publicKey;
+    let result = await connection.simulateTransaction(transaction);
+    console.log("result", result);
     const signature = await sendTransaction(transaction, connection);
     await connection.confirmTransaction({
       blockhash: latestBlockHash.blockhash,
@@ -458,6 +464,282 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   };
 
   const onCloseOption = async (optionIndex: number, closeQuantity: number) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+      
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+      
+      // Get both custody addresses
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+      
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+  
+      // First, find the option detail account and fetch its data
+      let optionDetailAccount;
+      let optionDetailData;
+      let custody; // The custody used for the option detail PDA
+  
+      // Try to find option detail with both possible custodies
+      try {
+        const solOptionDetail = getOptionDetailAccount(optionIndex, pool, solCustody);
+        if (solOptionDetail) {
+          optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
+          optionDetailAccount = solOptionDetail;
+          custody = solCustody;
+        }
+      } catch (e) {
+        // If SOL fails, try USDC custody
+        try {
+          const usdcOptionDetail = getOptionDetailAccount(optionIndex, pool, usdcCustody);
+          if (usdcOptionDetail) {
+            optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
+            optionDetailAccount = usdcOptionDetail;
+            custody = usdcCustody;
+          }
+        } catch (e2) {
+          console.error(`Failed to fetch option ${optionIndex} with both custodies:`, e2);
+          return false;
+        }
+      }
+  
+      if (!optionDetailData || !optionDetailAccount) {
+        console.error("Option detail not found");
+        return false;
+      }
+  
+      // Validate close quantity
+      if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
+        throw new Error("Invalid close quantity");
+      }
+  
+      // Determine custodies based on option data
+      const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
+      const premiumAsset = optionDetailData.premiumAsset; // What user paid with
+  
+      // Determine if this is a call or put
+      const isCallOption = lockedAsset.equals(solCustody);  // SOL locked = Call
+      const isPutOption = lockedAsset.equals(usdcCustody); // USDC locked = Put
+  
+      // Set locked custody based on what's actually locked
+      const lockedCustody = lockedAsset;
+  
+      // Set pay custody based on what the user paid with (premium asset)
+      const payCustody = premiumAsset;
+  
+      // Determine the mint types
+      const lockedCustodyMint = isCallOption ? WSOL_MINT : USDC_MINT;
+      const isPremiumSOL = premiumAsset.equals(solCustody);
+      const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
+  
+      console.log("Option details:", {
+        optionIndex,
+        isCallOption,
+        isPutOption,
+        lockedAsset: lockedAsset.toBase58(),
+        premiumAsset: premiumAsset.toBase58(),
+        lockedCustodyMint: lockedCustodyMint.toBase58(),
+        payCustodyMint: payCustodyMint.toBase58()
+      });
+  
+      // Get locked custody token account (where refund comes from)
+      const [lockedCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          lockedCustodyMint.toBuffer(),
+        ],
+        program.programId
+      );
+  
+      // Create closed option detail account PDA
+      const [closedOptionDetail] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("option"),
+          publicKey.toBuffer(),
+          new BN(optionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer(),
+          custody!.toBuffer(),
+          Buffer.from("closed"),
+        ],
+        program.programId
+      );
+  
+      // Create funding account for the locked asset (where refund will be sent)
+      // Call option = get WSOL back, Put option = get USDC back
+      const fundingAccount = getAssociatedTokenAddressSync(
+        lockedCustodyMint,
+        wallet.publicKey
+      );
+  
+      // Get custody data for oracles
+      const custodyData = await program.account.custody.fetch(custody!);
+      const payCustodyData = await program.account.custody.fetch(payCustody);
+      const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
+  
+      const custodyOracleAccount = custodyData.oracle;
+      const payCustodyOracleAccount = payCustodyData.oracle;
+      const lockedOracleAccount = lockedCustodyData.oracle;
+  
+      const transaction = await program.methods
+        .closeOption({ 
+          optionIndex: new BN(optionIndex), 
+          poolName: "SOL/USDC",
+          closeQuantity: new BN(closeQuantity)
+        })
+        .accountsPartial({
+          owner: publicKey,
+          fundingAccount,
+          custodyMint: custody!.equals(solCustody) ? WSOL_MINT : USDC_MINT,
+          payCustodyMint: payCustodyMint,
+          lockedCustodyMint: lockedCustodyMint,
+          lockedCustodyTokenAccount: lockedCustodyTokenAccount,
+          optionDetail: optionDetailAccount,
+          closedOptionDetail: closedOptionDetail,
+          lockedCustody: lockedCustody,
+          payCustody: payCustody,
+          custodyOracleAccount: custodyOracleAccount,
+          payCustodyOracleAccount: payCustodyOracleAccount,
+          lockedOracle: lockedOracleAccount,
+        })
+        .transaction();
+  
+      const latestBlockHash = await connection.getLatestBlockhash();
+      
+      // Optional: Simulate transaction for debugging
+      transaction.feePayer = publicKey;
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Simulation result:", result);
+      
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+  
+      console.log("Option closed successfully, signature:", signature);
+  
+      // Refresh positions after successful transaction
+      await refreshPositions();
+      return true;
+    } catch (e) {
+      console.log("Error closing option:", e);
+      return false;
+    }
+  };
+
+  const onOpenLimitOption = async (
+    amount: number,
+    strike: number,
+    period: number,
+    expiredTime: number,
+    isCall: boolean,
+    paySol: boolean,
+    limitPrice: number
+  ) => {
+    // try {
+    if (!program || !publicKey || !connected || !wallet) return false;
+    const [pool] = PublicKey.findProgramAddressSync(
+      [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+      program.programId
+    );
+    const [custody] = PublicKey.findProgramAddressSync(
+      [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+      program.programId
+    );
+    const [userPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user"), publicKey.toBuffer()],
+      program.programId
+    );
+    let optionIndex;
+    try {
+      const userInfo = await program.account.user.fetch(userPDA);
+      optionIndex = userInfo.optionIndex.toNumber() + 1;
+    } catch {
+      optionIndex = 1;
+    }
+
+    console.log("optionIndex", optionIndex);
+
+    const optionDetailAccount = getOptionDetailAccount(
+      optionIndex,
+      pool,
+      custody
+    );
+
+    if (!optionDetailAccount) return false;
+    const fundingAccount = getAssociatedTokenAddressSync(
+      paySol ? WSOL_MINT : USDC_MINT,
+      wallet.publicKey
+    );
+
+    const [paycustody] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("custody"),
+        pool.toBuffer(),
+        paySol ? WSOL_MINT.toBuffer() : USDC_MINT.toBuffer(),
+      ],
+      program.programId
+    );
+
+    const paycustodyData = await program.account.custody.fetch(paycustody);
+
+    const transaction = await program.methods
+      .openLimitOption({
+        amount: new BN(amount),
+        strike: strike,
+        period: new BN(period),
+        expiredTime: new BN(expiredTime),
+        poolName: "SOL/USDC",
+        limitPrice: limitPrice,
+      })
+      .accountsPartial({
+        owner: publicKey,
+        fundingAccount: fundingAccount,
+        custodyMint: WSOL_MINT,
+        payCustodyMint: paySol ? WSOL_MINT : USDC_MINT,
+        custodyOracleAccount: new PublicKey(
+          WSOL_ORACLE
+        ),
+        payCustodyOracleAccount: paySol
+          ? new PublicKey(WSOL_ORACLE)
+          : new PublicKey(USDC_ORACLE),
+        lockedCustodyMint: isCall ? WSOL_MINT : USDC_MINT,
+        optionDetail: optionDetailAccount,
+        payCustodyTokenAccount: paycustodyData.tokenAccount,
+        payCustody: paycustody,
+      })
+      .transaction();
+    const latestBlockHash = await connection.getLatestBlockhash();
+    transaction.feePayer = publicKey;
+    let result = await connection.simulateTransaction(transaction);
+    console.log("result", result);
+    const signature = await sendTransaction(transaction, connection);
+    await connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: signature,
+    });
+
+    // Refresh positions after successful transaction
+    await refreshPositions();
+    return true;
+    // } catch (e) {
+    //   console.log("error", e);
+    //   return false;
+    // }
+  };
+
+  const onCloseLimitOption = async (optionIndex: number, closeQuantity: number) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
       
@@ -1100,6 +1382,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         pub,
         getCustodies,
         getDetailInfos,
+        onOpenLimitOption,
+        onCloseLimitOption,
         onOpenOption,
         onCloseOption,
         onClaimOption,

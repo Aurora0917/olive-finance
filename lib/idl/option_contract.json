@@ -1291,6 +1291,374 @@
       ]
     },
     {
+      "name": "close_limit_option",
+      "discriminator": [
+        143,
+        127,
+        170,
+        220,
+        114,
+        23,
+        80,
+        156
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "funding_account"
+          ]
+        },
+        {
+          "name": "funding_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "pay_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pay_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pay_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "locked_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "locked_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "option_detail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "closed_option_detail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody"
+              },
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  108,
+                  111,
+                  115,
+                  101,
+                  100
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_oracle_account"
+        },
+        {
+          "name": "pay_custody_oracle_account"
+        },
+        {
+          "name": "locked_oracle"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "CloseLimitOptionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "close_option",
       "discriminator": [
         138,
@@ -2169,6 +2537,289 @@
         }
       ],
       "args": []
+    },
+    {
+      "name": "open_limit_option",
+      "discriminator": [
+        109,
+        175,
+        201,
+        90,
+        239,
+        137,
+        48,
+        122
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "funding_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_oracle_account"
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "option_detail",
+          "writable": true
+        },
+        {
+          "name": "pay_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pay_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pay_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pay_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pay_custody_oracle_account"
+        },
+        {
+          "name": "locked_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "pay_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "OpenLimitOptionParams"
+            }
+          }
+        }
+      ]
     },
     {
       "name": "open_option",
@@ -3216,25 +3867,27 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidOracleAccount",
-      "msg": "Oracle Account is invalid"
+      "name": "InvalidWithdrawError"
     },
     {
       "code": 6001,
-      "name": "StaleOraclePrice",
-      "msg": "Stale oracle price"
+      "name": "InvalidPoolBalanceError"
     },
     {
       "code": 6002,
-      "name": "InsufficientAmountReturned"
+      "name": "InvalidSignerBalanceError"
     },
     {
       "code": 6003,
-      "name": "TokenRatioOutOfRange"
+      "name": "InvalidCustodyTokenError"
     },
     {
       "code": 6004,
-      "name": "CustodyAmountLimit"
+      "name": "InvalidPoolState"
+    },
+    {
+      "code": 6005,
+      "name": "InvalidCustodyState"
     }
   ],
   "types": [
@@ -3318,6 +3971,26 @@
           {
             "name": "pool_name",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CloseLimitOptionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "option_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "close_quantity",
+            "type": "u64"
           }
         ]
       }
@@ -3528,6 +4201,38 @@
       }
     },
     {
+      "name": "OpenLimitOptionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "strike",
+            "type": "f64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_time",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "limit_price",
+            "type": "f64"
+          }
+        ]
+      }
+    },
+    {
       "name": "OpenOptionParams",
       "type": {
         "kind": "struct",
@@ -3639,6 +4344,14 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
           }
         ]
       }
