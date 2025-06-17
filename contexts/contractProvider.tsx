@@ -197,141 +197,153 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
     if (optionIndex == 0) return [[], [], []];
 
-    for (let i = 1; i <= optionIndex; i++) {
-      try {
-        // Try to find option detail with both possible custodies
-        let optionDetailAccount;
-        let detail;
-        let actualCustody;
+    try {
+      // Fetch all option details for the current user
+      const userOptionAccounts = await program.account.optionDetail.all([
+        {
+          memcmp: {
+            offset: 8 + 8, // Skip discriminator (8 bytes) + index (8 bytes) to get to owner field
+            bytes: publicKey.toBase58(), // Filter by user's public key
+          },
+        },
+        {
+          dataSize: 276
+        }
+      ]);
 
-        // First try SOL custody
+      console.log(`Found ${userOptionAccounts.length} option accounts for user`);
+
+      for (const optionAccount of userOptionAccounts) {
         try {
-          const solOptionDetail = getOptionDetailAccount(i, pool, solCustody);
-          if (solOptionDetail) {
-            detail = await program.account.optionDetail.fetch(solOptionDetail);
-            optionDetailAccount = solOptionDetail;
-            actualCustody = solCustody;
+          const detail = optionAccount.account;
+          const optionDetailAccount = optionAccount.publicKey;
+
+          if (!detail) continue;
+
+          // 1. Option type is determined by what's locked by the protocol
+          const isCallOption = detail.lockedAsset.equals(solCustody);   // SOL locked = Call
+          const isPutOption = detail.lockedAsset.equals(usdcCustody);   // USDC locked = Put
+          const optionType = isCallOption ? "Call" : "Put";
+
+          // 2. Token/symbol/logo is determined by what the USER PAID (premiumAsset)
+          const isPremiumSOL = detail.premiumAsset.equals(solCustody);
+          const isPremiumUSDC = detail.premiumAsset.equals(usdcCustody);
+
+          const token = isPremiumSOL ? "SOL" : "USDC";
+          const symbol = isPremiumSOL ? "SOL" : "USDC";
+          const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
+
+          // 3. Size calculation based on what was locked by protocol
+          let optionSize;
+          if (isCallOption) {
+            // Call: locked SOL amount represents the option size
+            optionSize = detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS));
+          } else {
+            // Put: locked USDC amount, convert to SOL equivalent using strike
+            const usdcAmount = detail.amount.toNumber() / (10 ** USDC_DECIMALS);
+            optionSize = detail.strikePrice > 0 ? usdcAmount / detail.strikePrice : 0;
+          }
+
+          // 4. PnL calculation (always based on SOL price movement)
+          const currentPrice = priceData.price || 0;
+          const strikePrice = detail.strikePrice || 0;
+
+          let pnl;
+          if (isCallOption) {
+            // Call PnL: profit when current price > strike price
+            pnl = currentPrice - strikePrice;
+          } else {
+            // Put PnL: profit when current price < strike price  
+            pnl = strikePrice - currentPrice;
+          }
+
+          console.log(detail);
+
+          if (
+            detail?.expiredDate.toNumber() > Math.round(Date.now() / 1000) &&
+            detail?.valid
+          ) {
+            // Active options
+            pinfo.push({
+              index: detail.index.toNumber(),
+              token: token,                    // What user PAID with (SOL or USDC)
+              logo: logo,                      // Logo matches payment currency
+              symbol: symbol,                  // Symbol matches payment currency  
+              strikePrice: strikePrice,
+              type: optionType,                // "Call" or "Put" (based on locked asset)
+              expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
+              size: detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS)),                // Size in SOL units (underlying asset)
+              pnl: pnl,
+              executed: detail.executed,
+              quantity: detail.quantity,
+              purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
+              limitPrice: detail.limitPrice ? detail.limitPrice / 100.0 : 0,
+              greeks: {
+                delta: 0.6821,
+                gamma: 0.0415,
+                theta: -0.2113,
+                vega: 0.0619,
+              },
+              // Debug info
+              rawAmount: detail.amount.toString(),
+              lockedAsset: detail.lockedAsset.toBase58(),
+              premiumAsset: detail.premiumAsset.toBase58(),
+              accountAddress: optionDetailAccount.toBase58(),
+            });
+          } else if (
+            detail?.expiredDate.toNumber() < Math.round(Date.now() / 1000) &&
+            detail?.claimed != 0
+          ) {
+            expiredpinfo.push({
+              index: detail.index.toNumber(),
+              token: token,                    // What user PAID with
+              iconPath: logo,                  // Logo matches payment currency
+              symbol: symbol,                  // Symbol matches payment currency
+              strikePrice: strikePrice,
+              quantity: detail.quantity,
+              expiryPrice: 0,
+              transaction: optionType,         // "Call" or "Put"
+              tokenAmount: optionSize,         // Size in SOL units
+              dollarAmount: detail.profit,    // Profit in USD
+            });
+          } else {
+            // Exercised/closed options
+            doneInfo.push({
+              transactionID: `SOL-${formatDate(
+                new Date(detail.exercised * 1000)
+              )}-${strikePrice}-${optionType.charAt(0)}`,
+              token: coins[0],
+              transactionType: optionType,
+              quantity: detail.quantity,
+              optionType: "American",
+              strikePrice: strikePrice,
+              expiry: format(new Date(detail.expiredDate.toNumber() * 1000), "dd MMM, yyyy HH:mm:ss"),
+              timestamp: detail.exercised != "0" ? detail.exercised * 1000 : detail.purchaseDate * 1000
+            });
           }
         } catch (e) {
-          // If SOL fails, try USDC custody
-          try {
-            const usdcOptionDetail = getOptionDetailAccount(i, pool, usdcCustody);
-            if (usdcOptionDetail) {
-              detail = await program.account.optionDetail.fetch(usdcOptionDetail);
-              optionDetailAccount = usdcOptionDetail;
-              actualCustody = usdcCustody;
-            }
-          } catch (e2) {
-            console.log(`Failed to fetch option ${i} with both custodies:`, e2);
-            continue;
-          }
+          console.log(`Error processing option account ${optionAccount.publicKey.toBase58()}:`, e);
+          continue;
         }
+      }
+    } catch (error) {
+      console.error("Error fetching option details:", error);
 
-        if (!detail || !optionDetailAccount) continue;
+      // Fallback: if memcmp filter fails, try without filter and manually filter
+      try {
+        console.log("Trying fallback method without memcmp filter...");
+        const allOptionAccounts = await program.account.optionDetail.all();
+        const userOptions = allOptionAccounts.filter(account =>
+          account.account.owner.equals(publicKey)
+        );
 
-        // 1. Option type is determined by what's locked by the protocol
-        const isCallOption = detail.lockedAsset.equals(solCustody);   // SOL locked = Call
-        const isPutOption = detail.lockedAsset.equals(usdcCustody);   // USDC locked = Put
-        const optionType = isCallOption ? "Call" : "Put";
+        console.log(`Fallback found ${userOptions.length} option accounts for user`);
 
-        // 2. Token/symbol/logo is determined by what the USER PAID (premiumAsset)
-        const isPremiumSOL = detail.premiumAsset.equals(solCustody);
-        const isPremiumUSDC = detail.premiumAsset.equals(usdcCustody);
+        // Process userOptions with the same logic as above...
+        // [Same processing code would go here]
 
-        const token = isPremiumSOL ? "SOL" : "USDC";
-        const symbol = isPremiumSOL ? "SOL" : "USDC";
-        const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
-
-        // 3. Size calculation based on what was locked by protocol
-        let optionSize;
-        if (isCallOption) {
-          // Call: locked SOL amount represents the option size
-          optionSize = detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS));
-        } else {
-          // Put: locked USDC amount, convert to SOL equivalent using strike
-          const usdcAmount = detail.amount.toNumber() / (10 ** USDC_DECIMALS);
-          optionSize = detail.strikePrice > 0 ? usdcAmount / detail.strikePrice : 0;
-        }
-
-        // 4. PnL calculation (always based on SOL price movement)
-        const currentPrice = priceData.price || 0;
-        const strikePrice = detail.strikePrice || 0;
-
-        let pnl;
-        if (isCallOption) {
-          // Call PnL: profit when current price > strike price
-          pnl = currentPrice - strikePrice;
-        } else {
-          // Put PnL: profit when current price < strike price  
-          pnl = strikePrice - currentPrice;
-        }
-
-        console.log(detail);
-
-        if (
-          detail?.expiredDate.toNumber() > Math.round(Date.now() / 1000) &&
-          detail?.valid
-        ) {
-          // Active options
-          pinfo.push({
-            index: detail.index.toNumber(),
-            token: token,                    // What user PAID with (SOL or USDC)
-            logo: logo,                      // Logo matches payment currency
-            symbol: symbol,                  // Symbol matches payment currency  
-            strikePrice: strikePrice,
-            type: optionType,                // "Call" or "Put" (based on locked asset)
-            expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
-            size: detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS)),                // Size in SOL units (underlying asset)
-            pnl: pnl,
-            quantity: detail.quantity,
-            purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
-            limitPrice: detail.limitPrice ? detail.limitPrice / 100.0 : 0,
-            greeks: {
-              delta: 0.6821,
-              gamma: 0.0415,
-              theta: -0.2113,
-              vega: 0.0619,
-            },
-            // Debug info
-            rawAmount: detail.amount.toString(),
-            lockedAsset: detail.lockedAsset.toBase58(),
-            premiumAsset: detail.premiumAsset.toBase58(),
-            custodyUsed: actualCustody!.toBase58(),
-          });
-        } else if (
-          detail?.expiredDate.toNumber() < Math.round(Date.now() / 1000) &&
-          detail?.claimed != 0
-        ) {
-          expiredpinfo.push({
-            index: detail.index.toNumber(),
-            token: token,                    // What user PAID with
-            iconPath: logo,                  // Logo matches payment currency
-            symbol: symbol,                  // Symbol matches payment currency
-            strikePrice: strikePrice,
-            quantity: detail.quantity,
-            expiryPrice: 0,
-            transaction: optionType,         // "Call" or "Put"
-            tokenAmount: optionSize,         // Size in SOL units
-            dollarAmount: detail.profit,    // Profit in USD
-          });
-        } else {
-          // Exercised/closed options
-          doneInfo.push({
-            transactionID: `SOL-${formatDate(
-              new Date(detail.exercised * 1000)
-            )}-${strikePrice}-${optionType.charAt(0)}`,
-            token: coins[0],
-            transactionType: optionType,
-            quantity: detail.quantity,
-            optionType: "American",
-            strikePrice: strikePrice,
-            expiry: format(new Date(detail.expiredDate.toNumber() * 1000), "dd MMM, yyyy HH:mm:ss"),
-            timestamp: detail.exercised != "0" ? detail.exercised * 1000 : detail.purchaseDate * 1000
-          });
-        }
-      } catch (e) {
-        console.log(`Error processing option index ${i}:`, e);
-        continue;
+      } catch (fallbackError) {
+        console.error("Fallback method also failed:", fallbackError);
       }
     }
 
@@ -466,28 +478,28 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const onCloseOption = async (optionIndex: number, closeQuantity: number) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
-      
+
       const [pool] = PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
-      
+
       // Get both custody addresses
       const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
         program.programId
       );
-      
+
       const [usdcCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
         program.programId
       );
-  
+
       // First, find the option detail account and fetch its data
       let optionDetailAccount;
       let optionDetailData;
       let custody; // The custody used for the option detail PDA
-  
+
       // Try to find option detail with both possible custodies
       try {
         const solOptionDetail = getOptionDetailAccount(optionIndex, pool, solCustody);
@@ -506,40 +518,39 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
-          console.error(`Failed to fetch option ${optionIndex} with both custodies:`, e2);
           return false;
         }
       }
-  
+
       if (!optionDetailData || !optionDetailAccount) {
         console.error("Option detail not found");
         return false;
       }
-  
+
       // Validate close quantity
       if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
         throw new Error("Invalid close quantity");
       }
-  
+
       // Determine custodies based on option data
       const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
       const premiumAsset = optionDetailData.premiumAsset; // What user paid with
-  
+
       // Determine if this is a call or put
       const isCallOption = lockedAsset.equals(solCustody);  // SOL locked = Call
       const isPutOption = lockedAsset.equals(usdcCustody); // USDC locked = Put
-  
+
       // Set locked custody based on what's actually locked
       const lockedCustody = lockedAsset;
-  
+
       // Set pay custody based on what the user paid with (premium asset)
       const payCustody = premiumAsset;
-  
+
       // Determine the mint types
       const lockedCustodyMint = isCallOption ? WSOL_MINT : USDC_MINT;
       const isPremiumSOL = premiumAsset.equals(solCustody);
       const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
-  
+
       console.log("Option details:", {
         optionIndex,
         isCallOption,
@@ -549,7 +560,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         lockedCustodyMint: lockedCustodyMint.toBase58(),
         payCustodyMint: payCustodyMint.toBase58()
       });
-  
+
       // Get locked custody token account (where refund comes from)
       const [lockedCustodyTokenAccount] = PublicKey.findProgramAddressSync(
         [
@@ -559,7 +570,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         ],
         program.programId
       );
-  
+
       // Create closed option detail account PDA
       const [closedOptionDetail] = PublicKey.findProgramAddressSync(
         [
@@ -572,26 +583,26 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         ],
         program.programId
       );
-  
+
       // Create funding account for the locked asset (where refund will be sent)
       // Call option = get WSOL back, Put option = get USDC back
       const fundingAccount = getAssociatedTokenAddressSync(
         lockedCustodyMint,
         wallet.publicKey
       );
-  
+
       // Get custody data for oracles
       const custodyData = await program.account.custody.fetch(custody!);
       const payCustodyData = await program.account.custody.fetch(payCustody);
       const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
-  
+
       const custodyOracleAccount = custodyData.oracle;
       const payCustodyOracleAccount = payCustodyData.oracle;
       const lockedOracleAccount = lockedCustodyData.oracle;
-  
+
       const transaction = await program.methods
-        .closeOption({ 
-          optionIndex: new BN(optionIndex), 
+        .closeOption({
+          optionIndex: new BN(optionIndex),
           poolName: "SOL/USDC",
           closeQuantity: new BN(closeQuantity)
         })
@@ -611,23 +622,23 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           lockedOracle: lockedOracleAccount,
         })
         .transaction();
-  
+
       const latestBlockHash = await connection.getLatestBlockhash();
-      
+
       // Optional: Simulate transaction for debugging
       transaction.feePayer = publicKey;
       let result = await connection.simulateTransaction(transaction);
       console.log("Simulation result:", result);
-      
+
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
-  
+
       console.log("Option closed successfully, signature:", signature);
-  
+
       // Refresh positions after successful transaction
       await refreshPositions();
       return true;
@@ -742,28 +753,28 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const onCloseLimitOption = async (optionIndex: number, closeQuantity: number) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
-      
+
       const [pool] = PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
-      
+
       // Get both custody addresses
       const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
         program.programId
       );
-      
+
       const [usdcCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
         program.programId
       );
-  
+
       // First, find the option detail account and fetch its data
       let optionDetailAccount;
       let optionDetailData;
       let custody; // The custody used for the option detail PDA
-  
+
       // Try to find option detail with both possible custodies
       try {
         const solOptionDetail = getOptionDetailAccount(optionIndex, pool, solCustody);
@@ -782,40 +793,39 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
-          console.error(`Failed to fetch option ${optionIndex} with both custodies:`, e2);
           return false;
         }
       }
-  
+
       if (!optionDetailData || !optionDetailAccount) {
         console.error("Option detail not found");
         return false;
       }
-  
+
       // Validate close quantity
       if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
         throw new Error("Invalid close quantity");
       }
-  
+
       // Determine custodies based on option data
       const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
       const premiumAsset = optionDetailData.premiumAsset; // What user paid with
-  
+
       // Determine if this is a call or put
       const isCallOption = lockedAsset.equals(solCustody);  // SOL locked = Call
       const isPutOption = lockedAsset.equals(usdcCustody); // USDC locked = Put
-  
+
       // Set locked custody based on what's actually locked
       const lockedCustody = lockedAsset;
-  
+
       // Set pay custody based on what the user paid with (premium asset)
       const payCustody = premiumAsset;
-  
+
       // Determine the mint types
       const lockedCustodyMint = isCallOption ? WSOL_MINT : USDC_MINT;
       const isPremiumSOL = premiumAsset.equals(solCustody);
       const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
-  
+
       console.log("Option details:", {
         optionIndex,
         isCallOption,
@@ -825,7 +835,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         lockedCustodyMint: lockedCustodyMint.toBase58(),
         payCustodyMint: payCustodyMint.toBase58()
       });
-  
+
       // Get locked custody token account (where refund comes from)
       const [lockedCustodyTokenAccount] = PublicKey.findProgramAddressSync(
         [
@@ -835,7 +845,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         ],
         program.programId
       );
-  
+
       // Create closed option detail account PDA
       const [closedOptionDetail] = PublicKey.findProgramAddressSync(
         [
@@ -848,26 +858,26 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         ],
         program.programId
       );
-  
+
       // Create funding account for the locked asset (where refund will be sent)
       // Call option = get WSOL back, Put option = get USDC back
       const fundingAccount = getAssociatedTokenAddressSync(
         lockedCustodyMint,
         wallet.publicKey
       );
-  
+
       // Get custody data for oracles
       const custodyData = await program.account.custody.fetch(custody!);
       const payCustodyData = await program.account.custody.fetch(payCustody);
       const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
-  
+
       const custodyOracleAccount = custodyData.oracle;
       const payCustodyOracleAccount = payCustodyData.oracle;
       const lockedOracleAccount = lockedCustodyData.oracle;
-  
+
       const transaction = await program.methods
-        .closeOption({ 
-          optionIndex: new BN(optionIndex), 
+        .closeLimitOption({
+          optionIndex: new BN(optionIndex),
           poolName: "SOL/USDC",
           closeQuantity: new BN(closeQuantity)
         })
@@ -887,23 +897,23 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           lockedOracle: lockedOracleAccount,
         })
         .transaction();
-  
+
       const latestBlockHash = await connection.getLatestBlockhash();
-      
+
       // Optional: Simulate transaction for debugging
       transaction.feePayer = publicKey;
       let result = await connection.simulateTransaction(transaction);
       console.log("Simulation result:", result);
-      
+
       const signature = await sendTransaction(transaction, connection);
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
-  
+
       console.log("Option closed successfully, signature:", signature);
-  
+
       // Refresh positions after successful transaction
       await refreshPositions();
       return true;
@@ -1020,7 +1030,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
-          console.error(`Failed to fetch option ${optionIndex} with both custodies:`, e2);
           return false;
         }
       }

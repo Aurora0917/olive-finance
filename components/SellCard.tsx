@@ -41,12 +41,13 @@ export default function SellCard() {
   const [selectedOption, setSelectedOption] = useState<Position | null>(null);
   const [closeQuantity, setCloseQuantity] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { positions, onCloseOption } = useContext(ContractContext);
+  const { positions, onCloseOption, onCloseLimitOption } = useContext(ContractContext);
 
   // Reset close quantity when option changes
   useEffect(() => {
     if (selectedOption) {
       const quantity = toNumber(selectedOption.quantity);
+      console.log(selectedOption);
       setCloseQuantity(quantity.toString());
     }
   }, [selectedOption]);
@@ -58,28 +59,28 @@ export default function SellCard() {
 
   const validateCloseQuantity = (): { isValid: boolean; error?: string } => {
     if (!selectedOption) return { isValid: false, error: "No option selected" };
-    
+
     const quantity = parseFloat(closeQuantity);
     const maxQuantity = toNumber(selectedOption.quantity);
-    
+
     if (isNaN(quantity) || quantity <= 0) {
       return { isValid: false, error: "Quantity must be a positive number" };
     }
-    
+
     if (quantity > maxQuantity) {
       return { isValid: false, error: `Cannot close more than ${maxQuantity} calls` };
     }
-    
+
     if (!Number.isInteger(quantity)) {
       return { isValid: false, error: "Quantity must be a whole number" };
     }
-    
+
     return { isValid: true };
   };
 
   const onSellOptionHandler = async (): Promise<void> => {
     if (!selectedOption) return;
-    
+
     const validation = validateCloseQuantity();
     if (!validation.isValid) {
       alert(validation.error);
@@ -89,9 +90,13 @@ export default function SellCard() {
     setIsSubmitting(true);
     try {
       console.log("Closing option:", selectedOption.index, "Quantity:", closeQuantity);
-      
-      const success = await onCloseOption(selectedOption.index, parseInt(closeQuantity));
-      
+      let success;
+      if (selectedOption.limitPrice === 0) {
+        success = await onCloseOption(selectedOption.index, parseInt(closeQuantity));
+      } else {
+        success = await onCloseLimitOption(selectedOption.index, parseInt(closeQuantity));
+      }
+
       if (success) {
         // Reset to list view after successful close
         setSelectedOption(null);
@@ -166,9 +171,9 @@ export default function SellCard() {
           )}
         </div>
         <div
-          className={`px-4 py-2 rounded-md bg-secondary text-emerald-500`}
+          className={`px-4 py-2 rounded-md bg-secondary ${(selectedOption.limitPrice != 0 && !selectedOption.executed)? 'text-red-500' : 'text-emerald-500'}`}
         >
-          Active
+          {selectedOption.limitPrice != 0 && selectedOption.executed == false ? 'Not Executed' : 'Active'}
         </div>
       </div>
 
@@ -231,9 +236,8 @@ export default function SellCard() {
             value={closeQuantity}
             onChange={(e) => handleQuantityChange(e.target.value)}
             placeholder="Enter quantity"
-            className={`pl-12 py-2 pr-2 border-border text-foreground ${
-              !validation.isValid && closeQuantity ? 'border-red-500' : ''
-            }`}
+            className={`pl-12 py-2 pr-2 border-border text-foreground ${!validation.isValid && closeQuantity ? 'border-red-500' : ''
+              }`}
           />
         </div>
         {!validation.isValid && closeQuantity && (
@@ -248,15 +252,15 @@ export default function SellCard() {
 
       {/* Action Buttons */}
       <div className="pt-4">
-        <Button 
-          className="w-full" 
-          size="lg" 
+        <Button
+          className="w-full"
+          size="lg"
           onClick={onSellOptionHandler}
           disabled={!validation.isValid || isSubmitting}
         >
-          {isSubmitting 
-            ? "Processing..." 
-            : isPartialClose 
+          {isSubmitting
+            ? "Processing..."
+            : isPartialClose
               ? `Partially Close Position (${closeQuantity}/${currentQuantity})`
               : "Close Full Position"
           }
@@ -294,9 +298,9 @@ export default function SellCard() {
                       {toNumber(option.quantity)} calls
                     </span>
                     <span
-                      className={`font-medium text-emerald-500`}
+                      className={`font-medium ${(option.limitPrice != 0 && !option.executed)? 'text-red-500' : 'text-emerald-500'}`}
                     >
-                      active
+                      {option.limitPrice != 0 && option.executed == false ? 'Not Executed' : 'Active'}
                     </span>
                   </div>
                 </div>

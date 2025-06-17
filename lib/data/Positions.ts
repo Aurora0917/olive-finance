@@ -8,6 +8,7 @@ export interface Position{
     quantity: number
     expiry: string
     size: number
+    executed: boolean
     pnl: number
     limitPrice?: number
     purchaseDate?: string
