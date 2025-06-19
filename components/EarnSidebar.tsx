@@ -45,6 +45,7 @@ import { PublicKey } from "@solana/web3.js";
 import CardTokenList from "./CardTokenList";
 import PoolDropdown from "./PoolDropDown";
 import { getMint } from "@solana/spl-token";
+import { OptionDetailUtils } from "@/utils/optionsPricing";
 
 interface EarnSidebarProps {
   name: string;
@@ -80,6 +81,7 @@ export default function EarnSidebar({
         poolSize: solPoolsize.toFixed(4),
         current_weightage: `${Math.round(((solPoolsize * price) / total) * 100)}%`,
         target_weightage: `${ratioData.get(WSOL_MINT.toBase58()).target.toNumber()}%`,
+        interest_rate: OptionDetailUtils.calculateBorrowRate(solCustodyData.tokenLocked.toNumber(), solCustodyData.tokenOwned.toNumber(), true),
         utilization: `${Math.round((solCustodyData.tokenLocked.toNumber() / solCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
       {
@@ -89,6 +91,7 @@ export default function EarnSidebar({
         poolSize: usdcPoolsize.toFixed(4),
         current_weightage: `${100 - Math.round(((solPoolsize * price) / total) * 100)}%`,
         target_weightage: `${ratioData.get(USDC_MINT.toBase58()).target.toNumber()}%`,
+        interest_rate: OptionDetailUtils.calculateBorrowRate(usdcCustodyData.tokenLocked.toNumber(), usdcCustodyData.tokenOwned.toNumber(), false),
         utilization: `${Math.round((usdcCustodyData.tokenLocked.toNumber() / usdcCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
     ];
@@ -139,9 +142,9 @@ export default function EarnSidebar({
           idl as OptionContract,
           provider
         );
-        
+
         if (!isMounted) return;
-        
+
         setProgram(program);
 
         const price = await getPythPrice("Crypto.SOL/USD", Date.now());
@@ -163,7 +166,7 @@ export default function EarnSidebar({
 
   useEffect(() => {
     let isMounted = true;
-
+  
     const fetchPoolFees = async () => {
       if (sc && sc.getPoolFees) {
         const fees = await sc.getPoolFees();
@@ -177,25 +180,13 @@ export default function EarnSidebar({
         }
       }
     };
-
+  
     fetchPoolFees();
-
+  
     return () => {
       isMounted = false;
     };
-  }, [sc]);
-
-  useEffect(() => {
-    const fetchAndLogFees = async () => {
-      if (sc && sc.getPoolFees) {
-        const fees = await sc.getPoolFees();
-        console.log('Raw Pool Fees:', fees);
-        setPoolFees(fees);
-      }
-    };
-    
-    fetchAndLogFees();
-  }, [sc]);
+  }, [sc?.program, connected, publicKey]);
 
   const onSubmit = () => {
     if (connected) {
@@ -239,9 +230,13 @@ export default function EarnSidebar({
     }, 500);
   };
 
-  setTimeout(() => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
       setLoading(!loading);
-  }, 2000);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const calculateLPPrice = async () => {
     if (!program || !poolDatas || !isComponentMounted) return "0.00";
@@ -259,20 +254,20 @@ export default function EarnSidebar({
 
       const poolData = await program.account.pool.fetch(pool);
       const lpMintData = await getMint(connection, lpTokenMint);
-      
+
       if (!isComponentMounted) return "0.00";
 
       const solPrice = await getPythPrice("Crypto.SOL/USD", Date.now());
-      
+
       if (!isComponentMounted) return "0.00";
 
       const solValue = poolDatas[0].poolSize * solPrice;
       const usdcValue = parseFloat(poolDatas[1].poolSize);
       const totalValueUSD = solValue + usdcValue;
-      
+
       const lpSupply = Number(lpMintData.supply) / (10 ** LP_DECIMALS);
       const price = totalValueUSD / lpSupply;
-      
+
       return price.toFixed(2);
     } catch (error) {
       if (isComponentMounted) {
@@ -442,6 +437,9 @@ export default function EarnSidebar({
                   <TableHead className="px-3 py-4 text-secondary-foreground font-medium whitespace-nowrap">
                     Target Weightage
                   </TableHead>
+                  <TableHead className="px-3 py-4 text-secondary-foreground font-medium whitespace-nowrap">
+                    Interest Rate
+                  </TableHead>
                   <TableHead className="px-3 py-4 text-secondary-foreground font-medium">
                     Utilization
                   </TableHead>
@@ -485,6 +483,9 @@ export default function EarnSidebar({
                       </TableCell>
                       <TableCell className="text-xs text-foreground text-center">
                         {row.target_weightage}
+                      </TableCell>
+                      <TableCell className="text-xs text-foreground text-center">
+                        {row.interest_rate} %
                       </TableCell>
                       <TableCell className="text-xs text-foreground text-center">
                         {row.utilization}
@@ -556,15 +557,56 @@ export default function EarnSidebar({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-            <div className="flex justify-between items-start gap-2">
-              <div className="w-full flex flex-col space-y-2">
-                {activeTab === 'mint' ? (
+          <div className="flex justify-between items-start gap-2">
+            <div className="w-full flex flex-col space-y-2">
+              {activeTab === 'mint' ? (
+                <div className="flex flex-col space-y-1 w-full">
+                  <span className="text-sm text-secondary-foreground font-medium">Pay</span>
+                  <div className="relative w-full">
+                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                      <PoolDropdown
+                        isOpen={isOpen}
+                        handleClickToken={handleClickToken}
+                        handleOpenChange={handleOpenChange}
+                        poolDatas={poolDatas}
+                        selectedToken={selectedToken}
+                        logo={logo}
+                      />
+                    </div>
+                    <Input
+                      type="number"
+                      onChange={(e) => handleTokenAmount(e.target.value)}
+                      placeholder={'0.00'}
+                      className="pl-12 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                      step="0.1"
+                      min="0.1"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex space-x-2">
                   <div className="flex flex-col space-y-1 w-full">
                     <span className="text-sm text-secondary-foreground font-medium">Pay</span>
-                    <div className="relative w-full">
+                    <div className="relative">
                       <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                      <PoolDropdown
-                          isOpen={isOpen} 
+                        {symbol}-LP
+                      </div>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        onChange={(e) => handleTokenAmount(e.target.value)}
+                        className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                        step="0.1"
+                        min="0.1"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex flex-col space-y-1 w-full">
+                    <span className="text-sm text-secondary-foreground font-medium">Sell Into</span>
+                    <div className="relative">
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                        <PoolDropdown
+                          isOpen={isOpen}
                           handleClickToken={handleClickToken}
                           handleOpenChange={handleOpenChange}
                           poolDatas={poolDatas}
@@ -574,110 +616,69 @@ export default function EarnSidebar({
                       </div>
                       <Input
                         type="number"
-                        onChange={(e) => handleTokenAmount(e.target.value)}
-                        placeholder={'0.00'}
-                        className="pl-12 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                        placeholder="0.00"
+                        className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
                         step="0.1"
                         min="0.1"
                       />
                     </div>
                   </div>
-                ) : (
-                  <div className="flex space-x-2">
-                    <div className="flex flex-col space-y-1 w-full">
-                      <span className="text-sm text-secondary-foreground font-medium">Pay</span>
-                      <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                          {symbol}-LP
-                        </div>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          onChange={(e) => handleTokenAmount(e.target.value)}
-                          className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
-                          step="0.1"
-                          min="0.1"
-                        />
-                      </div>
+                </div>
+              )}
+              {tokenAmount > 0 && (
+                <div className="w-full flex flex-col border p-5 rounded-sm">
+                  <section className="flex flex-col space-y-1 text-sm text-secondary-foreground font-medium">
+                    <div>
+                      <span className="text-foreground">
+                        {activeTab === 'mint' ? `${tokenAmount > 0 ? tokenAmount : 0} ${symbol} `
+                          : `${tokenAmount > 0 ? tokenAmount : 0} ${symbol}-LP `}
+                      </span>
+                      <span>
+                        will be {activeTab === 'mint' ? 'bought into' : 'sold from'} the pool at <span className="text-foreground">0.1%</span>  fees. <br />
+                        You&apos;ll Receive XXX <span className="text-foreground">{activeTab === 'mint' ? `${symbol}-LP` : `${symbol} `} </span>
+                      </span>
+
                     </div>
-                    <div className="flex flex-col space-y-1 w-full">
-                      <span className="text-sm text-secondary-foreground font-medium">Sell Into</span>
-                      <div className="relative">
-                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                          <PoolDropdown
-                            isOpen={isOpen} 
-                            handleClickToken={handleClickToken}
-                            handleOpenChange={handleOpenChange}
-                            poolDatas={poolDatas}
-                            selectedToken={selectedToken}
-                            logo={logo}
-                          />
-                        </div>
-                        <Input
-                          type="number"
-                          placeholder="0.00"
-                          className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
-                          step="0.1"
-                          min="0.1"
-                        />
-                      </div>
+                    <div className="text-xs flex gap-2">
+                      <svg
+                        className={`${loading ? 'animate-spin' : ''} h-4 w-4 text-primary`}
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8z"
+                        ></path>
+                      </svg>
+                      {activeTab === 'mint' ? (
+                        <span>{tokenAmount > 0 ? tokenAmount : 0} {symbol} = XXX {symbol}-LP</span>
+                      ) : (
+                        <span>{tokenAmount > 0 ? tokenAmount : 0} {symbol}-LP = XXX {symbol}</span>
+                      )}
+
                     </div>
-                  </div>
-                )}
-                {tokenAmount > 0 && (  
-                  <div className="w-full flex flex-col border p-5 rounded-sm">
-                    <section className="flex flex-col space-y-1 text-sm text-secondary-foreground font-medium">
-                      <div>
-                        <span className="text-foreground">
-                          {activeTab === 'mint' ? `${tokenAmount > 0 ? tokenAmount:0} ${symbol} ` 
-                            : `${tokenAmount > 0 ? tokenAmount:0} ${symbol}-LP `}  
-                        </span>
-                        <span>
-                          will be {activeTab === 'mint' ? 'bought into' : 'sold from'} the pool at <span className="text-foreground">0.1%</span>  fees. <br />
-                          You&apos;ll Receive XXX <span className="text-foreground">{activeTab === 'mint' ? `${symbol}-LP` : `${symbol} `} </span>
-                        </span>
-                          
-                      </div>
-                      <div className="text-xs flex gap-2">
-                        <svg
-                            className={`${loading  ? 'animate-spin': ''} h-4 w-4 text-primary`}
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                          >
-                            <circle
-                              className="opacity-25"
-                              cx="12"
-                              cy="12"
-                              r="10"
-                              stroke="currentColor"
-                              strokeWidth="4"
-                            ></circle>
-                            <path
-                              className="opacity-75"
-                              fill="currentColor"
-                              d="M4 12a8 8 0 018-8v8z"
-                            ></path>
-                          </svg>
-                        {activeTab === 'mint' ? (
-                          <span>{tokenAmount > 0 ? tokenAmount:0} {symbol} = XXX {symbol}-LP</span>
-                        ) : (
-                          <span>{tokenAmount > 0 ? tokenAmount:0} {symbol}-LP = XXX {symbol}</span>
-                        )}
-                        
-                      </div>  
-                    </section>
-                  </div>
-                )}
-              </div>
-              <Button
-                className="h-fit rounded-sm px-4 py-[10px] mt-6 w-2/6 text-black bg-primary hover:bg-gradient-primary"
-                onClick={onSubmit}
-              >
-                {activeTab === "mint" ? "Buy" : "Sell"}
-              </Button>
+                  </section>
+                </div>
+              )}
             </div>
-            
+            <Button
+              className="h-fit rounded-sm px-4 py-[10px] mt-6 w-2/6 text-black bg-primary hover:bg-gradient-primary"
+              onClick={onSubmit}
+            >
+              {activeTab === "mint" ? "Buy" : "Sell"}
+            </Button>
+          </div>
+
         </div>
       </div>
     </SheetContent>

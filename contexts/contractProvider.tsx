@@ -229,9 +229,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           const isPremiumSOL = detail.premiumAsset.equals(solCustody);
           const isPremiumUSDC = detail.premiumAsset.equals(usdcCustody);
 
-          const token = isPremiumSOL ? "SOL" : "USDC";
-          const symbol = isPremiumSOL ? "SOL" : "USDC";
-          const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
+          // const token = isPremiumSOL ? "SOL" : "USDC";
+          // const symbol = isPremiumSOL ? "SOL" : "USDC";
+          // const logo = isPremiumSOL ? "/images/solana.png" : "/images/usdc.png";
+          const token = "SOL";
+          const symbol = "SOL";
+          const logo = "/images/solana.png";
 
           // 3. Size calculation based on what was locked by protocol
           let optionSize;
