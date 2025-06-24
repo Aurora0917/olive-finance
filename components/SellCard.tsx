@@ -207,7 +207,7 @@ export default function SellCard() {
             <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
           </div>
           <div className="pl-12 py-2 pr-2 border border-border rounded-sm bg-backgroundSecondary text-foreground flex items-center">
-            {currentQuantity} calls
+            {currentQuantity} Contracts
           </div>
         </div>
       </div>
@@ -245,7 +245,7 @@ export default function SellCard() {
         )}
         {isPartialClose && validation.isValid && (
           <p className="text-blue-500 text-xs">
-            Partial close: {parseFloat(closeQuantity)} of {currentQuantity} calls
+            Partial close: {parseFloat(closeQuantity)} of {currentQuantity} Contracts
           </p>
         )}
       </div>
@@ -295,7 +295,7 @@ export default function SellCard() {
                   <div className="flex items-center space-x-4">
                     <span>{format(option.expiry, "MMM dd")}</span>
                     <span className="text-xs text-secondary-foreground">
-                      {toNumber(option.quantity)} calls
+                      {toNumber(option.quantity)} Contracts
                     </span>
                     <span
                       className={`font-medium ${(option.limitPrice != 0 && !option.executed)? 'text-red-500' : 'text-emerald-500'}`}

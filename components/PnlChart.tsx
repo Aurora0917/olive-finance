@@ -52,7 +52,7 @@ const calculatePnL = (
   console.log(multiplier)
 
   if (contractType === 'call') {
-    if (positionType === 'long') {
+    if (positionType === 'Long') {
       // Long Call: PnL = (max(Price - Strike, 0) - Premium) × Multiplier
       pnl = (Math.max(price - strikePrice, 0) - premium);
     } else {
@@ -60,7 +60,7 @@ const calculatePnL = (
       pnl = (premium - Math.max(price - strikePrice, 0));
     }
   } else {
-    if (positionType === 'long') {
+    if (positionType === 'Long') {
       // Long Put: PnL = (max(Strike - Price, 0) - Premium) × Multiplier
       pnl = (Math.max(strikePrice - price, 0) - premium);
     } else {

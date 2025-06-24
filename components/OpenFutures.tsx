@@ -7,20 +7,24 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from ".
 import Collateral from "./Collateral";
 import Tpsl from "./Tpsl";
 import CloseFutures from "./CloseFutures";
+import { usePythPrice } from "@/hooks/usePythPrice";
 
 interface OpenFuturesProps{
-    logo:string
-    token:string
-    symbol:string
-    type:string
-    position:string
-    leverage:number
-    entry:number
-    liquidation:number
-    size:number
-    collateral:number
-    tpsl:number
-    purchaseDate: string
+    logo: string;
+    token: string;
+    symbol: string;
+    type: string;
+    position: string;
+    leverage: number;
+    entry: number;
+    liquidation: number;
+    size: number;
+    collateral: number;
+    tpsl: number;
+    purchaseDate: string;
+    unrealizedPnl?: number;
+    onClose?: () => Promise<void>;
+    isClosing?: boolean;
 }
 
 export default function OpenFutures({
@@ -35,9 +39,34 @@ export default function OpenFutures({
     size,
     collateral,
     tpsl,
-    purchaseDate
+    purchaseDate,
+    unrealizedPnl,
+    onClose,
+    isClosing = false
 } : OpenFuturesProps){
-    const [isOpen, setIsOpen] = useState<boolean>(false)
+    const [isOpen, setIsOpen] = useState<boolean>(false);
+    const { priceData } = usePythPrice("Crypto.SOL/USD");
+    
+    // Get current market price (mark price)
+    const markPrice = priceData?.price || entry;
+    
+    // Calculate position value
+    const positionValue = size * markPrice;
+    
+    // Calculate PnL if not provided
+    const calculatePnl = () => {
+        if (unrealizedPnl !== undefined) {
+            return unrealizedPnl;
+        }
+        
+        // Fallback calculation
+        const priceDiff = position === "long" 
+            ? markPrice - entry 
+            : entry - markPrice;
+        return (priceDiff / entry) * positionValue;
+    };
+    
+    const pnl = calculatePnl();
 
     return (
         <div className="w-full flex flex-col bg-accent rounded-sm">
@@ -48,7 +77,7 @@ export default function OpenFutures({
                 <div className="flex space-x-[6px] items-center">
                     <Image src={logo} alt={token} width={16} height={16} className="w-4 h-4 rounded-full"/>
                     <span className="text-sm text-foreground font-medium">{symbol}</span>
-                    <Badge className={`${position === 'long' ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center`}>
+                    <Badge className={`${position === "long" ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center`}>
                         {leverage}x {position.charAt(0).toUpperCase() + position.slice(1).toLowerCase()}
                     </Badge>
                 </div>
@@ -70,11 +99,11 @@ export default function OpenFutures({
                 <div className="w-full px-4 pt-2 pb-4 space-y-4 border-t-2 border-backgroundSecondary">
                     <Table>
                         <TableHeader>
-                            <TableRow className="w-full grid grid-cols-9 whitespace-nowrap h-7">
+                            <TableRow className="w-full grid grid-cols-8 whitespace-nowrap h-7">
                                 <TableHead className="">Entry Price</TableHead>
                                 <TableHead className="">Mark Price</TableHead>
                                 <TableHead className="">Size</TableHead>
-                                <TableHead className="">Value</TableHead>
+                                {/* <TableHead className="">Value</TableHead> */}
                                 <TableHead className="">Liq. Price</TableHead>
                                 <TableHead className="">Levarage</TableHead>
                                 <TableHead className="col-span-1">Collateral</TableHead>
@@ -84,128 +113,34 @@ export default function OpenFutures({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            <TableRow className="w-full grid grid-cols-9">
-                                <TableCell className="flex space-x-2 items-center">{entry}</TableCell>
-                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
-                                <TableCell className="flex space-x-2 items-center">{size}</TableCell>
-                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
-                                <TableCell className="flex space-x-2 items-center">${liquidation}</TableCell>
+                            <TableRow className="w-full grid grid-cols-8">
+                                <TableCell className="flex space-x-2 items-center">${entry.toFixed(2)}</TableCell>
+                                <TableCell className="flex space-x-2 items-center">${markPrice.toFixed(2)}</TableCell>
+                                <TableCell className="flex space-x-2 items-center">${size.toFixed(2)}</TableCell>
+                                {/* <TableCell className="flex space-x-2 items-center">${positionValue.toFixed(2)}</TableCell> */}
+                                <TableCell className="flex space-x-2 items-center">${liquidation.toFixed(2)}</TableCell>
                                 <TableCell className="flex space-x-2 items-center">{leverage}x</TableCell>
                                 <TableCell className="flex space-x-1 items-center">
                                     <span>
-                                        ${collateral} 
+                                        ${collateral.toFixed(2)} 
                                     </span>
                                     <Collateral />
                                 </TableCell>
                                 <TableCell className="flex space-x-1 items-center">
                                     <span>
-                                        ${tpsl} 
+                                        ${tpsl.toFixed(2)} 
                                     </span>
                                     <Tpsl />
                                 </TableCell>
-                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
+                                <TableCell className={`flex space-x-2 items-center ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    ${pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}({((pnl / collateral) * 100).toFixed(2)}%)
+                                </TableCell>
                                 <TableCell className="flex space-x-2 items-center">
                                     <CloseFutures />
                                 </TableCell>
                             </TableRow>
                         </TableBody>
                     </Table>
-                    {/* <div className="w-full grid grid-cols-9 py-1.5 text-xs gap-2">
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Entry Price
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {entry}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Mark Price
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {entry}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Size
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {size}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Value
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {entry}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Liq. Price
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {liquidation}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Leverage
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {leverage}x
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Collateral
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                <span>
-                                    ${collateral} 
-                                </span>
-                                <Collateral />
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                TP/SL
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                <span>
-                                    ${tpsl} 
-                                </span>
-                                <Tpsl />
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                PNL
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                $107.32
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                Date
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                {purchaseDate}
-                            </span>
-                        </div>
-                        <div className="flex flex-col space-y-0 col-span-1">
-                            <span className="text-left align-middle font-medium text-secondary-foreground">
-                                
-                            </span>
-                            <span className="flex space-x-2 items-center">
-                                <CloseFutures />
-                            </span>
-                        </div>
-                    </div> */}
                 </div>
             )}
         </div>

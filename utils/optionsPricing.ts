@@ -329,6 +329,7 @@ export class OptionDetailUtils {
     tokenOwned: number,  // Total owned tokens
     isSol: boolean       // Asset type
   ): number {
+    console.log("borrow");
     // Calculate dynamic risk-free rate from borrow curve
     const r = OptionDetailUtils.calculateBorrowRate(tokenLocked, tokenOwned, isSol) / 100;
     const sigma = 0.5; // Keep volatility simple for now

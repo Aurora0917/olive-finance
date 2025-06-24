@@ -906,7 +906,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1120,7 +1123,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1396,7 +1402,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1764,7 +1773,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2291,7 +2303,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2673,7 +2688,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2956,7 +2974,10 @@
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -3099,6 +3120,306 @@
           "type": {
             "defined": {
               "name": "OpenOptionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "open_perp_position",
+      "discriminator": [
+        74,
+        120,
+        242,
+        19,
+        84,
+        93,
+        80,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "funding_account"
+          ]
+        },
+        {
+          "name": "funding_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "sol_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_oracle_account"
+        },
+        {
+          "name": "usdc_oracle_account"
+        },
+        {
+          "name": "sol_mint",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "OpenPerpPositionParams"
             }
           }
         }
@@ -3838,6 +4159,19 @@
       ]
     },
     {
+      "name": "PerpPosition",
+      "discriminator": [
+        49,
+        27,
+        181,
+        207,
+        128,
+        154,
+        176,
+        45
+      ]
+    },
+    {
       "name": "Pool",
       "discriminator": [
         241,
@@ -4261,6 +4595,46 @@
       }
     },
     {
+      "name": "OpenPerpPositionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "position_size",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "PerpSide"
+              }
+            }
+          },
+          {
+            "name": "max_slippage",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "pay_sol",
+            "type": "bool"
+          },
+          {
+            "name": "pay_amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "OptionDetail",
       "type": {
         "kind": "struct",
@@ -4352,6 +4726,100 @@
           {
             "name": "executed",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerpPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "sol_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdc_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "PerpSide"
+              }
+            }
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_size",
+            "type": "u64"
+          },
+          {
+            "name": "leverage",
+            "type": "f64"
+          },
+          {
+            "name": "entry_price",
+            "type": "f64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "f64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "unrealized_pnl",
+            "type": "i64"
+          },
+          {
+            "name": "margin_ratio",
+            "type": "f64"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerpSide",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Long"
+          },
+          {
+            "name": "Short"
           }
         ]
       }
@@ -4520,6 +4988,10 @@
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "perp_position_count",
+            "type": "u64"
           }
         ]
       }

@@ -26,7 +26,7 @@ export default function FuturesQuote(){
                     </div>
                     <div className="flex justify-between text-sm text-secondary-foreground font-normal">
                         <span>Open Fee</span>
-                        <span>X</span>
+                        <span>0.06%</span>
                     </div>
                     <div className="flex justify-between text-sm text-secondary-foreground font-normal">
                         <span>Price Impact</span>

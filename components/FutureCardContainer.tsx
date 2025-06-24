@@ -20,7 +20,7 @@ interface FutureCardContainerProps{
 }
 
 export default function FutureCardContainer({onSymbolChange, onIdxChange, active, selectedSymbol, priceData, marketData, priceLoading, marketLoading} : FutureCardContainerProps) {
-  const [selectedTrade, setSelectedTrade] = useState<'perps'|'dated'>('perps');
+  const [selectedTrade, setSelectedTrade] = useState<'perps'|'expiry'>('perps');
   const [orderType, setOrderType] = useState<'market'|'limit'>('market');
   
   return (
@@ -36,10 +36,10 @@ export default function FutureCardContainer({onSymbolChange, onIdxChange, active
           </Button>
           <Button 
             
-            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'dated' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
-            onClick={() => setSelectedTrade('dated')}
+            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'expiry' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
+            onClick={() => setSelectedTrade('expiry')}
           >
-            Dated
+            Expiry
           </Button>
         </div>
         <Select defaultValue="market" onValueChange={(value) => {

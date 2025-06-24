@@ -912,7 +912,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1126,7 +1129,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1402,7 +1408,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -1770,7 +1779,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2297,7 +2309,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2679,7 +2694,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -2962,7 +2980,10 @@ export type OptionContract = {
                   117,
                   115,
                   101,
-                  114
+                  114,
+                  95,
+                  118,
+                  50
                 ]
               },
               {
@@ -3105,6 +3126,306 @@ export type OptionContract = {
           "type": {
             "defined": {
               "name": "openOptionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "openPerpPosition",
+      "discriminator": [
+        74,
+        120,
+        242,
+        19,
+        84,
+        93,
+        80,
+        37
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "fundingAccount"
+          ]
+        },
+        {
+          "name": "fundingAccount",
+          "writable": true
+        },
+        {
+          "name": "transferAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114,
+                  95,
+                  118,
+                  50
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "openPerpPositionParams"
             }
           }
         }
@@ -3844,6 +4165,19 @@ export type OptionContract = {
       ]
     },
     {
+      "name": "perpPosition",
+      "discriminator": [
+        49,
+        27,
+        181,
+        207,
+        128,
+        154,
+        176,
+        45
+      ]
+    },
+    {
       "name": "pool",
       "discriminator": [
         241,
@@ -4267,6 +4601,46 @@ export type OptionContract = {
       }
     },
     {
+      "name": "openPerpPositionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "positionSize",
+            "type": "u64"
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "perpSide"
+              }
+            }
+          },
+          {
+            "name": "maxSlippage",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "paySol",
+            "type": "bool"
+          },
+          {
+            "name": "payAmount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "optionDetail",
       "type": {
         "kind": "struct",
@@ -4358,6 +4732,100 @@ export type OptionContract = {
           {
             "name": "executed",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "perpPosition",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "solCustody",
+            "type": "pubkey"
+          },
+          {
+            "name": "usdcCustody",
+            "type": "pubkey"
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "perpSide"
+              }
+            }
+          },
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "collateralAsset",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionSize",
+            "type": "u64"
+          },
+          {
+            "name": "leverage",
+            "type": "f64"
+          },
+          {
+            "name": "entryPrice",
+            "type": "f64"
+          },
+          {
+            "name": "liquidationPrice",
+            "type": "f64"
+          },
+          {
+            "name": "openTime",
+            "type": "i64"
+          },
+          {
+            "name": "lastUpdateTime",
+            "type": "i64"
+          },
+          {
+            "name": "unrealizedPnl",
+            "type": "i64"
+          },
+          {
+            "name": "marginRatio",
+            "type": "f64"
+          },
+          {
+            "name": "isLiquidated",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "perpSide",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "long"
+          },
+          {
+            "name": "short"
           }
         ]
       }
@@ -4526,6 +4994,10 @@ export type OptionContract = {
           {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "perpPositionCount",
+            "type": "u64"
           }
         ]
       }

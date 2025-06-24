@@ -20,7 +20,7 @@ import {
   Provider,
 } from "@coral-xyz/anchor";
 import { Position } from "@/lib/data/Positions";
-import { formatDate, Transaction } from "@/lib/data/WalletActivity";
+import { formatDate, Transaction, FuturePos } from "@/lib/data/WalletActivity";
 import { coins } from "@/lib/data/coins";
 import { format } from "date-fns";
 import { OptionContract } from "@/lib/idl/option_contract";
@@ -40,6 +40,22 @@ import {
   WSOL_ORACLE,
 } from "@/utils/const";
 
+import { OptionDetailUtils } from "@/utils/optionsPricing";
+import { Token } from "@/lib/data/tokenlist";
+
+interface PoolUtilization {
+  tokenLocked: number;
+  tokenOwned: number;
+  utilizationPercent: number;
+  borrowRate: number;
+}
+
+interface PoolData {
+  sol: PoolUtilization;
+  usdc: PoolUtilization;
+  lastUpdated: number;
+}
+
 interface ContractContextType {
   program: Program<OptionContract> | undefined;
   pub: PublicKey | undefined;
@@ -51,6 +67,8 @@ interface ContractContextType {
   onCloseOption: Function;
   onClaimOption: Function;
   onExerciseOption: Function;
+  onOpenPerp: Function;
+  onClosePerp: Function;
   onAddLiquidity: Function;
   onRemoveLiquidity: Function;
   getOptionDetailAccount: Function;
@@ -62,8 +80,12 @@ interface ContractContextType {
   positions: Position[];
   expiredPositions: ExpiredOption[];
   donePositions: Transaction[];
+  perpPositions: FuturePos[];
   refreshPositions: () => Promise<void>;
+  refreshPerpPositions: () => Promise<void>;
   positionsLoading: boolean;
+  poolData: PoolData | null;
+  getPoolUtilization: (asset: "SOL" | "USDC") => PoolUtilization | null;
 }
 
 export const ContractContext = createContext<ContractContextType>({
@@ -77,6 +99,8 @@ export const ContractContext = createContext<ContractContextType>({
   onCloseOption: () => { },
   onClaimOption: () => { },
   onExerciseOption: () => { },
+  onOpenPerp: async () => { },
+  onClosePerp: async () => { },
   onAddLiquidity: () => { },
   onRemoveLiquidity: () => { },
   getOptionDetailAccount: () => { },
@@ -84,8 +108,12 @@ export const ContractContext = createContext<ContractContextType>({
   positions: [],
   expiredPositions: [],
   donePositions: [],
+  perpPositions: [],
   refreshPositions: async () => { },
+  refreshPerpPositions: async () => { },
   positionsLoading: false,
+  poolData: null,
+  getPoolUtilization: () => null,
 });
 
 export const clusterUrl = "https://api.devnet.solana.com";
@@ -102,6 +130,16 @@ export type ExpiredOption = {
   iconPath: any;
 };
 
+// Token list for perp positions (you may need to adjust this import path)
+const tokenList = [
+  {
+    name: "Solana",
+    symbol: "SOL",
+    iconPath: "/images/solana.png",
+  },
+  // Add other tokens as needed
+];
+
 export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -113,6 +151,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const [positions, setPositions] = useState<any>([]);
   const [expiredPositions, setExpiredPositions] = useState<any>([]);
   const [donePositions, setDonePositions] = useState<any>([]);
+  const [perpPositions, setPerpPositions] = useState<FuturePos[]>([]);
   const [positionsLoading, setPositionsLoading] = useState<boolean>(false);
 
   const getOptionDetailAccount = (
@@ -135,15 +174,48 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  // Add state for pool utilization data
+  const [poolData, setPoolData] = useState<PoolData | null>(null);
+
+  // Helper function to calculate pool utilization
+  const calculateUtilization = (
+    custodyData: any,
+    decimals: number,
+    isSol: boolean
+  ): PoolUtilization => {
+    const tokenLocked = custodyData.tokenLocked.toNumber();
+    const tokenOwned = custodyData.tokenOwned.toNumber();
+
+    // Calculate utilization percentage
+    const utilizationPercent = tokenOwned > 0 ? (tokenLocked / tokenOwned) * 100 : 0;
+
+    // Calculate borrow rate using the existing utility
+    const borrowRate = OptionDetailUtils.calculateBorrowRate(
+      tokenLocked,
+      tokenOwned,
+      isSol
+    );
+
+    return {
+      tokenLocked,
+      tokenOwned,
+      utilizationPercent,
+      borrowRate,
+    };
+  };
+
+  // Enhanced getCustodies function that also updates pool data
   const getCustodies = async (program: Program<OptionContract>) => {
     if (connected && publicKey != null && program) {
       const [pool] = PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
+
       const custodies = new Map<string, any>();
       const ratios = new Map<string, any>();
       const poolData = await program.account.pool.fetch(pool);
+
       for await (let custody of poolData.custodies) {
         let c = await program.account.custody.fetch(new PublicKey(custody));
         let mint = c.mint;
@@ -155,7 +227,178 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           ]
         );
       }
+
+      // Update pool utilization data
+      const solCustodyData = custodies.get(WSOL_MINT.toBase58());
+      const usdcCustodyData = custodies.get(USDC_MINT.toBase58());
+
+      if (solCustodyData && usdcCustodyData) {
+        const newPoolData: PoolData = {
+          sol: calculateUtilization(solCustodyData, WSOL_DECIMALS, true),
+          usdc: calculateUtilization(usdcCustodyData, USDC_DECIMALS, false),
+          lastUpdated: Date.now(),
+        };
+
+        setPoolData(newPoolData);
+        console.log("Updated pool utilization data:", newPoolData);
+      }
+
       return [custodies, ratios];
+    }
+  };
+
+  // Function to get pool utilization for specific asset
+  const getPoolUtilization = useCallback((asset: "SOL" | "USDC"): PoolUtilization | null => {
+    if (!poolData) return null;
+    return asset === "SOL" ? poolData.sol : poolData.usdc;
+  }, [poolData]);
+
+  // Function to fetch perpetual positions
+  const getPerpPositions = async (
+    program: Program<OptionContract>,
+    publicKey: PublicKey
+  ): Promise<FuturePos[]> => {
+    const perpPositions: FuturePos[] = [];
+
+    const [pool] = PublicKey.findProgramAddressSync(
+      [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+      program.programId
+    );
+
+    const [userPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_v2"), publicKey.toBuffer()],
+      program.programId
+    );
+
+    try {
+      // Get user info to know how many perp positions they have
+      const userInfo = await program.account.user.fetch(userPDA).catch(() => null);
+
+      if (!userInfo || userInfo.perpPositionCount.toNumber() === 0) {
+        return [];
+      }
+
+      const perpPositionCount = userInfo.perpPositionCount.toNumber();
+      console.log(`User has ${perpPositionCount} perp positions`);
+
+      // Fetch all perp position accounts for this user
+      const userPerpAccounts = await program.account.perpPosition.all([
+        {
+          memcmp: {
+            offset: 8, // Skip discriminator to get to owner field
+            bytes: publicKey.toBase58(),
+          },
+        },
+      ]);
+
+      console.log(`Found ${userPerpAccounts.length} perp accounts for user`);
+
+      // Get current SOL price for PnL calculation
+      const currentPrice = priceData.price || 0;
+
+      for (const perpAccount of userPerpAccounts) {
+        try {
+          const position = perpAccount.account;
+
+          if (!position || position.isLiquidated) {
+            continue; // Skip liquidated positions
+          }
+
+          // Calculate position size in SOL (convert from lamports)
+          const positionSizeSOL = position.positionSize.toNumber() / (10 ** WSOL_DECIMALS);
+
+          const [usdcCustody] = PublicKey.findProgramAddressSync(
+            [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+            program.programId
+          );
+
+          // Calculate collateral in USD (convert from micro-USDC)
+          const collateralUSD = position.collateralAmount.toNumber() / (position.collateralAsset != usdcCustody ? 10 ** WSOL_DECIMALS : 10 ** USDC_DECIMALS);
+
+          // Calculate unrealized PnL
+          const entryPrice = position.entryPrice;
+          const liquidationPrice = position.liquidationPrice;
+
+          let unrealizedPnl = 0;
+          console.log(position.side);
+          if (currentPrice > 0) {
+            const isLong = position.side.hasOwnProperty("long");
+            const priceDiff = isLong
+              ? currentPrice - entryPrice  // Long: profit when price goes up
+              : entryPrice - currentPrice; // Short: profit when price goes down
+
+            const positionValueUSD = positionSizeSOL * entryPrice;
+            const pnlRatio = priceDiff / entryPrice;
+            unrealizedPnl = pnlRatio * positionSizeSOL;
+          }
+
+          // Calculate TPSL (Take Profit / Stop Loss) - simplified version
+          let tpsl = liquidationPrice; // Default to liquidation price
+
+          if (position.side.hasOwnProperty("long")) {
+            // Long position: TP is higher than entry
+            const buffer = entryPrice - liquidationPrice;
+            tpsl = entryPrice + (buffer * 2);
+          } else {
+            // Short position: TP is lower than entry  
+            const buffer = liquidationPrice - entryPrice;
+            tpsl = entryPrice - (buffer * 2);
+          }
+
+          // Convert timestamps
+          const purchaseDate = new Date(position.openTime.toNumber() * 1000);
+          const formattedPurchaseDate = format(purchaseDate, 'dd MMM, yyyy HH:mm:ss');
+
+          // Create the position object
+          const futurePos: FuturePos = {
+            token: (tokenList.find(t => t.symbol === 'SOL') || tokenList[0]) as Token,
+            symbol: 'SOL',
+            futureType: 'perps', // All your positions are perpetuals
+            position: position.side.hasOwnProperty("long") ? "long" : "short",
+            entryPrice: Number(entryPrice.toFixed(2)),
+            LiqPrice: Number(liquidationPrice.toFixed(2)),
+            size: Number(positionSizeSOL.toFixed(6)),
+            collateral: Number(collateralUSD.toFixed(2)),
+            TPSL: Number(tpsl.toFixed(2)),
+            logo: '/images/solana.png',
+            leverage: Number(position.leverage.toFixed(2)),
+            purchaseDate: formattedPurchaseDate,
+            // Additional fields for debugging/tracking
+            unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
+            marginRatio: Number((position.marginRatio * 100).toFixed(2)),
+            accountAddress: perpAccount.publicKey.toBase58(),
+          };
+
+          perpPositions.push(futurePos);
+
+        } catch (e) {
+          console.log(`Error processing perp position ${perpAccount.publicKey.toBase58()}:`, e);
+          continue;
+        }
+      }
+
+      console.log(`Successfully processed ${perpPositions.length} perp positions`);
+      return perpPositions;
+
+    } catch (error) {
+      console.error("Error fetching perp positions:", error);
+
+      // Fallback: try without memcmp filter
+      try {
+        console.log("Trying fallback method...");
+        const allPerpAccounts = await program.account.perpPosition.all();
+        const userPerps = allPerpAccounts.filter(account =>
+          account.account.owner.equals(publicKey)
+        );
+
+        console.log(`Fallback found ${userPerps.length} perp accounts`);
+        // Would process with same logic as above if needed
+
+      } catch (fallbackError) {
+        console.error("Fallback method also failed:", fallbackError);
+      }
+
+      return [];
     }
   };
 
@@ -184,7 +427,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user"), publicKey.toBuffer()],
+      [Buffer.from("user_v2"), publicKey.toBuffer()],
       program.programId
     );
 
@@ -363,20 +606,36 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     if (program && publicKey) {
       setPositionsLoading(true);
       try {
-        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(
-          program,
-          publicKey
-        );
+        // Fetch both options and perp positions
+        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
+        const perpPos = await getPerpPositions(program, publicKey);
+
         setPositions(pinfo);
         setExpiredPositions(expiredpinfo);
         setDonePositions(doneinfo);
+        setPerpPositions(perpPos);
+
+        console.log(`Loaded ${pinfo.length} options, ${perpPos.length} perp positions`);
       } catch (error) {
         console.error("Error refreshing positions:", error);
       } finally {
         setPositionsLoading(false);
       }
     }
-  }, [program, publicKey]);
+  }, [program, publicKey, priceData]);
+
+  // Separate function to refresh only perp positions
+  const refreshPerpPositions = useCallback(async () => {
+    if (program && publicKey) {
+      try {
+        const perpPos = await getPerpPositions(program, publicKey);
+        setPerpPositions(perpPos);
+        console.log(`Refreshed ${perpPos.length} perp positions`);
+      } catch (error) {
+        console.error("Error refreshing perp positions:", error);
+      }
+    }
+  }, [program, publicKey, priceData]);
 
   const onOpenOption = async (
     amount: number,
@@ -397,7 +656,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user"), publicKey.toBuffer()],
+      [Buffer.from("user_v2"), publicKey.toBuffer()],
       program.programId
     );
     let optionIndex;
@@ -476,6 +735,246 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     //   console.log("error", e);
     //   return false;
     // }
+  };
+
+  // Close perpetual position function
+  const onClosePerp = async (positionIndex: number) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      const [userPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user_v2"), publicKey.toBuffer()],
+        program.programId
+      );
+
+      // Find the perp position account
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("perp_position"),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Get custody accounts
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          USDC_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      // User's USDC receiving account
+      const receivingAccount = getAssociatedTokenAddressSync(
+        USDC_MINT,
+        wallet.publicKey
+      );
+
+      // const transaction = await program.methods
+      //   .closePerpPosition({
+      //     positionIndex: new BN(positionIndex),
+      //     poolName: "SOL/USDC"
+      //   })
+      //   .accountsPartial({
+      //     owner: publicKey,
+      //     receivingAccount: receivingAccount,
+      //     pool: pool,
+      //     user: userPDA,
+      //     position: position,
+      //     solCustody: solCustody,
+      //     usdcCustody: usdcCustody,
+      //     usdcCustodyTokenAccount: usdcCustodyTokenAccount,
+      //     solOracleAccount: new PublicKey(WSOL_ORACLE),
+      //     usdcOracleAccount: new PublicKey(USDC_ORACLE),
+      //     solMint: WSOL_MINT,
+      //     usdcMint: USDC_MINT,
+      //     tokenProgram: TOKEN_PROGRAM_ID,
+      //     systemProgram: SystemProgram.programId,
+      //   })
+      //   .transaction();
+
+      // const latestBlockHash = await connection.getLatestBlockhash();
+      // transaction.feePayer = publicKey;
+
+      // const signature = await sendTransaction(transaction, connection);
+      // await connection.confirmTransaction({
+      //   blockhash: latestBlockHash.blockhash,
+      //   lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      //   signature: signature,
+      // });
+
+      // console.log("Perp position closed successfully:", signature);
+      await refreshPerpPositions(); // Refresh positions
+      return true;
+    } catch (e) {
+      console.error("Error closing perp position:", e);
+      return false;
+    }
+  };
+
+  // Updated onOpenPerp function to support multi-collateral
+  const onOpenPerp = async (
+    collateralAmount: number,
+    positionSize: number,
+    side: "long" | "short",
+    maxSlippage: number = 100,
+    paySol: boolean = false,
+    payAmount: number,
+  ) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      const [userPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user_v2"), publicKey.toBuffer()],
+        program.programId
+      );
+
+      let perpPositionCount;
+      try {
+        const userInfo = await program.account.user.fetch(userPDA);
+        perpPositionCount = userInfo.perpPositionCount.toNumber();
+      } catch {
+        perpPositionCount = 0;
+      }
+
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("perp_position"),
+          publicKey.toBuffer(),
+          new BN(perpPositionCount + 1).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Get custody accounts
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Get custody token accounts
+      const [solCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          WSOL_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      const [usdcCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          USDC_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      // User's funding account based on payment type
+      const fundingAccount = getAssociatedTokenAddressSync(
+        paySol ? WSOL_MINT : USDC_MINT,
+        wallet.publicKey
+      );
+
+      // Convert side to enum format
+      const perpSide = side === "long" ? { long: {} } : { short: {} };
+
+      console.log("Opening perp position with params:", {
+        collateralAmount,
+        positionSize,
+        side: perpSide,
+        maxSlippage,
+        paySol,
+        paymentAsset: paySol ? "SOL" : "USDC",
+        payAmount,
+      });
+
+      const transaction = await program.methods
+        .openPerpPosition({
+          collateralAmount: new BN(collateralAmount),
+          positionSize: new BN(positionSize),
+          side: perpSide,
+          maxSlippage: new BN(maxSlippage),
+          poolName: "SOL/USDC",
+          paySol: paySol,
+          payAmount: new BN(payAmount),
+        })
+        .accountsPartial({
+          owner: publicKey,
+          fundingAccount: fundingAccount,
+          pool: pool,
+          user: userPDA,
+          position: position,
+          solCustody: solCustody,
+          usdcCustody: usdcCustody,
+          solCustodyTokenAccount: solCustodyTokenAccount,
+          usdcCustodyTokenAccount: usdcCustodyTokenAccount,
+          solOracleAccount: new PublicKey(WSOL_ORACLE),
+          usdcOracleAccount: new PublicKey(USDC_ORACLE),
+          solMint: WSOL_MINT,
+          usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
+
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Transaction simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log("Multi-collateral perp position opened successfully:", signature);
+      await refreshPositions();
+      return true;
+
+    } catch (e) {
+      console.error("Error opening multi-collateral perp position:", e);
+      return false;
+    }
   };
 
   const onCloseOption = async (optionIndex: number, closeQuantity: number) => {
@@ -671,7 +1170,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user"), publicKey.toBuffer()],
+      [Buffer.from("user_v2"), publicKey.toBuffer()],
       program.programId
     );
     let optionIndex;
@@ -995,7 +1494,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Find user PDA
       const [user] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user"), publicKey.toBuffer()],
+        [Buffer.from("user_v2"), publicKey.toBuffer()],
         program.programId
       );
 
@@ -1400,6 +1899,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onCloseOption,
         onClaimOption,
         onExerciseOption,
+        onOpenPerp,
+        onClosePerp,
         onAddLiquidity,
         onRemoveLiquidity,
         getOptionDetailAccount,
@@ -1407,8 +1908,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         positions,
         expiredPositions,
         donePositions,
+        perpPositions,
         refreshPositions,
+        refreshPerpPositions,
         positionsLoading,
+        poolData,
+        getPoolUtilization
       }}
     >
       {children}
