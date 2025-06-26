@@ -189,7 +189,7 @@ export default function CloseFutures({
                         Size
                     </span>
                     <span>
-                        {size.toFixed(2)} -&gt; {(size - closeSize).toFixed(2)}
+                        {size.toFixed(2)} → {(size - closeSize).toFixed(2)}
                     </span>
                 </div>
                 <div className="w-full flex justify-between text-sm">
@@ -197,7 +197,7 @@ export default function CloseFutures({
                         Collateral
                     </span>
                     <span>
-                        {collateral.toFixed(2)} -&gt; {(collateral * Math.max(size - closeSize, 0) / size).toFixed(2)}
+                        {collateral.toFixed(2)} → {(collateral * Math.max(size - closeSize, 0) / size).toFixed(2)}
                     </span>
                 </div>
                 <div className="w-full flex justify-between text-sm">

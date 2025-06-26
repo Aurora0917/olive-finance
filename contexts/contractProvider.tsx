@@ -68,7 +68,9 @@ interface ContractContextType {
   onClaimOption: Function;
   onExerciseOption: Function;
   onOpenPerp: Function;
-  onClosePerp: Function;
+  onClosePerp: Function,
+  onAddCollateral: Function,
+  onRemoveCollateral: Function,
   onAddLiquidity: Function;
   onRemoveLiquidity: Function;
   getOptionDetailAccount: Function;
@@ -101,6 +103,8 @@ export const ContractContext = createContext<ContractContextType>({
   onExerciseOption: () => { },
   onOpenPerp: async () => { },
   onClosePerp: async () => { },
+  onAddCollateral: async () => { },
+  onRemoveCollateral: async () => { },
   onAddLiquidity: () => { },
   onRemoveLiquidity: () => { },
   getOptionDetailAccount: () => { },
@@ -326,7 +330,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               ? currentPrice - entryPrice  // Long: profit when price goes up
               : entryPrice - currentPrice; // Short: profit when price goes down
 
-            const positionValueUSD = positionSizeSOL * entryPrice;
             const pnlRatio = priceDiff / entryPrice;
             unrealizedPnl = pnlRatio * positionSizeSOL;
           }
@@ -734,7 +737,20 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const getPositionIndexFromAccount = async (accountAddress: string, owner: PublicKey, pool: PublicKey) => {
     // Try different position indices until we find the matching account
-    for (let i = 1; i <= 100; i++) { // Reasonable upper limit
+
+    const [userPDA] = PublicKey.findProgramAddressSync(
+      [Buffer.from("user_v2"), owner.toBuffer()],
+      program!.programId
+    );
+
+    const userInfo = await program!.account.user.fetch(userPDA).catch((e) => {
+      return null;
+    });
+
+    if (!userInfo) return [[], [], []];
+    const positionCount = userInfo.perpPositionCount;
+
+    for (let i = 1; i <= positionCount; i++) {
       const [derivedAddress] = PublicKey.findProgramAddressSync(
         [
           Buffer.from("perp_position"),
@@ -1046,6 +1062,298 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
     } catch (e) {
       console.error("Error opening multi-collateral perp position:", e);
+      return false;
+    }
+  };
+
+  // Add collateral to existing perpetual position
+  const onAddCollateral = async (
+    accountAddress: string,  // The position account address
+    collateralAmount: number,
+    paySol: boolean,         // true = add SOL, false = add USDC
+  ) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      console.log("Adding collateral with params:", {
+        accountAddress,
+        collateralAmount,
+        paySol,
+        paymentAsset: paySol ? "SOL" : "USDC"
+      });
+
+      // Find contract account
+      const [contract] = PublicKey.findProgramAddressSync(
+        [Buffer.from("contract")],
+        program.programId
+      );
+
+      // Find pool account
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      // Get position index from account address
+      const positionIndex = await getPositionIndexFromAccount(
+        accountAddress,
+        publicKey,
+        pool
+      );
+
+      // Find the perp position account
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("perp_position"),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Get custody accounts
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Get custody token accounts
+      const [solCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          WSOL_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      const [usdcCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          USDC_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      // User's funding accounts (both required by smart contract)
+      const solFundingAccount = getAssociatedTokenAddressSync(
+        WSOL_MINT,
+        wallet.publicKey
+      );
+
+      const usdcFundingAccount = getAssociatedTokenAddressSync(
+        USDC_MINT,
+        wallet.publicKey
+      );
+
+      const transaction = await program.methods
+        .addCollateral({
+          positionIndex: new BN(positionIndex),
+          poolName: "SOL/USDC",
+          collateralAmount: new BN(collateralAmount * (10 ** (paySol ? WSOL_DECIMALS : USDC_DECIMALS))),
+          paySol: paySol,
+        })
+        .accountsPartial({
+          owner: publicKey,
+          solFundingAccount: solFundingAccount,
+          usdcFundingAccount: usdcFundingAccount,
+          contract: contract,
+          pool: pool,
+          position: position,
+          solCustody: solCustody,
+          usdcCustody: usdcCustody,
+          solCustodyTokenAccount: solCustodyTokenAccount,
+          usdcCustodyTokenAccount: usdcCustodyTokenAccount,
+          solOracleAccount: new PublicKey(WSOL_ORACLE),
+          usdcOracleAccount: new PublicKey(USDC_ORACLE),
+          solMint: WSOL_MINT,
+          usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
+
+      // Simulate transaction first
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Add collateral simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Add collateral simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log("Collateral added successfully:", signature);
+      await refreshPerpPositions(); // Refresh positions
+      return true;
+
+    } catch (e) {
+      console.error("Error adding collateral:", e);
+      return false;
+    }
+  };
+
+  // Remove collateral from existing perpetual position
+  const onRemoveCollateral = async (
+    accountAddress: string,   // The position account address
+    collateralAmount: number,
+    receiveSol: boolean,      // true = receive SOL, false = receive USDC
+  ) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      console.log("Removing collateral with params:", {
+        accountAddress,
+        collateralAmount,
+        receiveSol,
+        receiveAsset: receiveSol ? "SOL" : "USDC"
+      });
+
+      // Find contract account
+      const [contract] = PublicKey.findProgramAddressSync(
+        [Buffer.from("contract")],
+        program.programId
+      );
+
+      // Find pool account
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      // Find transfer authority
+      const [transferAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from("transfer_authority")],
+        program.programId
+      );
+
+      // Get position index from account address
+      const positionIndex = await getPositionIndexFromAccount(
+        accountAddress,
+        publicKey,
+        pool
+      );
+
+      // Find the perp position account
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("perp_position"),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Get custody accounts
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Get custody token accounts
+      const [solCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          WSOL_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      const [usdcCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          USDC_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      // User's receiving accounts (both required by smart contract)
+      const userSolAccount = getAssociatedTokenAddressSync(
+        WSOL_MINT,
+        wallet.publicKey
+      );
+
+      const userUsdcAccount = getAssociatedTokenAddressSync(
+        USDC_MINT,
+        wallet.publicKey
+      );
+
+      const transaction = await program.methods
+        .removeCollateral({
+          positionIndex: new BN(positionIndex),
+          poolName: "SOL/USDC",
+          collateralAmount: new BN(collateralAmount * (10 ** (receiveSol ? WSOL_DECIMALS : USDC_DECIMALS))),
+          receiveSol: receiveSol,
+        })
+        .accountsPartial({
+          owner: publicKey,
+          userSolAccount: userSolAccount,
+          userUsdcAccount: userUsdcAccount,
+          transferAuthority: transferAuthority,
+          contract: contract,
+          pool: pool,
+          position: position,
+          solCustody: solCustody,
+          usdcCustody: usdcCustody,
+          solCustodyTokenAccount: solCustodyTokenAccount,
+          usdcCustodyTokenAccount: usdcCustodyTokenAccount,
+          solOracleAccount: new PublicKey(WSOL_ORACLE),
+          usdcOracleAccount: new PublicKey(USDC_ORACLE),
+          solMint: WSOL_MINT,
+          usdcMint: USDC_MINT,
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
+
+      // Simulate transaction first
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Remove collateral simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Remove collateral simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log("Collateral removed successfully:", signature);
+      console.log(`Received as: ${receiveSol ? "SOL" : "USDC"}`);
+      await refreshPerpPositions(); // Refresh positions
+      return true;
+
+    } catch (e) {
+      console.error("Error removing collateral:", e);
       return false;
     }
   };
@@ -1974,6 +2282,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onExerciseOption,
         onOpenPerp,
         onClosePerp,
+        onAddCollateral,
+        onRemoveCollateral,
         onAddLiquidity,
         onRemoveLiquidity,
         getOptionDetailAccount,

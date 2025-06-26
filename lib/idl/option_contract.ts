@@ -14,6 +14,287 @@ export type OptionContract = {
   },
   "instructions": [
     {
+      "name": "addCollateral",
+      "discriminator": [
+        127,
+        82,
+        121,
+        42,
+        161,
+        176,
+        249,
+        206
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "solFundingAccount",
+            "usdcFundingAccount"
+          ]
+        },
+        {
+          "name": "solFundingAccount",
+          "writable": true
+        },
+        {
+          "name": "usdcFundingAccount",
+          "writable": true
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "addCollateralParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "addCustody",
       "discriminator": [
         247,
@@ -3844,6 +4125,317 @@ export type OptionContract = {
       ]
     },
     {
+      "name": "removeCollateral",
+      "discriminator": [
+        86,
+        222,
+        130,
+        86,
+        92,
+        20,
+        72,
+        65
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "userSolAccount",
+            "userUsdcAccount"
+          ]
+        },
+        {
+          "name": "userSolAccount",
+          "writable": true
+        },
+        {
+          "name": "userUsdcAccount",
+          "writable": true
+        },
+        {
+          "name": "transferAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  101,
+                  114,
+                  112,
+                  95,
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "removeCollateralParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "removeCustody",
       "discriminator": [
         143,
@@ -4518,11 +5110,11 @@ export type OptionContract = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidWithdrawError"
+      "name": "invalidPoolBalanceError"
     },
     {
       "code": 6001,
-      "name": "invalidPoolBalanceError"
+      "name": "invalidLockedBalanceError"
     },
     {
       "code": 6002,
@@ -4530,18 +5122,154 @@ export type OptionContract = {
     },
     {
       "code": 6003,
-      "name": "invalidCustodyTokenError"
+      "name": "invalidOptionIndexError"
     },
     {
       "code": 6004,
-      "name": "invalidPoolState"
+      "name": "invalidTimeError"
     },
     {
       "code": 6005,
-      "name": "invalidCustodyState"
+      "name": "invalidMintError"
+    },
+    {
+      "code": 6006,
+      "name": "invalidPriceRequirementError"
+    },
+    {
+      "code": 6007,
+      "name": "stalePriceError"
+    },
+    {
+      "code": 6008,
+      "name": "invalidPayAmountError"
+    },
+    {
+      "code": 6009,
+      "name": "invalidOwner"
+    },
+    {
+      "code": 6010,
+      "name": "optionNotValid"
+    },
+    {
+      "code": 6011,
+      "name": "optionAlreadyExercised"
+    },
+    {
+      "code": 6012,
+      "name": "insufficientFundsError"
+    },
+    {
+      "code": 6013,
+      "name": "invalidQuantityError"
+    },
+    {
+      "code": 6014,
+      "name": "insufficientQuantityError"
+    },
+    {
+      "code": 6015,
+      "name": "borrowRateNotInitialized"
+    },
+    {
+      "code": 6016,
+      "name": "assetTypeNotSet"
+    },
+    {
+      "code": 6017,
+      "name": "invalidPoolIndex"
+    },
+    {
+      "code": 6018,
+      "name": "utilizationTooHigh"
+    },
+    {
+      "code": 6019,
+      "name": "invalidUtilizationRate"
+    },
+    {
+      "code": 6020,
+      "name": "invalidBorrowRateCurvePoint"
+    },
+    {
+      "code": 6021,
+      "name": "insufficientPoolLiquidity"
+    },
+    {
+      "code": 6022,
+      "name": "insufficientBalance"
+    },
+    {
+      "code": 6023,
+      "name": "invalidAmount"
+    },
+    {
+      "code": 6024,
+      "name": "invalidLeverage"
+    },
+    {
+      "code": 6025,
+      "name": "invalidSlippage"
+    },
+    {
+      "code": 6026,
+      "name": "mathOverflow"
+    },
+    {
+      "code": 6027,
+      "name": "priceSlippage"
+    },
+    {
+      "code": 6028,
+      "name": "positionLiquidated"
+    },
+    {
+      "code": 6029,
+      "name": "unauthorized"
+    },
+    {
+      "code": 6030,
+      "name": "invalidLiquidationPrice"
+    },
+    {
+      "code": 6031,
+      "name": "invalidPoolName"
+    },
+    {
+      "code": 6032,
+      "name": "insufficientCollateral"
+    },
+    {
+      "code": 6033,
+      "name": "invalidCollateralAsset"
     }
   ],
   "types": [
+    {
+      "name": "addCollateralParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "paySol",
+            "type": "bool"
+          }
+        ]
+      }
+    },
     {
       "name": "addCustodyParams",
       "type": {
@@ -5231,6 +5959,30 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "removeCollateralParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "receiveSol",
+            "type": "bool"
           }
         ]
       }

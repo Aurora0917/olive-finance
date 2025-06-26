@@ -14,7 +14,7 @@ interface OpenFuturesProps {
     token: string;
     symbol: string;
     type: string;
-    position: string;
+    position: 'long' | 'short';
     leverage: number;
     entry: number;
     liquidation: number;
@@ -23,6 +23,7 @@ interface OpenFuturesProps {
     tpsl: number;
     purchaseDate: string;
     unrealizedPnl?: number;
+    onCollateral: (amount: number, isSol: boolean, isDeposit: boolean) => Promise<void>;
     onClose: (percent: number, receiveToken: string, exitPrice: number) => Promise<void>;
     isClosing?: boolean;
 }
@@ -41,6 +42,7 @@ export default function OpenFutures({
     tpsl,
     purchaseDate,
     unrealizedPnl,
+    onCollateral,
     onClose,
     isClosing = false
 }: OpenFuturesProps) {
@@ -49,9 +51,6 @@ export default function OpenFutures({
 
     // Get current market price (mark price)
     const markPrice = priceData?.price || entry;
-
-    // Calculate position value
-    const positionValue = size * markPrice;
 
     // Calculate PnL if not provided
     const calculatePnl = () => {
@@ -63,7 +62,7 @@ export default function OpenFutures({
         const priceDiff = position === "long"
             ? markPrice - entry
             : entry - markPrice;
-        return (priceDiff / entry) * positionValue;
+        return (priceDiff / entry) * size;
     };
 
     const pnl = calculatePnl();
@@ -124,7 +123,23 @@ export default function OpenFutures({
                                     <span>
                                         ${collateral.toFixed(2)}
                                     </span>
-                                    <Collateral />
+                                    <Collateral
+                                        currentLeverage={leverage}
+                                        currentLiquidationPrice={liquidation}
+                                        currentCollateral={collateral}
+                                        currentPositionSize={size}
+                                        entryPrice={entry}
+                                        position={position}
+                                        markPrice={markPrice}
+                                        unrealizedPnl={unrealizedPnl || 0}
+                                        onDeposit={async (amount, token) => {
+                                            onCollateral(amount, token === "SOL", true);
+                                        }}
+                                        onWithdraw={async (amount, token) => {
+                                            onCollateral(amount, token === "SOL", false);
+                                        }}
+                                        isProcessing={false}
+                                    />
                                 </TableCell>
                                 <TableCell className="flex space-x-1 items-center">
                                     <span>

@@ -71,6 +71,8 @@ export default function FuturesPositions() {
         perpPositions,
         positionsLoading,
         onClosePerp,
+        onAddCollateral,
+        onRemoveCollateral,
         refreshPerpPositions,
         donePositions,
         program
@@ -125,6 +127,14 @@ export default function FuturesPositions() {
         setActiveTab(value);
         setCurrentPage(1);
     };
+
+    const handleCollateral = async (position: FuturePos, amount: number, isSol:boolean, isDeposit: boolean) => {
+        if (isDeposit) {
+            onAddCollateral(position.accountAddress, amount, isSol);
+        } else {
+            onRemoveCollateral(position.accountAddress, amount, isSol);
+        }
+    }
 
     const handleClosePosition = async (position: FuturePos, percent: number, receiveToken: string, exitPrice: number) => {
         if (!position.accountAddress) {
@@ -239,6 +249,7 @@ export default function FuturesPositions() {
                                                 purchaseDate={pos.purchaseDate}
                                                 // Additional real data
                                                 unrealizedPnl={pos.unrealizedPnl}
+                                                onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
                                                 onClose={(percent, receiveToken, exitPrice) => handleClosePosition(pos, percent, receiveToken, exitPrice)}
                                                 isClosing={isClosing === positionIndex}
                                             />
