@@ -307,20 +307,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           // Calculate position size in SOL (convert from lamports)
           const positionSizeSOL = position.positionSize.toNumber() / (10 ** WSOL_DECIMALS);
 
-          const [usdcCustody] = PublicKey.findProgramAddressSync(
-            [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+          const [solCustody] = PublicKey.findProgramAddressSync(
+            [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
             program.programId
           );
 
           // Calculate collateral in USD (convert from micro-USDC)
-          const collateralUSD = position.collateralAmount.toNumber() / (position.collateralAsset != usdcCustody ? 10 ** WSOL_DECIMALS : 10 ** USDC_DECIMALS);
+          const collateralUSD = position.collateralAmount.toNumber() / (position.collateralAsset.toBase58() == solCustody.toBase58() ? 10 ** WSOL_DECIMALS : 10 ** USDC_DECIMALS);
 
           // Calculate unrealized PnL
           const entryPrice = position.entryPrice;
           const liquidationPrice = position.liquidationPrice;
 
           let unrealizedPnl = 0;
-          console.log(position.side);
           if (currentPrice > 0) {
             const isLong = position.side.hasOwnProperty("long");
             const priceDiff = isLong
@@ -340,7 +339,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             const buffer = entryPrice - liquidationPrice;
             tpsl = entryPrice + (buffer * 2);
           } else {
-            // Short position: TP is lower than entry  
+            // Short position: TP is lower than entry
             const buffer = liquidationPrice - entryPrice;
             tpsl = entryPrice - (buffer * 2);
           }
@@ -731,25 +730,60 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     // Refresh positions after successful transaction
     await refreshPositions();
     return true;
-    // } catch (e) {
-    //   console.log("error", e);
-    //   return false;
-    // }
+  };
+
+  const getPositionIndexFromAccount = async (accountAddress: string, owner: PublicKey, pool: PublicKey) => {
+    // Try different position indices until we find the matching account
+    for (let i = 1; i <= 100; i++) { // Reasonable upper limit
+      const [derivedAddress] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("perp_position"),
+          owner.toBuffer(),
+          new BN(i).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program!.programId
+      );
+
+      if (derivedAddress.toString() === accountAddress) {
+        return i;
+      }
+    }
+    throw new Error("Position index not found");
   };
 
   // Close perpetual position function
-  const onClosePerp = async (positionIndex: number) => {
+  const onClosePerp = async (
+    accountAddress: string,
+    closePercentage: number = 100, // 1-100: 100 = full close, <100 = partial close
+    receiveAsset: "SOL" | "USDC" = "USDC", // Which asset user wants to receive
+    minPrice: number = 0, // Minimum acceptable price for slippage protection
+  ) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
 
+      // Find contract account (required by smart contract)
+      const [contract] = PublicKey.findProgramAddressSync(
+        [Buffer.from("contract")],
+        program.programId
+      );
+
+      // Find pool account (same as open)
       const [pool] = PublicKey.findProgramAddressSync(
         [Buffer.from("pool"), Buffer.from("SOL/USDC")],
         program.programId
       );
 
-      const [userPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_v2"), publicKey.toBuffer()],
+      // Find transfer authority (required by smart contract)
+      const [transferAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from("transfer_authority")],
         program.programId
+      );
+
+      const positionIndex = await getPositionIndexFromAccount(
+        accountAddress,
+        publicKey,
+        pool
       );
 
       // Find the perp position account
@@ -763,7 +797,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      // Get custody accounts
+      // Get custody accounts (same as open)
       const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
         program.programId
@@ -771,6 +805,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const [usdcCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Get custody token accounts (both required by smart contract)
+      const [solCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          WSOL_MINT.toBuffer()
+        ],
         program.programId
       );
 
@@ -783,48 +827,77 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      // User's USDC receiving account
-      const receivingAccount = getAssociatedTokenAddressSync(
+      // User's receiving accounts (both required by smart contract)
+      const userSolAccount = getAssociatedTokenAddressSync(
+        WSOL_MINT,
+        wallet.publicKey
+      );
+
+      const userUsdcAccount = getAssociatedTokenAddressSync(
         USDC_MINT,
         wallet.publicKey
       );
 
-      // const transaction = await program.methods
-      //   .closePerpPosition({
-      //     positionIndex: new BN(positionIndex),
-      //     poolName: "SOL/USDC"
-      //   })
-      //   .accountsPartial({
-      //     owner: publicKey,
-      //     receivingAccount: receivingAccount,
-      //     pool: pool,
-      //     user: userPDA,
-      //     position: position,
-      //     solCustody: solCustody,
-      //     usdcCustody: usdcCustody,
-      //     usdcCustodyTokenAccount: usdcCustodyTokenAccount,
-      //     solOracleAccount: new PublicKey(WSOL_ORACLE),
-      //     usdcOracleAccount: new PublicKey(USDC_ORACLE),
-      //     solMint: WSOL_MINT,
-      //     usdcMint: USDC_MINT,
-      //     tokenProgram: TOKEN_PROGRAM_ID,
-      //     systemProgram: SystemProgram.programId,
-      //   })
-      //   .transaction();
+      console.log("Closing perp position with params:", {
+        positionIndex,
+        closePercentage,
+        minPrice,
+        receiveAsset,
+        poolName: "SOL/USDC"
+      });
 
-      // const latestBlockHash = await connection.getLatestBlockhash();
-      // transaction.feePayer = publicKey;
+      const transaction = await program.methods
+        .closePerpPosition({
+          positionIndex: new BN(positionIndex),
+          poolName: "SOL/USDC",
+          closePercentage: closePercentage,
+          minPrice: minPrice,
+          receiveSol: receiveAsset === "SOL", // Convert to boolean for smart contract
+        })
+        .accountsPartial({
+          owner: publicKey,
+          userSolAccount: userSolAccount,      // Required: matches contract account name
+          userUsdcAccount: userUsdcAccount,    // Required: matches contract account name
+          transferAuthority: transferAuthority, // Required: matches contract account name
+          contract: contract,                  // Required: matches contract account name
+          pool: pool,
+          position: position,
+          solCustody: solCustody,
+          usdcCustody: usdcCustody,
+          solCustodyTokenAccount: solCustodyTokenAccount,   // Required: matches contract account name
+          usdcCustodyTokenAccount: usdcCustodyTokenAccount, // Required: matches contract account name
+          solOracleAccount: new PublicKey(WSOL_ORACLE),     // Required: matches contract account name
+          usdcOracleAccount: new PublicKey(USDC_ORACLE),    // Required: matches contract account name
+          solMint: WSOL_MINT,                  // Required: matches contract account name
+          usdcMint: USDC_MINT,                 // Required: matches contract account name
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .transaction();
 
-      // const signature = await sendTransaction(transaction, connection);
-      // await connection.confirmTransaction({
-      //   blockhash: latestBlockHash.blockhash,
-      //   lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      //   signature: signature,
-      // });
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
 
-      // console.log("Perp position closed successfully:", signature);
+      // Simulate transaction first
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Close simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Close transaction simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log(`Perp position ${closePercentage === 100 ? 'fully' : 'partially'} closed successfully:`, signature);
+      console.log(`Settlement received as: ${receiveAsset}`);
       await refreshPerpPositions(); // Refresh positions
       return true;
+
     } catch (e) {
       console.error("Error closing perp position:", e);
       return false;

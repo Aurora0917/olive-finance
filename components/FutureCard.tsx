@@ -157,7 +157,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
   const buyFutureHandler = async () => {
     if (isNotNull(priceData.price)) {
       if (collateralUSD > 10) {
-        await onOpenPerp(collateralUSD * (10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS)), positionSize * (10 ** WSOL_DECIMALS), selectedTx, priceData.price,
+        await onOpenPerp(collateralUSD * (10 ** (selectedTx === "long" ? WSOL_DECIMALS : USDC_DECIMALS)), positionSize * (10 ** WSOL_DECIMALS), selectedTx, priceData.price,
           payCurrency === "Crypto.SOL/USD", parseFloat(amount) * ( 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS)));
       }
     } else {

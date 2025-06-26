@@ -9,7 +9,7 @@ import Tpsl from "./Tpsl";
 import CloseFutures from "./CloseFutures";
 import { usePythPrice } from "@/hooks/usePythPrice";
 
-interface OpenFuturesProps{
+interface OpenFuturesProps {
     logo: string;
     token: string;
     symbol: string;
@@ -23,16 +23,16 @@ interface OpenFuturesProps{
     tpsl: number;
     purchaseDate: string;
     unrealizedPnl?: number;
-    onClose?: () => Promise<void>;
+    onClose: (percent: number, receiveToken: string, exitPrice: number) => Promise<void>;
     isClosing?: boolean;
 }
 
 export default function OpenFutures({
-    logo, 
-    token, 
-    symbol, 
-    type, 
-    position, 
+    logo,
+    token,
+    symbol,
+    type,
+    position,
     leverage,
     entry,
     liquidation,
@@ -43,52 +43,52 @@ export default function OpenFutures({
     unrealizedPnl,
     onClose,
     isClosing = false
-} : OpenFuturesProps){
+}: OpenFuturesProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const { priceData } = usePythPrice("Crypto.SOL/USD");
-    
+
     // Get current market price (mark price)
     const markPrice = priceData?.price || entry;
-    
+
     // Calculate position value
     const positionValue = size * markPrice;
-    
+
     // Calculate PnL if not provided
     const calculatePnl = () => {
         if (unrealizedPnl !== undefined) {
             return unrealizedPnl;
         }
-        
+
         // Fallback calculation
-        const priceDiff = position === "long" 
-            ? markPrice - entry 
+        const priceDiff = position === "long"
+            ? markPrice - entry
             : entry - markPrice;
         return (priceDiff / entry) * positionValue;
     };
-    
+
     const pnl = calculatePnl();
 
     return (
         <div className="w-full flex flex-col bg-accent rounded-sm">
-            <div 
+            <div
                 className="w-full px-4 py-3 flex justify-between items-center cursor-pointer"
-                onClick={()=>setIsOpen(!isOpen)}
+                onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex space-x-[6px] items-center">
-                    <Image src={logo} alt={token} width={16} height={16} className="w-4 h-4 rounded-full"/>
+                    <Image src={logo} alt={token} width={16} height={16} className="w-4 h-4 rounded-full" />
                     <span className="text-sm text-foreground font-medium">{symbol}</span>
                     <Badge className={`${position === "long" ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center`}>
                         {leverage}x {position.charAt(0).toUpperCase() + position.slice(1).toLowerCase()}
                     </Badge>
                 </div>
                 <div>
-                    
+
                 </div>
                 {isOpen ? (
                     <span className='text-secondary-foreground'>
                         <ArrowUp />
                     </span>
-                    
+
                 ) : (
                     <span className='text-secondary-foreground'>
                         <ArrowDown />
@@ -122,13 +122,13 @@ export default function OpenFutures({
                                 <TableCell className="flex space-x-2 items-center">{leverage}x</TableCell>
                                 <TableCell className="flex space-x-1 items-center">
                                     <span>
-                                        ${collateral.toFixed(2)} 
+                                        ${collateral.toFixed(2)}
                                     </span>
                                     <Collateral />
                                 </TableCell>
                                 <TableCell className="flex space-x-1 items-center">
                                     <span>
-                                        ${tpsl.toFixed(2)} 
+                                        ${tpsl.toFixed(2)}
                                     </span>
                                     <Tpsl />
                                 </TableCell>
@@ -136,7 +136,17 @@ export default function OpenFutures({
                                     ${pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}({((pnl / collateral) * 100).toFixed(2)}%)
                                 </TableCell>
                                 <TableCell className="flex space-x-2 items-center">
-                                    <CloseFutures />
+                                    <CloseFutures
+                                        size={size}
+                                        markPrice={markPrice}
+                                        entryPrice={entry}
+                                        collateral={collateral}
+                                        position={position}
+                                        onClose={(closePercent, receiveToken, exitPrice) => {
+                                            // Handle the close operation
+                                            onClose(closePercent, receiveToken, exitPrice)
+                                        }}
+                                    />
                                 </TableCell>
                             </TableRow>
                         </TableBody>
