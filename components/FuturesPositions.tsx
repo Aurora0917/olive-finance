@@ -11,6 +11,7 @@ import ExpiredFutures from "./ExpiredFutures";
 import FuturesOrderHistory from "./FuturesOrderHistory";
 import { ContractContext } from "@/contexts/contractProvider";
 import { FuturePos, FuturesTransaction } from "@/lib/data/WalletActivity";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 
 const Fallback = () => {
     const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
@@ -75,7 +76,7 @@ export default function FuturesPositions() {
         onRemoveCollateral,
         refreshPerpPositions,
         donePositions,
-        program
+        program,
     } = useContext(ContractContext);
 
     const [activeTab, setActiveTab] = useState('positions');
@@ -83,8 +84,21 @@ export default function FuturesPositions() {
     const [isClosing, setIsClosing] = useState<number | null>(null);
     const [expiredPositions, setExpiredPositions] = useState<FuturePos[]>([]);
     const [futuresTransactions, setFuturesTransactions] = useState<FuturesTransaction[]>([]);
+    const { connected, publicKey } = useWallet();
 
     const itemsPerPage = 5;
+
+    // Get wallet address for backend integration
+    const walletAddress = publicKey?.toBase58() || '';
+
+    // Debug wallet connection
+    useEffect(() => {
+        console.log('🔍 Wallet Integration Debug:', {
+            publicKey: publicKey?.toBase58(),
+            finalWalletAddress: walletAddress,
+            hasWallet: !!walletAddress
+        });
+    }, [publicKey, walletAddress]);
 
     // Convert real perp positions to futures transactions for history
     const convertPerpPositionsToTransactions = (positions: FuturePos[]): FuturesTransaction[] => {
@@ -128,7 +142,7 @@ export default function FuturesPositions() {
         setCurrentPage(1);
     };
 
-    const handleCollateral = async (position: FuturePos, amount: number, isSol:boolean, isDeposit: boolean) => {
+    const handleCollateral = async (position: FuturePos, amount: number, isSol: boolean, isDeposit: boolean) => {
         if (isDeposit) {
             onAddCollateral(position.accountAddress, amount, isSol);
         } else {
@@ -181,6 +195,17 @@ export default function FuturesPositions() {
         refreshPerpPositions();
     };
 
+    // Helper function to generate pool name from position data
+    const generatePoolName = (position: FuturePos): string => {
+        return `${position.symbol}-PERPETUAL`;
+    };
+
+    // Helper function to get custody token
+    const getCustodyToken = (position: FuturePos): string => {
+        // Return the token symbol for custody
+        return position.symbol || position.token.name || 'UNKNOWN';
+    };
+
     return (
         <div className="w-full border rounded-sm flex flex-col mb-3">
             <section className="border-b rounded-none px-6 py-3">
@@ -220,6 +245,24 @@ export default function FuturesPositions() {
                     </Button>
                 </div>
             </section>
+
+            {/* Wallet connection status display */}
+            {walletAddress && (
+                <div className="px-6 py-2 bg-blue-500/10 border-b">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center space-x-2">
+                            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                            <span className="text-xs text-blue-400">
+                                Live TP/SL Integration Active
+                            </span>
+                        </div>
+                        <span className="text-xs text-secondary-foreground">
+                            Wallet: {walletAddress.slice(0, 4)}...{walletAddress.slice(-4)}
+                        </span>
+                    </div>
+                </div>
+            )}
+
             <ProtectedRoute fallback={<Fallback />}>
                 {activeTab === 'positions' && (
                     <>
@@ -235,6 +278,7 @@ export default function FuturesPositions() {
                                     return (
                                         <div key={pos.accountAddress || `pos-${idx}`} className="relative">
                                             <OpenFutures
+                                                // Basic position props
                                                 token={pos.token.name}
                                                 logo={pos.logo}
                                                 symbol={pos.symbol}
@@ -247,11 +291,18 @@ export default function FuturesPositions() {
                                                 collateral={pos.collateral}
                                                 tpsl={pos.TPSL}
                                                 purchaseDate={pos.purchaseDate}
-                                                // Additional real data
                                                 unrealizedPnl={pos.unrealizedPnl}
+
+                                                // Callbacks
                                                 onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
                                                 onClose={(percent, receiveToken, exitPrice) => handleClosePosition(pos, percent, receiveToken, exitPrice)}
                                                 isClosing={isClosing === positionIndex}
+
+                                                // Backend integration props
+                                                userId={walletAddress} // User's wallet address
+                                                positionId={pos.accountAddress || `${pos.symbol}_${pos.leverage}x_${pos.entryPrice}_${idx}`} // Position identifier
+                                                custody={getCustodyToken(pos)} // Custody token
+                                                poolName="SOL/USDC" // Pool name
                                             />
 
                                             {/* Loading overlay for closing position */}

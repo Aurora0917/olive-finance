@@ -68,7 +68,7 @@ interface OptionDetail {
   purchasedPrice: string;
 }
 
-// ✅ Fix: Update interface to match Anchor's actual return type
+// Update interface to match Anchor's actual return type
 interface AnchorProgramAccount {
   publicKey: PublicKey; // Note: publicKey, not pubkey
   account: {
@@ -118,13 +118,13 @@ export default function RecentTrades() {
     }
   }, []);
 
-  // ✅ Fix: Update function signature to match Anchor's return type
+  // Update function signature to match Anchor's return type
   const processOptionAccount = async (
     account: AnchorProgramAccount,
     program: Program<OptionContract>
   ): Promise<OptionDetail | null> => {
     try {
-      // ✅ Fix: Use account.account instead of fetching again (data is already available)
+      // Use account.account instead of fetching again (data is already available)
       const optionDetailAccount = account.account;
 
       const poolInfo = pools.find(
@@ -219,7 +219,7 @@ export default function RecentTrades() {
         );
         setProgram(program);
 
-        // ✅ Fix: Get accounts with correct typing
+        // Get accounts with correct typing
         const optionAccounts = await program.account.optionDetail.all([
           {
             dataSize: 276
@@ -227,14 +227,14 @@ export default function RecentTrades() {
         ]);
         const _optionDetails: OptionDetail[] = [];
 
-        // ✅ Fix: Process accounts and filter out null results
+        // Process accounts and filter out null results
         const results = await Promise.allSettled(
           optionAccounts.map((account: AnchorProgramAccount) =>
             processOptionAccount(account, program)
           )
         );
 
-        // ✅ Fix: Filter successful results and remove null values
+        // Filter successful results and remove null values
         const validResults = results
           .filter(
             (result): result is PromiseFulfilledResult<OptionDetail> =>
