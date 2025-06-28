@@ -2,7 +2,7 @@ import axios from "axios";
 
 // Base API instance
 const axiosInstance = axios.create({
-    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "http://148.135.138.199:5005/", // Adjust based on your backend
+    baseURL: process.env.NEXT_PUBLIC_API_BASE_URL || "https://148.135.138.199:5005/", // Adjust based on your backend
     headers: {
         "Content-Type": "application/json",
     },
