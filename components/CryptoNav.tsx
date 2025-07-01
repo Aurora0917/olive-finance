@@ -6,7 +6,7 @@ import Image from "next/image";
 import React, { useEffect, useRef, useState } from "react";
 import TradingViewTopNav from "./TradingViewTopNav";
 import { usePythMarketData } from "@/hooks/usePythMarketData";
-import type { PythPriceState } from "@/hooks/usePythPrice";
+import { usePyth24hChange, usePythPrice, type PythPriceState } from "@/hooks/usePythPrice";
 import type { MarketDataState } from "@/hooks/usePythMarketData";
 import { tokenList, Token } from "@/lib/data/tokenlist";
 
@@ -36,11 +36,12 @@ const CryptoNavItem = React.memo(({ crypto, isActive, onClick, onMarketChange }:
     onClick: () => void;
     onMarketChange: (symbol: string, change: number | null) => void;
 }) => {
-    const { marketData } = usePythMarketData(crypto.pythSymbol);
+    const { percentChange } = usePyth24hChange(crypto.pythSymbol);
+    //todo: const { priceData } = usePythPrice(crypto.pythSymbol)
 
     useEffect(() => {
-        onMarketChange(crypto.pythSymbol, marketData.change24h);
-    }, [crypto.pythSymbol, marketData.change24h, onMarketChange]);
+        onMarketChange(crypto.pythSymbol, percentChange);
+    }, [crypto.pythSymbol, percentChange, onMarketChange]);
 
     const formatChange = (change: number | null) => {
         if (change === null) return '0.00';
@@ -68,13 +69,13 @@ const CryptoNavItem = React.memo(({ crypto, isActive, onClick, onMarketChange }:
                     <span className="font-medium text-sm">{crypto.symbol}</span>
                 </div>
                 <span className={
-                    marketData.change24h && marketData.change24h >= 0 
+                    percentChange && percentChange >= 0 
                         ? "text-green-500" 
                         : "text-red-500"
                 }>
-                    {marketData.change24h !== null && (
+                    {percentChange !== null && (
                         <>
-                            {marketData.change24h >= 0 ? "↑" : "↓"} {formatChange(marketData.change24h)}%
+                            {percentChange >= 0 ? "↑" : "↓"} {formatChange(percentChange)}%
                         </>
                     )}
                 </span>

@@ -1,5 +1,9 @@
 {
+<<<<<<< HEAD
   "address": "GSmqNhxAhrLJjcxd9G2ts3obF9va9QBRezm6PMQJuE9b",
+=======
+  "address": "CcPMs3aDTLqphbwRLXd9tegpt3tw5rbhPjnCY6DTS26i",
+>>>>>>> e4eda84f236f09dfcf9fb2aab0d8cc2e452d7f12
   "metadata": {
     "name": "option_contract",
     "version": "0.1.0",
@@ -2109,6 +2113,7 @@
         },
         {
           "name": "pay_custody",
+<<<<<<< HEAD
           "writable": true,
           "pda": {
             "seeds": [
@@ -2460,6 +2465,8 @@
         },
         {
           "name": "sol_custody",
+=======
+>>>>>>> e4eda84f236f09dfcf9fb2aab0d8cc2e452d7f12
           "writable": true,
           "pda": {
             "seeds": [
@@ -2601,6 +2608,7 @@
           }
         },
         {
+<<<<<<< HEAD
           "name": "sol_oracle_account"
         },
         {
@@ -2608,6 +2616,50 @@
         },
         {
           "name": "sol_mint",
+=======
+          "name": "option_detail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_oracle_account"
+        },
+        {
+          "name": "pay_custody_oracle_account"
+        },
+        {
+          "name": "custody_mint",
+>>>>>>> e4eda84f236f09dfcf9fb2aab0d8cc2e452d7f12
           "writable": true
         },
         {

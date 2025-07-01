@@ -221,7 +221,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const poolData = await program.account.pool.fetch(pool);
 
       for await (let custody of poolData.custodies) {
-        let c = await program.account.custody.fetch(new PublicKey(custody));
+        let c = await program.account.Custody.fetch(new PublicKey(custody));
         let mint = c.mint;
         custodies.set(mint.toBase58(), c);
         ratios.set(
@@ -438,7 +438,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     if (!userInfo) return [[], [], []];
-    const optionIndex = userInfo.optionIndex.toNumber();
+    const optionIndex = userInfo.option_index.toNumber();
 
     if (optionIndex == 0) return [[], [], []];
 
@@ -663,8 +663,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     let optionIndex;
     try {
-      const userInfo = await program.account.user.fetch(userPDA);
-      optionIndex = userInfo.optionIndex.toNumber() + 1;
+      const userInfo = await program.account.User.fetch(userPDA);
+      optionIndex = userInfo.option_index.toNumber() + 1;
     } catch {
       optionIndex = 1;
     }
@@ -692,10 +692,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
 
-    const paycustodyData = await program.account.custody.fetch(paycustody);
+    const paycustodyData = await program.account.Custody.fetch(paycustody);
 
     const transaction = await program.methods
-      .openOption({
+      .open_option({
         amount: new BN(amount),
         strike: strike,
         period: new BN(period),
@@ -1828,10 +1828,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       if (!optionDetailAccount) return;
       const transaction = await program.methods
-        .claimOption(new BN(optionIndex), solPrice)
+        .claim_option(new BN(optionIndex), solPrice)
         .accountsPartial({
           owner: publicKey,
-          custodyMint: WSOL_MINT,
+          custody_mint: WSOL_MINT,
         })
         .transaction();
       const latestBlockHash = await connection.getLatestBlockhash();
@@ -2060,8 +2060,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         [Buffer.from("custody"), pool.toBuffer(), asset.toBuffer()],
         program.programId
       );
-      const poolData = await program.account.pool.fetch(pool);
-      const custodyData = await program.account.custody.fetch(custody);
+      const poolData = await program.account.Pool.fetch(pool);
+      const custodyData = await program.account.Custody.fetch(custody);
       const fundingAccount = getAssociatedTokenAddressSync(
         asset,
         wallet.publicKey
@@ -2069,7 +2069,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       let custodies = [];
       let oracles = [];
       for await (let custody of poolData.custodies) {
-        let c = await program.account.custody.fetch(new PublicKey(custody));
+        let c = await program.account.Custody.fetch(new PublicKey(custody));
         let ora = c.oracle;
         custodies.push({ pubkey: custody, isSigner: false, isWritable: true });
         oracles.push({ pubkey: ora, isSigner: false, isWritable: true });
@@ -2078,16 +2078,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const remainingAccounts = custodies.concat(oracles);
 
       const transaction = await program.methods
-        .addLiquidity({
+        .add_liquidity({
           amountIn: new BN(amount),
           minLpAmountOut: new BN(1),
           poolName: "SOL/USDC",
         })
         .accountsPartial({
           owner: publicKey,
-          fundingAccount: fundingAccount,
-          custodyMint: asset,
-          custodyOracleAccount: custodyData.oracle,
+          funding_account: fundingAccount,
+          custody_mint: asset,
+          custody_oracle_account: custodyData.oracle,
         })
         .remainingAccounts(remainingAccounts)
         .transaction();
@@ -2125,9 +2125,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         [Buffer.from("custody"), pool.toBuffer(), asset.toBuffer()],
         program.programId
       );
-      const poolData = await program.account.pool.fetch(pool);
+      const poolData = await program.account.Pool.fetch(pool);
 
-      const custodyData = await program.account.custody.fetch(custody);
+      const custodyData = await program.account.Custody.fetch(custody);
       const receivingAccount = getAssociatedTokenAddressSync(
         asset,
         wallet.publicKey
@@ -2135,7 +2135,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       let custodies = [];
       let oracles = [];
       for await (let custody of poolData.custodies) {
-        let c = await program.account.custody.fetch(new PublicKey(custody));
+        let c = await program.account.Custody.fetch(new PublicKey(custody));
         let ora = c.oracle;
         custodies.push({ pubkey: custody, isSigner: false, isWritable: true });
         oracles.push({ pubkey: ora, isSigner: false, isWritable: true });
@@ -2175,24 +2175,24 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const remainingAccounts = custodies.concat(oracles);
 
       const transaction = await program.methods
-        .removeLiquidity({
+        .remove_liquidity({
           lpAmountIn: new BN(amount),
           minAmountOut: new BN(0),
           poolName: "SOL/USDC",
         })
         .accountsPartial({
           owner: publicKey,
-          receivingAccount: receivingAccount,
-          transferAuthority: transferAuthority,
+          receiving_account: receivingAccount,
+          transfer_authority: transferAuthority,
           contract: contract,
           pool: poolPDA,
           custody: CustodyPDA,
-          custodyOracleAccount: WSOL_ORACLE,
-          custodyTokenAccount: custodyTokenAccount,
-          lpTokenMint: lpTokenMint,
-          lpTokenAccount: lpTokenAccount,
-          custodyMint: asset,
-          tokenProgram: TOKEN_PROGRAM_ID,
+          custody_oracle_account: WSOL_ORACLE,
+          custody_token_account: custodyTokenAccount,
+          lp_token_mint: lpTokenMint,
+          lp_token_account: lpTokenAccount,
+          custody_mint: asset,
+          token_program: TOKEN_PROGRAM_ID,
         })
         .remainingAccounts(remainingAccounts)
         .transaction();

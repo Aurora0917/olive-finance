@@ -171,7 +171,7 @@ export default function RecentTrades() {
         quantity: quantity,
         profile: profile,
         amount: optionDetailAccount.amount.toString(),
-        boughtBack: optionDetailAccount.boughtBack.toString(),
+        boughtBack: optionDetailAccount.bought_back.toString(),
         claimed: optionDetailAccount.claimed.toString(),
         custody: optionDetailAccount.custody.toString(),
         exercised: optionDetailAccount.exercised.toString(),
@@ -179,13 +179,13 @@ export default function RecentTrades() {
           parseInt(optionDetailAccount.expiredDate.toString()) * 1000
         ).toLocaleString(),
         index: optionDetailAccount.index.toString(),
-        lockedAsset: optionDetailAccount.lockedAsset.toString(),
+        lockedAsset: optionDetailAccount.locked_asset.toString(),
         period: optionDetailAccount.period.toString(),
         pool: poolInfo?.name || "",
         premium: optionDetailAccount.premium.toString(),
-        premiumAsset: optionDetailAccount.premiumAsset.toString(),
+        premiumAsset: optionDetailAccount.premium_asset.toString(),
         profit: optionDetailAccount.profit.toString(),
-        strikePrice: optionDetailAccount.strikePrice.toString(),
+        strikePrice: optionDetailAccount.strike_price.toString(),
         valid: optionDetailAccount.valid.toString(),
         tx: tx,
         type: isCall ? "Call" : "Put",
@@ -307,6 +307,10 @@ export default function RecentTrades() {
               {row.quantity}
             </TableCell>
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
+              collateral
+              {/* todo add collateral value */}
+            </TableCell>
+            <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Bought"
                 ? (
                   parseFloat(row.amount) /
@@ -393,6 +397,9 @@ export default function RecentTrades() {
               </TableHead>
               <TableHead className="text-xs text-secondary-foreground font-medium text-justify px-3 py-4">
                 Quantity
+              </TableHead>
+              <TableHead className="text-xs text-secondary-foreground font-medium text-justify px-3 py-4">
+                Collateral
               </TableHead>
               <TableHead className="text-xs text-secondary-foreground font-medium text-justify px-3 py-4">
                 Paid/Received

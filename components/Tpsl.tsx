@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, CirclePlus, Loader2 } from "lucide-react";
+import { ChevronDown, CirclePlus, SquarePen, Loader2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useState } from "react";
 import { Switch } from "./ui/switch";
@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import Image from "next/image";
 import { tokenList } from "@/lib/data/tokenlist";
 import { Input } from "./ui/input";
+import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { tpSlApiService, TpSlOrderRequest } from "@/services/tpSlApiService";
 import { toast } from "sonner";
 
@@ -49,6 +50,7 @@ export default function Tpsl({
 }: TpslProps) {
     const [isPartial, setIsPartial] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
+    const [active, setActive] = useState('tp')
     const [selectedToken, setSelectedToken] = useState("SOL");
     const [activeTab, setActiveTab] = useState("TP"); // TP or SL
     const [selectedSizePercentage, setSelectedSizePercentage] = useState(25);
@@ -290,13 +292,13 @@ export default function Tpsl({
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger disabled={isLoading}>
-                <CirclePlus 
-                    size={16} 
-                    className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-secondary-foreground'} ${isLoading ? 'opacity-50' : ''}`} 
+                <SquarePen 
+                    size={13} 
+                    className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-foreground'} ${isLoading ? 'opacity-50' : ''}`} 
                 />
             </PopoverTrigger>
-            <PopoverContent align="end" className="flex flex-col space-y-2 w-80">
-                <div className="w-full flex justify-between">
+            <PopoverContent align="end" className="flex flex-col space-y-3 w-80">
+                <div className="w-full flex justify-between gap-5">
                     <div className="w-full flex flex-col justify-center">
                         <h1 className="text-sm">{isPartial ? 'Partial' : 'Full'} TPSL</h1>
                         <p className="text-xs text-secondary-foreground">
@@ -313,7 +315,7 @@ export default function Tpsl({
                             </p>
                         )}
                     </div>
-                    <div className="w-full flex gap-2 items-center">
+                    <div className="w-fit flex gap-2 items-center">
                         <span className={`text-sm ${isPartial ? 'text-secondary-foreground' : 'text-primary'}`}>Full</span>
                         <Switch
                             checked={isPartial}

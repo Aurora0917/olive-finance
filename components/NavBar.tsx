@@ -10,6 +10,8 @@ import WalletSideBar from "./WalletSidebar";
 import { useTheme } from "next-themes";
 import x from '@/public/svgs/x.svg';
 import discord from '@/public/svgs/discord.svg'
+import yt from '@/public/svgs/youtube.svg';
+import medium from '@/public/images/medium.png'
 import telegram from '@/public/svgs/telegram.svg'
 import Image from "next/image";
 
@@ -35,6 +37,7 @@ export default function NavBar(){
         "/": "Options",
         "/futures": "futures",
         "/earn": "Earn",
+        "/portfolio": "Portfolio",
         "/analytics": "Analytics",
         "/options-chain" : "Options Chain",
         "/feedback": "Feedback",
@@ -98,6 +101,15 @@ export default function NavBar(){
                             <span className="text-background text-[8px] font-semibold">48% APY</span>
                          </Badge>
                     </Link>
+
+                    <Link 
+                        href='/portfolio'
+                        className={cn(buttonVariants({variant: active === 'Portfolio' ? 'active' : 'inactive'}), 'hidden p-0 w-auto h-auto lg:flex justify-between gap-1 hover:text-primary')}
+                        onClick={() => handleClick('Portfolio')}
+                    > 
+                         <WalletIcon />
+                         <h1 className="text-sm font-medium">Portfolio</h1>
+                    </Link>
                     
                     
                     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
@@ -115,6 +127,11 @@ export default function NavBar(){
                                     name:"Options Chain",
                                     icon: <TableColumnsSplit />,
                                     link:'/options-chain'
+                                },
+                                {
+                                    name:"Borrow",
+                                    icon: <TableColumnsSplit />,
+                                    link:'/borrow'
                                 },
                                 {
                                     name:"Analytics",
@@ -155,6 +172,12 @@ export default function NavBar(){
                                 </a>
                                 <a href='https://t.me/olive_financee' target="_blank">
                                     <Image src={telegram} alt="telegram link"/>
+                                </a>
+                                <a href='https://medium.com' target="_blank">
+                                    <Image src={medium} width={18} height={18} alt="x link"/>
+                                </a>
+                                <a href='https://youtube.com' target="_blank">
+                                    <Image src={yt} alt="x link"/>
                                 </a>
                                 <a href='https://discord.gg/u6pq5yNj' target="_blank">
                                     <Image src={discord} alt="discord link" />

@@ -209,41 +209,34 @@ export default function FuturesPositions() {
     return (
         <div className="w-full border rounded-sm flex flex-col mb-3">
             <section className="border-b rounded-none px-6 py-3">
-                <div className="flex justify-between items-center">
-                    <Tabs defaultValue={activeTab} onValueChange={handleClickTab}>
-                        <TabsList className="bg-inherit grid grid-cols-6 text-secondary-foreground py-0 gap-2 md:gap-6 h-fit">
-                            <TabsTrigger
-                                value="positions"
-                                className="text-[11px] col-span-2 md:col-span-1 md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
-                            >
-                                Open Positions ({perpPositions.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="expired"
-                                className="text-[11px] col-span-2 md:col-span-1 md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
-                            >
-                                Expired Positions ({expiredPositions.length})
-                            </TabsTrigger>
-                            <TabsTrigger
-                                value="history"
-                                className="text-[11px] col-span-2 md:col-span-1 md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
-                            >
-                                Order History ({futuresTransactions.length})
-                            </TabsTrigger>
-                        </TabsList>
-                    </Tabs>
-
-                    {/* Refresh button */}
-                    <Button
-                        onClick={handleRefresh}
-                        disabled={positionsLoading}
-                        variant="outline"
-                        size="sm"
-                        className="ml-4"
-                    >
-                        {positionsLoading ? "Loading..." : "Refresh"}
-                    </Button>
-                </div>
+                <Tabs defaultValue={activeTab} onValueChange={handleClickTab}>
+                    <TabsList className="w-full flex justify-start bg-inherit text-secondary-foreground p-0 gap-2 md:gap-3 lg:gap-6">
+                        <TabsTrigger
+                            value="positions"
+                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
+                        >
+                            Positions
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="Orders"
+                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
+                        >
+                            Orders
+                        </TabsTrigger>
+                        <TabsTrigger
+                            value="expired" 
+                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"  
+                        >
+                            Expired
+                        </TabsTrigger>
+                         <TabsTrigger
+                            value="history"
+                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
+                        >
+                           History
+                        </TabsTrigger>
+                    </TabsList>
+                </Tabs>
             </section>
 
             {/* Wallet connection status display */}

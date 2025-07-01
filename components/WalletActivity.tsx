@@ -4,9 +4,12 @@ import Image from "next/image"
 import { useEffect, useState } from "react"
 import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Separator } from "./ui/separator"
+import { ScrollArea } from "./ui/scroll-area"
+import { Button } from "./ui/button"
 
 export default function WalletActivity(){
     const [generateTx, setGenerateTx] = useState<Transaction[]>([])
+    const [activeTab, setActiveTab] = useState('buy')
 
     useEffect(() => {
         setGenerateTx(transactions)
@@ -14,8 +17,35 @@ export default function WalletActivity(){
 
     const allTx = generateTx.slice(0,10)
     return (
-        <div className="flex flex-col h-[calc(100vh-280px)]">
-            <div className="flex-grow overflow-y-auto">
+        <div className="flex flex-col h-[calc(100vh-280px)] space-y-3">
+            <div className="grid grid-cols-12 gap-0 border-b border-primary">
+            <Button
+                variant="ghost"
+                className={`col-span-3 px-0 rounded-none border-x border-t border-primary text-sm shadow-none ${
+                activeTab === 'buy'
+                    ? 'border-b-transparent text-black bg-primary rounded-t-sm hover:bg-primary hover:text-black'
+                    : 'border-b border-primary border-x-0 border-t-0 text-foreground bg-inherit'
+                }`}
+                onClick={() => setActiveTab('buy')}
+            >
+                Buy
+            </Button>
+
+            <Button
+                variant="ghost"
+                className={`col-span-3 px-0 rounded-none border-x border-t border-primary text-sm shadow-none ${
+                activeTab === 'sell'
+                    ? 'border-b-transparent text-black bg-primary rounded-t-sm hover:bg-primary hover:text-black'
+                    : 'border-b border-primary border-x-0 border-t-0 text-foreground bg-inherit'
+                }`}
+                onClick={() => setActiveTab('sell')}
+            >
+                Sell
+            </Button>
+            <div className="col-span-6 border-b border-primary" />
+            </div>
+
+            <ScrollArea className="flex-grow pr-3">
                 <div className="w-full flex flex-col md:space-y-[14px]">
                     {allTx.map((tx) => (
                         <div className="w-full flex flex-col md:flex-row" key={tx.transactionID}>
@@ -54,7 +84,7 @@ export default function WalletActivity(){
                         </div>
                     ))}
                 </div>
-            </div>
+            </ScrollArea>
             {/* <div className="flex items-center gap-5 justify-center md:justify-end pt-4 mt-auto">
                 <button className="p-2 rounded-[12px] bg-secondary flex items-center h-9 w-9 hover:bg-secondary/80">
                     <ChevronLeft className="w-fit h-fit text-secondary-foreground" />

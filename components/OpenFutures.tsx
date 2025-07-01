@@ -240,18 +240,7 @@ export default function OpenFutures({
                     <Badge className={`${position === "long" ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'} text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center`}>
                         {leverage}x {position.charAt(0).toUpperCase() + position.slice(1).toLowerCase()}
                     </Badge>
-                    {/* Show backend integration status */}
-                    {userId && (
-                        <Badge className="bg-blue-500/10 text-blue-400 text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center">
-                            Live TP/SL
-                        </Badge>
-                    )}
-                    {/* Show backend position type */}
-                    {userId && backendPositionType && (
-                        <Badge className="bg-purple-500/10 text-purple-400 text-xs font-semibold py-[1px] px-1 w-fit h-fit rounded-[3px] flex items-center justify-center">
-                            {backendPositionType.toUpperCase()}
-                        </Badge>
-                    )}
+                    <span className="text-xs text-secondary-foreground font-medium">{type === 'dated' ? purchaseDate : 'PERPS'}</span>
                 </div>
                 <div>
 
@@ -268,134 +257,154 @@ export default function OpenFutures({
                 )}
             </div>
             {isOpen && (
-                <div className="w-full px-4 pt-2 pb-4 space-y-4 border-t-2 border-backgroundSecondary overflow-hidden">
-                    <div className="overflow-x-auto scrollbar-hide">
-                        <Table>
-                            <TableHeader>
-                                <TableRow className="w-full grid grid-cols-10 whitespace-nowrap h-7 min-w-[900px]">
-                                    <TableHead className="text-xs">Entry Price</TableHead>
-                                    <TableHead className="text-xs">Mark Price</TableHead>
-                                    <TableHead className="text-xs">Size</TableHead>
-                                    <TableHead className="text-xs">Liq. Price</TableHead>
-                                    <TableHead className="text-xs">Leverage</TableHead>
-                                    <TableHead className="text-xs">Collateral</TableHead>
-                                    <TableHead className="text-xs col-span-2">TP/SL</TableHead>
-                                    <TableHead className="text-xs">PNL</TableHead>
-                                    <TableHead className="text-xs"></TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                <TableRow className="w-full grid grid-cols-10 min-w-[900px]">
-                                    <TableCell className="flex space-x-2 items-center text-xs">${entry.toFixed(2)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs">${markPrice.toFixed(2)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs">${size.toFixed(2)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs">${liquidation.toFixed(2)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs">{leverage}x</TableCell>
-                                    <TableCell className="flex space-x-1 items-center text-xs">
-                                        <span>
-                                            ${collateral.toFixed(2)}
-                                        </span>
-                                        <Collateral
-                                            currentLeverage={leverage}
-                                            currentLiquidationPrice={liquidation}
-                                            currentCollateral={collateral}
-                                            currentPositionSize={size}
-                                            entryPrice={entry}
-                                            position={position}
-                                            markPrice={markPrice}
-                                            unrealizedPnl={unrealizedPnl || 0}
-                                            onDeposit={async (amount, token) => {
-                                                onCollateral(amount, token === "SOL", true);
-                                            }}
-                                            onWithdraw={async (amount, token) => {
-                                                onCollateral(amount, token === "SOL", false);
-                                            }}
-                                            isProcessing={false}
-                                        />
-                                    </TableCell>
-                                    <TableCell className="flex space-x-1 items-center text-xs col-span-2">
-                                        {hasOrders ? (
-                                            <div className="flex items-center space-x-2">
-                                                <Button
-                                                    variant="ghost"
-                                                    size="sm"
-                                                    className="h-6 px-2 text-xs text-primary hover:text-primary/80 hover:bg-backgroundSecondary"
-                                                    onClick={handleToggleTpSlOrders}
-                                                    disabled={isLoadingOrders}
-                                                >
-                                                    View All ({totalOrderCount})
-                                                    <ChevronDown size={12} className="ml-1" />
-                                                </Button>
-                                                <Tpsl
-                                                    onCreateOrder={handleCreateTpSlOrder}
-                                                    userId={userId}
-                                                    positionId={effectivePositionId}
-                                                    positionType={position}
-                                                    positionDirection={position}
-                                                    backendPositionType={backendPositionType}
-                                                    currentPrice={markPrice}
-                                                    custody={effectiveCustody}
-                                                    poolName={poolName}
-                                                    onOrderCreated={handleOrdersUpdated}
-                                                />
-                                            </div>
-                                        ) : (
-                                            <div className="flex items-center space-x-1">
-                                                <span>
-                                                    N/A
-                                                </span>
-                                                <Tpsl
-                                                    onCreateOrder={handleCreateTpSlOrder}
-                                                    userId={userId}
-                                                    positionId={effectivePositionId}
-                                                    positionType={position}
-                                                    positionDirection={position}
-                                                    backendPositionType={backendPositionType}
-                                                    currentPrice={markPrice}
-                                                    custody={effectiveCustody}
-                                                    poolName={poolName}
-                                                    onOrderCreated={handleOrdersUpdated}
-                                                />
-                                            </div>
-                                        )}
-                                    </TableCell>
-                                    <TableCell className={`flex space-x-2 items-center text-xs ml-[-30px] ${pnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                        ${pnl >= 0 ? '+' : ''}{pnl.toFixed(2)}({((pnl / collateral) * 100).toFixed(2)}%)
-                                    </TableCell>
-                                    <TableCell className="flex space-x-2 items-right text-xs">
-                                        <CloseFutures
-                                            size={size}
-                                            markPrice={markPrice}
-                                            entryPrice={entry}
-                                            collateral={collateral}
-                                            position={position}
-                                            onClose={(closePercent, receiveToken, exitPrice) => {
-                                                // Handle the close operation
-                                                onClose(closePercent, receiveToken, exitPrice)
-                                            }}
-                                        />
-                                    </TableCell>
-                                </TableRow>
-                            </TableBody>
-                        </Table>
-                    </div>
-
-                    {/* TP/SL Orders Section - Below table to expand container height */}
-                    {hasOrders && showTpSlOrders && (
-                        <SettledTpSls
-                            orders={tpslOrders} // Fallback local orders
-                            onCancel={handleCancelTpSlOrder}
-                            onUpdatePrice={handleUpdateTpSlPrice}
-                            isVisible={showTpSlOrders}
-                            onToggleVisibility={handleToggleTpSlOrders}
-                            userId={userId}
-                            positionId={effectivePositionId}
-                            positionType={position}
-                            backendPositionType={backendPositionType}
-                            currentPrice={markPrice}
-                            onOrdersUpdated={handleOrdersUpdated}
-                        />
-                    )}
+                <div className="w-full px-4 pt-2 pb-4 space-y-4 border-t-2 border-backgroundSecondary">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="w-full grid grid-cols-10 gap-10 whitespace-nowrap h-7">
+                                <TableHead className="">Entry Price</TableHead>
+                                <TableHead className="">Mark Price</TableHead>
+                                <TableHead className="">Size</TableHead>
+                                <TableHead className="">Value</TableHead>
+                                <TableHead className="">Liq. Price</TableHead>
+                                <TableHead className="">Levarage</TableHead>
+                                <TableHead className="text-center">
+                                    <div className="flex items-center gap-1">
+                                        Collateral <Collateral />
+                                    </div>
+                                </TableHead>
+                                <TableHead className="">
+                                    <div className="flex items-center gap-1">
+                                        TP/SL <Tpsl />
+                                    </div>
+                                    
+                                </TableHead>
+                                <TableHead className="">PNL</TableHead>
+                                <TableHead className=""></TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            <TableRow className="w-full grid grid-cols-10 gap-10">
+                                <TableCell className="flex space-x-2 items-center">{entry}</TableCell>
+                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
+                                <TableCell className="flex space-x-2 items-center">{size}</TableCell>
+                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
+                                <TableCell className="flex space-x-2 items-center">${liquidation}</TableCell>
+                                <TableCell className="flex space-x-2 items-center">{leverage}x</TableCell>
+                                <TableCell className="flex space-x-1 items-center">
+                                    <span>
+                                        ${collateral} 
+                                    </span>
+                                    
+                                </TableCell>
+                                <TableCell className="flex space-x-1 items-center">
+                                    <span>
+                                        ${tpsl} 
+                                    </span>
+                                    
+                                </TableCell>
+                                <TableCell className="flex space-x-2 items-center">$107.32</TableCell>
+                                <TableCell className="flex space-x-2 items-center">
+                                    <CloseFutures />
+                                </TableCell>
+                            </TableRow>
+                        </TableBody>
+                    </Table>
+                    {/* <div className="w-full grid grid-cols-9 py-1.5 text-xs gap-2">
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Entry Price
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {entry}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Mark Price
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {entry}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Size
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {size}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Value
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {entry}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Liq. Price
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {liquidation}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Leverage
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {leverage}x
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Collateral
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                <span>
+                                    ${collateral} 
+                                </span>
+                                <Collateral />
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                TP/SL
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                <span>
+                                    ${tpsl} 
+                                </span>
+                                <Tpsl />
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                PNL
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                $107.32
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                Date
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                {purchaseDate}
+                            </span>
+                        </div>
+                        <div className="flex flex-col space-y-0 col-span-1">
+                            <span className="text-left align-middle font-medium text-secondary-foreground">
+                                
+                            </span>
+                            <span className="flex space-x-2 items-center">
+                                <CloseFutures />
+                            </span>
+                        </div>
+                    </div> */}
                 </div>
             )}
         </div>

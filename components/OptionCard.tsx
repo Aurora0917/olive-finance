@@ -6,6 +6,7 @@ import {
   Info,
   TrendingUp,
   TrendingDown,
+  EllipsisVertical,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +21,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "./ui/tooltip";
-import type { PythPriceState } from "@/hooks/usePythPrice";
+import { usePyth24hChange, type PythPriceState } from "@/hooks/usePythPrice";
 import type { MarketDataState } from "@/hooks/usePythMarketData";
 import { formatPrice } from "@/utils/formatter";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
@@ -74,7 +75,10 @@ export default function OptionCard(
     "170",
   ]);
 
-  const isPositive = marketData.change24h !== null && marketData.change24h > 0;
+  const { percentChange } = usePyth24hChange(selectedSymbol);
+  const isPositive = percentChange !== null && percentChange > 0;
+
+  // console.log(defaultStrikePrices)
 
   useEffect(() => {
     onCurrencyChange(payCurrency)
@@ -181,30 +185,45 @@ export default function OptionCard(
           <div
             className={`text-sm font-medium ${isPositive ? "text-green-500" : "text-red-500"
               }`}
-          >
-            {isPositive ? "+" : "-"}
-            {marketData.change24h
-              ? formatChange(marketData.change24h)
-              : marketLoading}
-            %
+            >
+              {isPositive ? "+" : "-"}
+              {formatChange(percentChange)}
+              %
+            </div>
           </div>
-        </div>
+        ) : (
+          <div className="space-y-1">
+            <div className="w-32 rounded-sm p-2 h-12 flex flex-col border items-start justify-center focus-within:border-primary">
+              <span className="text-xs text-secondary-foreground">
+                Limit Price:
+              </span>
+              <Input
+                type="text"
+                value={limitPrice}
+                onChange={(e) => setLimitPrice(e.target.value)}
+                className="w-32 text-left h-fit border-none"
+                placeholder="0.00"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Trading Direction */}
       <div className="space-y-2">
-        <p className="text-secondary-foreground text-sm">Price Sentiment:</p>
-        <div className="grid grid-cols-2 gap-3">
+        <p className="text-secondary-foreground text-sm">Option Type:</p>
+        <div className="grid grid-cols-11 gap-2">
           <Button
             variant="outline"
             onClick={() => {
               setSelectedOption("Call");
               onContractTypeChange("Call");
             }}
-            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${selectedOption === "Call"
-              ? "bg-green-500/10 text-green-500 border-green-500 hover:bg-green-500/20"
-              : "hover:border-green-500 hover:text-green-500 border-border/40 hover:bg-green-500/20"
-              }`}
+            className={`flex items-center justify-center col-span-5 space-x-2 py-3 px-4 rounded-sm transition-all group border ${
+              selectedOption === "Call"
+                ? "bg-green-500/10 text-green-500 border-green-500 hover:bg-green-500/20"
+                : "hover:border-green-500 hover:text-green-500 border-border/40 hover:bg-green-500/20"
+            }`}
           >
             <TrendingUp
               className={`w-4 h-4 mr-2 ${selectedOption === "Call"
@@ -220,10 +239,11 @@ export default function OptionCard(
               setSelectedOption("Put");
               onContractTypeChange("Put");
             }}
-            className={`flex items-center justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${selectedOption === "Put"
-              ? "bg-red-500/10 text-red-500 border-red-500 hover:bg-red-500/20"
-              : "hover:border-red-500 hover:text-red-500 border-border/40 hover:bg-red-500/20"
-              }`}
+            className={`flex items-center col-span-5 justify-center space-x-2 py-3 px-4 rounded-sm transition-all group border ${
+              selectedOption === "Put"
+                ? "bg-red-500/10 text-red-500 border-red-500 hover:bg-red-500/20"
+                : "hover:border-red-500 hover:text-red-500 border-border/40 hover:bg-red-500/20"
+            }`}
           >
             <TrendingDown
               className={`w-4 h-4 mr-2 ${selectedOption === "Put"
@@ -232,6 +252,12 @@ export default function OptionCard(
                 }`}
             />
             Put
+          </Button>
+          <Button
+            variant={'outline'}
+            className="col-span-1"
+          >
+            <EllipsisVertical />
           </Button>
         </div>
       </div>

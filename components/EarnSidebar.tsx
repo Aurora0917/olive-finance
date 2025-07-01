@@ -44,6 +44,9 @@ import { ChartStrategy } from "./ChartStrategy";
 import { PublicKey } from "@solana/web3.js";
 import CardTokenList from "./CardTokenList";
 import PoolDropdown from "./PoolDropDown";
+import { ExternalLink } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { TooltipIcon } from "@/public/svgs/icons";
 import { getMint } from "@solana/spl-token";
 import { OptionDetailUtils } from "@/utils/optionsPricing";
 
@@ -107,6 +110,7 @@ export default function EarnSidebar({
   const wallet = useAnchorWallet();
   const [program, setProgram] = useState<Program<OptionContract>>();
   const [loading, setLoading] = useState(false);
+  const router = useRouter()
   const [poolFees, setPoolFees] = useState<{
     ratioMultiplier: string;
     addLiquidityFee: string;
@@ -324,22 +328,20 @@ export default function EarnSidebar({
       </SheetHeader>
       <div className="space-y-5  flex flex-col w-full">
         <div className="grid grid-cols-1 sm:grid-cols-5 items-center sm:space-x-3 space-y-3 sm:space-y-0">
-          <div className="border rounded-sm p-3 sm:col-span-2 h-[167px]">
+          <div className="border rounded-sm p-3 sm:col-span-2 h-full">
             <div className="flex flex-col justify-between">
               <div className="flex space-x-1 text-sm font-medium ">
                 <div className="flex gap-2 items-center">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="17"
-                    viewBox="0 0 16 17"
-                    fill="none"
-                  >
-                    <path
-                      d="M7.99984 15.1665C11.6732 15.1665 14.6665 12.1732 14.6665 8.49984C14.6665 4.8265 11.6732 1.83317 7.99984 1.83317C4.3265 1.83317 1.33317 4.8265 1.33317 8.49984C1.33317 12.1732 4.3265 15.1665 7.99984 15.1665ZM8.49984 11.1665C8.49984 11.4398 8.27317 11.6665 7.99984 11.6665C7.7265 11.6665 7.49984 11.4398 7.49984 11.1665V7.83317C7.49984 7.55984 7.7265 7.33317 7.99984 7.33317C8.27317 7.33317 8.49984 7.55984 8.49984 7.83317V11.1665ZM7.3865 5.57984C7.41984 5.49317 7.4665 5.4265 7.5265 5.35984C7.59317 5.29984 7.6665 5.25317 7.7465 5.21984C7.8265 5.1865 7.91317 5.1665 7.99984 5.1665C8.0865 5.1665 8.17317 5.1865 8.25317 5.21984C8.33317 5.25317 8.4065 5.29984 8.47317 5.35984C8.53317 5.4265 8.57984 5.49317 8.61317 5.57984C8.6465 5.65984 8.6665 5.7465 8.6665 5.83317C8.6665 5.91984 8.6465 6.0065 8.61317 6.0865C8.57984 6.1665 8.53317 6.23984 8.47317 6.3065C8.4065 6.3665 8.33317 6.41317 8.25317 6.4465C8.09317 6.51317 7.9065 6.51317 7.7465 6.4465C7.6665 6.41317 7.59317 6.3665 7.5265 6.3065C7.4665 6.23984 7.41984 6.1665 7.3865 6.0865C7.35317 6.0065 7.33317 5.91984 7.33317 5.83317C7.33317 5.7465 7.35317 5.65984 7.3865 5.57984Z"
-                      fill="#808693"
-                    />
-                  </svg>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild className="cursor-pointer">
+                        <div className="flex pb-[1.5px]">
+                          <TooltipIcon />
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent></TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                   <span className="text-secondary-foreground">
                     {isApr ? "APR" : "APY"}:
                   </span>
@@ -383,14 +385,23 @@ export default function EarnSidebar({
                 <span className="whitespace-nowrap">{name} Pool</span>
               </div>
               <div className="w-full flex">
-                <p className="text-xs tracking-tight text-justify">
+                <p className="text-sm tracking-tight text-justify">
                   The {name} Liquidity Pool ({symbol}-LP) is a liquidity pool
                   that sells covered calls and cash secured puts.
                 </p>
               </div>
             </div>
           </div>
-          <div className="sm:col-span-3 w-full h-[167px]">
+          <div className="sm:col-span-3 h-fit border rounded-sm p-2">
+            <div className="w-full flex justify-center items-center space-x-2">
+              <span className="text-sm">Liquidity Pool Price Chart</span>
+              <button 
+                className="hover:text-primary"
+                onClick={() => router.push('/analytics/pool-metrics')}
+              >
+                <ExternalLink size={14}/>
+              </button>
+            </div>
             <ChartStrategy />
           </div>
         </div>
@@ -557,128 +568,136 @@ export default function EarnSidebar({
               </TabsTrigger>
             </TabsList>
           </Tabs>
-          <div className="flex justify-between items-start gap-2">
-            <div className="w-full flex flex-col space-y-2">
-              {activeTab === 'mint' ? (
-                <div className="flex flex-col space-y-1 w-full">
-                  <span className="text-sm text-secondary-foreground font-medium">Pay</span>
-                  <div className="relative w-full">
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                      <PoolDropdown
-                        isOpen={isOpen}
-                        handleClickToken={handleClickToken}
-                        handleOpenChange={handleOpenChange}
-                        poolDatas={poolDatas}
-                        selectedToken={selectedToken}
-                        logo={logo}
-                      />
-                    </div>
-                    <Input
-                      type="number"
-                      onChange={(e) => handleTokenAmount(e.target.value)}
-                      placeholder={'0.00'}
-                      className="pl-12 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
-                      step="0.1"
-                      min="0.1"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="flex space-x-2">
-                  <div className="flex flex-col space-y-1 w-full">
-                    <span className="text-sm text-secondary-foreground font-medium">Pay</span>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-                        {symbol}-LP
-                      </div>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        onChange={(e) => handleTokenAmount(e.target.value)}
-                        className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
-                        step="0.1"
-                        min="0.1"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-col space-y-1 w-full">
-                    <span className="text-sm text-secondary-foreground font-medium">Sell Into</span>
-                    <div className="relative">
-                      <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+            <div className="flex justify-between items-start gap-2">
+              <div className="w-full flex flex-col space-y-2">
+                {activeTab === 'mint' ? (
+                  <div className="grid grid-cols-12 gap-2">
+                    <div className="col-span-8 flex flex-col space-y-1">
+                      <span className="text-sm text-secondary-foreground font-medium">Pay</span>
+                      <div className="relative w-full">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
                         <PoolDropdown
-                          isOpen={isOpen}
-                          handleClickToken={handleClickToken}
-                          handleOpenChange={handleOpenChange}
-                          poolDatas={poolDatas}
-                          selectedToken={selectedToken}
-                          logo={logo}
+                            isOpen={isOpen} 
+                            handleClickToken={handleClickToken}
+                            handleOpenChange={handleOpenChange}
+                            poolDatas={poolDatas}
+                            selectedToken={selectedToken}
+                            logo={logo}
+                          />
+                        </div>
+                        <Input
+                          type="number"
+                          onChange={(e) => handleTokenAmount(e.target.value)}
+                          placeholder={'0.00'}
+                          className="pl-12 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                          step="0.1"
+                          min="0.1"
                         />
                       </div>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
-                        step="0.1"
-                        min="0.1"
-                      />
                     </div>
+                    <Button
+                      className="h-fit rounded-sm px-4 py-[10px] col-span-4 mt-6 text-black bg-primary hover:bg-gradient-primary"
+                      onClick={onSubmit}
+                    >
+                      {activeTab === "mint" ? "Buy" : "Sell"}
+                    </Button>
                   </div>
-                </div>
-              )}
-              {tokenAmount > 0 && (
-                <div className="w-full flex flex-col border p-5 rounded-sm">
-                  <section className="flex flex-col space-y-1 text-sm text-secondary-foreground font-medium">
-                    <div>
-                      <span className="text-foreground">
-                        {activeTab === 'mint' ? `${tokenAmount > 0 ? tokenAmount : 0} ${symbol} `
-                          : `${tokenAmount > 0 ? tokenAmount : 0} ${symbol}-LP `}
-                      </span>
-                      <span>
-                        will be {activeTab === 'mint' ? 'bought into' : 'sold from'} the pool at <span className="text-foreground">0.1%</span>  fees. <br />
-                        You&apos;ll Receive XXX <span className="text-foreground">{activeTab === 'mint' ? `${symbol}-LP` : `${symbol} `} </span>
-                      </span>
-
+                ) : (
+                  <div className="gap-2 grid gird-cols-12">
+                    <div className="flex flex-col space-y-1 col-span-12 w-full">
+                      <span className="text-sm text-secondary-foreground font-medium">Pay</span>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                          {symbol}-LP
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          onChange={(e) => handleTokenAmount(e.target.value)}
+                          className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                          step="0.1"
+                          min="0.1"
+                        />
+                      </div>
                     </div>
-                    <div className="text-xs flex gap-2">
-                      <svg
-                        className={`${loading ? 'animate-spin' : ''} h-4 w-4 text-primary`}
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        ></circle>
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8v8z"
-                        ></path>
-                      </svg>
-                      {activeTab === 'mint' ? (
-                        <span>{tokenAmount > 0 ? tokenAmount : 0} {symbol} = XXX {symbol}-LP</span>
-                      ) : (
-                        <span>{tokenAmount > 0 ? tokenAmount : 0} {symbol}-LP = XXX {symbol}</span>
-                      )}
-
+                    <div className="flex flex-col space-y-1 col-span-8">
+                      <span className="text-sm text-secondary-foreground font-medium">Sell Into</span>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                          <PoolDropdown
+                            isOpen={isOpen} 
+                            handleClickToken={handleClickToken}
+                            handleOpenChange={handleOpenChange}
+                            poolDatas={poolDatas}
+                            selectedToken={selectedToken}
+                            logo={logo}
+                          />
+                        </div>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          className="text-right pr-3 py-2 rounded-sm h-auto w-full bg-secondary border-none shadow-none"
+                          step="0.1"
+                          min="0.1"
+                        />
+                      </div>
                     </div>
-                  </section>
-                </div>
-              )}
+                    <Button
+                      className="h-fit rounded-sm px-4 py-[10px] col-span-4 mt-6 text-black bg-primary hover:bg-gradient-primary"
+                      onClick={onSubmit}
+                    >
+                      {activeTab === "mint" ? "Buy" : "Sell"}
+                    </Button>
+                  </div>
+                )}
+                {tokenAmount > 0 && (  
+                  <div className="w-full flex flex-col border p-5 rounded-sm">
+                    <section className="flex flex-col space-y-1 text-sm text-secondary-foreground font-medium">
+                      <div>
+                        <span className="text-foreground">
+                          {activeTab === 'mint' ? `${tokenAmount > 0 ? tokenAmount:0} ${symbol} ` 
+                            : `${tokenAmount > 0 ? tokenAmount:0} ${symbol}-LP `}  
+                        </span>
+                        <span>
+                          will be {activeTab === 'mint' ? 'bought into' : 'sold from'} the pool at <span className="text-foreground">0.1%</span>  fees. <br />
+                          You&apos;ll Receive XXX <span className="text-foreground">{activeTab === 'mint' ? `${symbol}-LP` : `${symbol} `} </span>
+                        </span>
+                          
+                      </div>
+                      <div className="text-xs flex gap-2">
+                        <svg
+                            className={`${loading  ? 'animate-spin': ''} h-4 w-4 text-primary`}
+                            xmlns="http://www.w3.org/2000/svg"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                          >
+                            <circle
+                              className="opacity-25"
+                              cx="12"
+                              cy="12"
+                              r="10"
+                              stroke="currentColor"
+                              strokeWidth="4"
+                            ></circle>
+                            <path
+                              className="opacity-75"
+                              fill="currentColor"
+                              d="M4 12a8 8 0 018-8v8z"
+                            ></path>
+                          </svg>
+                        {activeTab === 'mint' ? (
+                          <span>{tokenAmount > 0 ? tokenAmount:0} {symbol} = XXX {symbol}-LP</span>
+                        ) : (
+                          <span>{tokenAmount > 0 ? tokenAmount:0} {symbol}-LP = XXX {symbol}</span>
+                        )}
+                        
+                      </div>  
+                    </section>
+                  </div>
+                )}
+              </div>
             </div>
-            <Button
-              className="h-fit rounded-sm px-4 py-[10px] mt-6 w-2/6 text-black bg-primary hover:bg-gradient-primary"
-              onClick={onSubmit}
-            >
-              {activeTab === "mint" ? "Buy" : "Sell"}
-            </Button>
-          </div>
-
+            
         </div>
       </div>
     </SheetContent>

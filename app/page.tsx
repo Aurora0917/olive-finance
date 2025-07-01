@@ -16,6 +16,7 @@ import { addWeeks } from "date-fns";
 import { useOptionsPricing } from "@/hooks/useOptionsPricing";
 import { setOptionParameters } from "@/lib/optionsDatafeed";
 import { ToastContainer } from "react-toastify";
+import { useGreeks } from "@/hooks/useGreeks";
 
 export default function Homepage(){
     const [active ,setActive] = useState('chart')
@@ -31,6 +32,7 @@ export default function Homepage(){
     const [payAmount, setPayAmount] = useState('')
     const [strikePrice, setStrikePrice] = useState('')
     const [expiry , setExpiry] = useState<Date>(addWeeks(new Date(), 1))
+    const [transaction, setTransaction] = useState('buy');
 
     const handleSymbolChange = (newSymbol: string) => {
       setSelectedSymbol(newSymbol);
@@ -56,6 +58,20 @@ export default function Homepage(){
         assetType: contractType == 'Call' ? 'SOL' : 'USDC',
     })
 
+    const greeks = useGreeks({
+        type: contractType,
+        currentPrice: s,
+        strikePrice: k,
+        expiryDate: expiry
+    })
+
+    const greeks = useGreeks({
+        type: contractType,
+        currentPrice: s,
+        strikePrice: k,
+        expiryDate: expiry
+    })
+
     return (
         <>
             <CryptoNav 
@@ -72,7 +88,7 @@ export default function Homepage(){
             />
             <div className={cn((active === 'trade' ? 'space-y-0' : 'space-y-4'),"flex flex-col w-full justify-evenly h-full pb-4")}>
                 <div className="w-full pt-4 justify-between grid grid-cols-1 lg:grid-cols-12 gap-4">
-                    <div className={cn((active === 'chart' ? 'w-full' : 'hidden'),"lg:col-span-8 lg:flex flex-col space-y-4")}>
+                    <div className={cn((active === 'chart' ? 'w-full' : 'hidden'),"lg:col-span-8 desktop:col-span-9 lg:flex flex-col space-y-4")}>
                       <TradingViewChartContainer 
                         symbol={selectedSymbol} 
                         logo={selectedLogo}
@@ -90,7 +106,7 @@ export default function Homepage(){
                       </ProtectedRoute>
                     </div>
                   </div>
-                  <div className={cn((active === 'trade' ? 'w-full' : 'hidden'),"lg:flex lg:col-span-4 flex-col space-y-4")}>
+                  <div className={cn((active === 'trade' ? 'w-full' : 'hidden'),"lg:flex lg:col-span-4 desktop:col-span-3 flex-col space-y-4")}>
                     <OptionCardContainer 
                       selectedSymbol={selectedSymbol}
                       onSymbolChange={handleSymbolChange} 
@@ -107,8 +123,9 @@ export default function Homepage(){
                       marketData={marketData}
                       priceLoading={priceLoading}
                       marketLoading={marketLoading}
+                      onTransactionChange={setTransaction}
                     />
-                    <div className="w-full flex flex-col space-y-4">
+                    <div className={`${transaction === 'sell' ? 'hidden' : 'flex'} flex-col space-y-4 w-full`}>
                       <PriceQuote
                         active={tokenIdx}
                         currency={currency}
@@ -117,7 +134,14 @@ export default function Homepage(){
                         premium={premium.premium}
                         contractType={contractType}
                       />
-                      <GreekPopup value={payAmount}/>
+                      <GreekPopup 
+                        value={payAmount}
+                        delta={greeks.delta}
+                        gamma={greeks.gamma}
+                        theta={greeks.theta}
+                        vega={greeks.vega}
+                        rho={greeks.rho}
+                      />
                       {active === 'trade' && (
                         <ProtectedRoute fallback={<TradingPositionsFallback/>}>
                           <TradingPositions />
