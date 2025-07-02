@@ -28,7 +28,7 @@ interface SettledTpSlsProps {
     userId?: string;
     positionId?: string;
     positionType?: 'long' | 'short'; // Frontend position type for display
-    backendPositionType?: 'perp' | 'option'; // Backend position type
+    contractType?: 'perp' | 'option'; // Backend position type
     currentPrice: number;
     onOrdersUpdated?: () => void; // Callback when orders are updated
 }
@@ -42,7 +42,7 @@ export default function SettledTpSls({
     userId,
     positionId,
     positionType = 'long',
-    backendPositionType = 'perp',
+    contractType = 'perp',
     currentPrice,
     onOrdersUpdated
 }: SettledTpSlsProps) {
@@ -91,9 +91,9 @@ export default function SettledTpSls({
                 id: `${backendOrder._id}_tp`,
                 type: 'take-profit',
                 price: backendOrder.takeProfit.price,
-                token: 'SOL', // Default for now - could be extracted from poolName
-                percentage: 100, // Default for backend orders
-                isPartial: false, // Default for backend orders
+                token: backendOrder.receiveAsset,
+                percentage: backendOrder.closePercent, // Default for backend orders
+                isPartial: backendOrder.closePercent != 100, // Default for backend orders
                 triggerCondition: backendOrder.takeProfit.triggerCondition,
                 enabled: backendOrder.takeProfit.enabled
             });
@@ -105,9 +105,9 @@ export default function SettledTpSls({
                 id: `${backendOrder._id}_sl`,
                 type: 'stop-loss',
                 price: backendOrder.stopLoss.price,
-                token: 'SOL', // Default for now - could be extracted from poolName
-                percentage: 100, // Default for backend orders
-                isPartial: false, // Default for backend orders
+                token: backendOrder.receiveAsset,
+                percentage: backendOrder.closePercent, // Default for backend orders
+                isPartial: backendOrder.closePercent != 100, // Default for backend orders
                 triggerCondition: backendOrder.stopLoss.triggerCondition,
                 enabled: backendOrder.stopLoss.enabled
             });
@@ -369,9 +369,9 @@ export default function SettledTpSls({
                                 Live
                             </span>
                         )}
-                        {backendPositionType && (
+                        {contractType && (
                             <span className="text-xs text-purple-400 px-1 py-0.5 bg-purple-500/10 rounded">
-                                {backendPositionType.toUpperCase()}
+                                {contractType.toUpperCase()}
                             </span>
                         )}
                         {loadingOrders && (
@@ -388,8 +388,8 @@ export default function SettledTpSls({
                             <div className="flex justify-between">
                                 <span>Current Price: ${currentPrice.toFixed(2)}</span>
                                 <span>Position: {positionType.toUpperCase()}</span>
-                                {backendPositionType && (
-                                    <span>Type: {backendPositionType.toUpperCase()}</span>
+                                {contractType && (
+                                    <span>Type: {contractType.toUpperCase()}</span>
                                 )}
                             </div>
                         </div>

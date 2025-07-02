@@ -15,7 +15,8 @@ interface OpenPositionProps{
     token: string
     logo: string
     symbol: string
-    strikePrice: number
+    strikePrice: number,
+    entryPrice?: number,
     type: string
     expiry: string
     size: number
@@ -51,7 +52,6 @@ export default function OpenPositions({token, logo, symbol, type, expiry, size, 
                     <Image src={logo} alt={token} width={16} height={16} className="w-4 h-4 rounded-full"/>
                     <span className="text-sm text-foreground font-medium">{symbol}</span>
                     <Badge className="text-[8px] bg-gradient-primary border-none text-black font-semibold py-[3px] px-1 w-7 h-3 rounded-[3px] flex items-center justify-center">{type}</Badge>
-                    {limitPrice != 0 && <span className="text-sm text-foreground font-medium">{limitPrice}</span>}
                 </div>
                 <div className="flex items-center space-x-2">
                     {purchaseDate && (

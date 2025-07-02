@@ -208,7 +208,7 @@ export default function FuturesPositions() {
 
     return (
         <div className="w-full border rounded-sm flex flex-col mb-3">
-            <section className="border-b rounded-none px-6 py-3">
+            <section className="border-b rounded-none px-6 py-3 flex items-center justify-between">
                 <Tabs defaultValue={activeTab} onValueChange={handleClickTab}>
                     <TabsList className="w-full flex justify-start bg-inherit text-secondary-foreground p-0 gap-2 md:gap-3 lg:gap-6">
                         <TabsTrigger
@@ -224,19 +224,30 @@ export default function FuturesPositions() {
                             Orders
                         </TabsTrigger>
                         <TabsTrigger
-                            value="expired" 
-                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"  
+                            value="expired"
+                            className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
                         >
                             Expired
                         </TabsTrigger>
-                         <TabsTrigger
+                        <TabsTrigger
                             value="history"
                             className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
                         >
-                           History
+                            History
                         </TabsTrigger>
                     </TabsList>
                 </Tabs>
+
+                {/* Refresh button */}
+                <Button
+                    onClick={handleRefresh}
+                    disabled={positionsLoading}
+                    variant="outline"
+                    size="sm"
+                    className="ml-4"
+                >
+                    {positionsLoading ? "Loading..." : "Refresh"}
+                </Button>
             </section>
 
             {/* Wallet connection status display */}

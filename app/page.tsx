@@ -65,13 +65,6 @@ export default function Homepage(){
         expiryDate: expiry
     })
 
-    const greeks = useGreeks({
-        type: contractType,
-        currentPrice: s,
-        strikePrice: k,
-        expiryDate: expiry
-    })
-
     return (
         <>
             <CryptoNav 

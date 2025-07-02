@@ -29,7 +29,7 @@ interface TpslProps {
     positionId?: string;
     positionType?: 'long' | 'short'; // Frontend still uses long/short for UI
     positionDirection?: 'long' | 'short'; // Keep for internal logic
-    backendPositionType?: 'perp' | 'option'; // Backend position type
+    contractType?: 'perp' | 'option'; // Backend position type
     currentPrice: number;
     custody?: string;
     poolName?: string;
@@ -42,7 +42,7 @@ export default function Tpsl({
     positionId,
     positionType = 'long',
     positionDirection,
-    backendPositionType = 'perp',
+    contractType = 'perp',
     currentPrice,
     custody,
     poolName,
@@ -132,9 +132,12 @@ export default function Tpsl({
                         const orderData: TpSlOrderRequest = {
                             user: userId,
                             positionId: `${positionId}_${activeTab.toLowerCase()}_${Date.now()}`,
-                            positionType: backendPositionType,
+                            contractType: contractType,
+                            positionType: positionType,
                             poolName: poolName || 'SOL/USDC',
+                            receiveAsset: selectedToken === 'SOL' ? 'SOL' : 'USDC',
                             custody: '6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY',
+                            closePercent: selectedSizePercentage,
                             isActive: true
                         };
 
@@ -166,9 +169,12 @@ export default function Tpsl({
                         const orderData: TpSlOrderRequest = {
                             user: userId,
                             positionId: `${positionId}_full_${Date.now()}`,
-                            positionType: backendPositionType,
+                            contractType: contractType,
+                            positionType: positionType,
                             poolName: poolName || 'SOL/USDC',
+                            receiveAsset: selectedToken === 'SOL' ? 'SOL' : 'USDC',
                             custody: '6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY',
+                            closePercent: 100,
                             isActive: true
                         };
 
@@ -306,7 +312,7 @@ export default function Tpsl({
                         </p>
                         {userId && (
                             <p className="text-xs text-blue-400">
-                                Backend Mode: {backendPositionType.toUpperCase()}
+                                Backend Mode: {contractType.toUpperCase()}
                             </p>
                         )}
                         {isPartial && (
@@ -410,7 +416,7 @@ export default function Tpsl({
                                     </Select>
                                     <Input
                                         type="number"
-                                        placeholder={getSuggestedTpPrice()}
+                                        // placeholder={getSuggestedTpPrice()}
                                         value={takeProfitPrice}
                                         onChange={(e) => handleTakeProfitChange(e.target.value)}
                                         className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
@@ -470,7 +476,7 @@ export default function Tpsl({
                                     </Select>
                                     <Input
                                         type="number"
-                                        placeholder={getSuggestedSlPrice()}
+                                        // placeholder={getSuggestedSlPrice()}
                                         value={stopLossPrice}
                                         onChange={(e) => handleStopLossChange(e.target.value)}
                                         className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
@@ -563,7 +569,7 @@ export default function Tpsl({
                                 </Select>
                                 <Input
                                     type="number"
-                                    placeholder={getSuggestedTpPrice()}
+                                    // placeholder={getSuggestedTpPrice()}
                                     value={takeProfitPrice}
                                     onChange={(e) => handleTakeProfitChange(e.target.value)}
                                     className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
@@ -622,7 +628,7 @@ export default function Tpsl({
                                 </Select>
                                 <Input
                                     type="number"
-                                    placeholder={getSuggestedSlPrice()}
+                                    // placeholder={getSuggestedSlPrice()}
                                     value={stopLossPrice}
                                     onChange={(e) => handleStopLossChange(e.target.value)}
                                     className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"

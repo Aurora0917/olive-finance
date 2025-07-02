@@ -56,6 +56,17 @@ interface PoolData {
   lastUpdated: number;
 }
 
+interface VolumeData {
+  volume24h: number;           // Total USD volume in last 24h
+  callCount: number;           // Active call options count
+  putCount: number;            // Active put options count
+  callCount24h: number;        // Call options created in last 24h
+  putCount24h: number;         // Put options created in last 24h
+  optionVolume24h: number;     // Option premiums volume in last 24h
+  perpVolume24h: number;       // Perp position volume in last 24h
+  lastUpdated: number;
+}
+
 interface ContractContextType {
   program: Program<OptionContract> | undefined;
   pub: PublicKey | undefined;
@@ -88,6 +99,9 @@ interface ContractContextType {
   positionsLoading: boolean;
   poolData: PoolData | null;
   getPoolUtilization: (asset: "SOL" | "USDC") => PoolUtilization | null;
+  volumeData: VolumeData | null;
+  getVolumeData: () => VolumeData | null;
+  refreshVolumeData: () => Promise<void>;
 }
 
 export const ContractContext = createContext<ContractContextType>({
@@ -118,6 +132,9 @@ export const ContractContext = createContext<ContractContextType>({
   positionsLoading: false,
   poolData: null,
   getPoolUtilization: () => null,
+  volumeData: null,
+  getVolumeData: () => null,
+  refreshVolumeData: async () => { },
 });
 
 export const clusterUrl = "https://api.devnet.solana.com";
@@ -157,6 +174,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const [donePositions, setDonePositions] = useState<any>([]);
   const [perpPositions, setPerpPositions] = useState<FuturePos[]>([]);
   const [positionsLoading, setPositionsLoading] = useState<boolean>(false);
+  // Add state for pool utilization data
+  const [poolData, setPoolData] = useState<PoolData | null>(null);
+  // Add new state for volume data
+  const [volumeData, setVolumeData] = useState<VolumeData | null>(null);
 
   const getOptionDetailAccount = (
     index: number,
@@ -177,9 +198,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       return optionDetail;
     }
   };
-
-  // Add state for pool utilization data
-  const [poolData, setPoolData] = useState<PoolData | null>(null);
 
   // Helper function to calculate pool utilization
   const calculateUtilization = (
@@ -208,6 +226,171 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     };
   };
 
+  const calculateVolumeData = useCallback((): VolumeData => {
+    const now = Date.now();
+    const oneDayAgo = now - (24 * 60 * 60 * 1000);
+    const currentPrice = priceData.price || 0;
+
+    let volume24h = 0;
+    let callCount = 0;
+    let putCount = 0;
+    let callCount24h = 0;
+    let putCount24h = 0;
+    let optionVolume24h = 0;
+    let perpVolume24h = 0;
+
+    // Calculate from active positions
+    positions.forEach((position: any) => {
+      const isCall = position.type === 'Call';
+      const isPut = position.type === 'Put';
+
+      // Count active positions
+      if (isCall) callCount++;
+      if (isPut) putCount++;
+
+      // Check if created in last 24h
+      const purchaseTime = new Date(position.purchaseDate).getTime();
+      if (purchaseTime >= oneDayAgo) {
+        if (isCall) callCount24h++;
+        if (isPut) putCount24h++;
+
+        // Calculate option premium for volume
+        try {
+          const timeToExpiry = (new Date(position.expiry).getTime() - now) / (365.25 * 24 * 60 * 60 * 1000);          
+          const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
+          const premium = OptionDetailUtils.blackScholesWithBorrowRate(
+            currentPrice,
+            position.strikePrice,
+            Math.max(timeToExpiry, 0.001),
+            isCall,
+            utilization?.tokenLocked || 0,
+            utilization?.tokenOwned || 0,
+            isCall,
+          );
+
+          const optionValue = (premium || 0) * position.size;
+          optionVolume24h += optionValue;
+          volume24h += optionValue;
+        } catch (error) {
+          console.warn("Error calculating option premium:", error);
+          // Fallback: use intrinsic value
+          const intrinsicValue = isCall ?
+            Math.max(0, currentPrice - position.strikePrice) :
+            Math.max(0, position.strikePrice - currentPrice);
+          const fallbackValue = intrinsicValue * position.size;
+          optionVolume24h += fallbackValue;
+          volume24h += fallbackValue;
+        }
+      }
+    });
+
+    // Calculate from perp positions (created in last 24h)
+    perpPositions.forEach((perpPosition: FuturePos) => {
+      const purchaseTime = new Date(perpPosition.purchaseDate).getTime();
+      if (purchaseTime >= oneDayAgo) {
+        // Perp volume = position size * current price
+        const perpValue = perpPosition.size * currentPrice;
+        perpVolume24h += perpValue;
+        volume24h += perpValue;
+      }
+    });
+
+    // Calculate from done positions (completed in last 24h)
+    donePositions.forEach((donePosition: any) => {
+      const completedTime = new Date(donePosition.timestamp).getTime();
+      if (completedTime >= oneDayAgo) {
+        // Add completed option values to volume
+        try {
+          const timeToExpiry = 0.001; // Minimal time for completed options
+          const isCall = donePosition.transactionType === "Call";
+          const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
+          const premium = OptionDetailUtils.blackScholesWithBorrowRate(
+            currentPrice,
+            donePosition.strikePrice,
+            timeToExpiry,
+            isCall,
+            utilization?.tokenLocked || 0,
+            utilization?.tokenOwned || 0,
+            isCall,
+          );
+
+          const completedValue = premium * donePosition.quantity;
+          volume24h += completedValue;
+        } catch (error) {
+          // Fallback for completed options
+          const estimatedValue = donePosition.quantity * donePosition.strikePrice * 0.1; // 10% of notional
+          volume24h += estimatedValue;
+        }
+      }
+    });
+
+    return {
+      volume24h: Math.round(volume24h * 100) / 100, // Round to 2 decimals
+      callCount,
+      putCount,
+      callCount24h,
+      putCount24h,
+      optionVolume24h: Math.round(optionVolume24h * 100) / 100,
+      perpVolume24h: Math.round(perpVolume24h * 100) / 100,
+      lastUpdated: now
+    };
+  }, [positions, perpPositions, donePositions, priceData.price]);
+
+  // Function to refresh volume data
+  const refreshVolumeData = useCallback(async () => {
+    try {
+      const newVolumeData = calculateVolumeData();
+      setVolumeData(newVolumeData);
+      console.log("Updated volume data:", newVolumeData);
+    } catch (error) {
+      console.error("Error calculating volume data:", error);
+    }
+  }, [calculateVolumeData]);
+
+  // Function to get current volume data
+  const getVolumeData = useCallback((): VolumeData | null => {
+    return volumeData;
+  }, [volumeData]);
+
+  // Update the refreshPositions function to also refresh volume data
+  const refreshPositions = useCallback(async () => {
+    if (program && publicKey) {
+      setPositionsLoading(true);
+      try {
+        // Fetch both options and perp positions
+        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
+        const perpPos = await getPerpPositions(program, publicKey);
+
+        setPositions(pinfo);
+        setExpiredPositions(expiredpinfo);
+        setDonePositions(doneinfo);
+        setPerpPositions(perpPos);
+
+        console.log(`Loaded ${pinfo.length} options, ${perpPos.length} perp positions`);
+
+        // Calculate and update volume data after positions are updated
+        await refreshVolumeData();
+      } catch (error) {
+        console.error("Error refreshing positions:", error);
+      } finally {
+        setPositionsLoading(false);
+      }
+    }
+  }, [program, publicKey, priceData, refreshVolumeData]);
+
+  // Auto-refresh volume data when price changes significantly
+  useEffect(() => {
+    if (volumeData && priceData.price) {
+      const lastUpdate = volumeData.lastUpdated;
+      const timeSinceUpdate = Date.now() - lastUpdate;
+
+      // Refresh every 5 minutes or when price changes significantly
+      if (timeSinceUpdate > 5 * 60 * 1000) {
+        refreshVolumeData();
+      }
+    }
+  }, [priceData.price, volumeData, refreshVolumeData]);
+
   // Enhanced getCustodies function that also updates pool data
   const getCustodies = async (program: Program<OptionContract>) => {
     if (connected && publicKey != null && program) {
@@ -221,7 +404,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const poolData = await program.account.pool.fetch(pool);
 
       for await (let custody of poolData.custodies) {
-        let c = await program.account.Custody.fetch(new PublicKey(custody));
+        let c = await program.account.custody.fetch(new PublicKey(custody));
         let mint = c.mint;
         custodies.set(mint.toBase58(), c);
         ratios.set(
@@ -438,7 +621,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     });
 
     if (!userInfo) return [[], [], []];
-    const optionIndex = userInfo.option_index.toNumber();
+    const optionIndex = userInfo.optionIndex.toNumber();
 
     if (optionIndex == 0) return [[], [], []];
 
@@ -522,6 +705,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
               size: detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS)),                // Size in SOL units (underlying asset)
               pnl: pnl,
+              entryPrice: detail.boughtBack,
               executed: detail.executed,
               quantity: detail.quantity,
               purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
@@ -604,28 +788,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     return [pinfo, expiredpinfo, doneInfo];
   };
 
-  const refreshPositions = useCallback(async () => {
-    if (program && publicKey) {
-      setPositionsLoading(true);
-      try {
-        // Fetch both options and perp positions
-        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
-        const perpPos = await getPerpPositions(program, publicKey);
-
-        setPositions(pinfo);
-        setExpiredPositions(expiredpinfo);
-        setDonePositions(doneinfo);
-        setPerpPositions(perpPos);
-
-        console.log(`Loaded ${pinfo.length} options, ${perpPos.length} perp positions`);
-      } catch (error) {
-        console.error("Error refreshing positions:", error);
-      } finally {
-        setPositionsLoading(false);
-      }
-    }
-  }, [program, publicKey, priceData]);
-
   // Separate function to refresh only perp positions
   const refreshPerpPositions = useCallback(async () => {
     if (program && publicKey) {
@@ -663,8 +825,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     );
     let optionIndex;
     try {
-      const userInfo = await program.account.User.fetch(userPDA);
-      optionIndex = userInfo.option_index.toNumber() + 1;
+      const userInfo = await program.account.user.fetch(userPDA);
+      optionIndex = userInfo.optionIndex.toNumber() + 1;
     } catch {
       optionIndex = 1;
     }
@@ -692,10 +854,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
 
-    const paycustodyData = await program.account.Custody.fetch(paycustody);
+    const paycustodyData = await program.account.custody.fetch(paycustody);
 
     const transaction = await program.methods
-      .open_option({
+      .openOption({
         amount: new BN(amount),
         strike: strike,
         period: new BN(period),
@@ -1828,10 +1990,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
       if (!optionDetailAccount) return;
       const transaction = await program.methods
-        .claim_option(new BN(optionIndex), solPrice)
+        .claimOption(new BN(optionIndex), solPrice)
         .accountsPartial({
           owner: publicKey,
-          custody_mint: WSOL_MINT,
+          custodyMint: WSOL_MINT,
         })
         .transaction();
       const latestBlockHash = await connection.getLatestBlockhash();
@@ -2060,8 +2222,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         [Buffer.from("custody"), pool.toBuffer(), asset.toBuffer()],
         program.programId
       );
-      const poolData = await program.account.Pool.fetch(pool);
-      const custodyData = await program.account.Custody.fetch(custody);
+      const poolData = await program.account.pool.fetch(pool);
+      const custodyData = await program.account.custody.fetch(custody);
       const fundingAccount = getAssociatedTokenAddressSync(
         asset,
         wallet.publicKey
@@ -2069,7 +2231,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       let custodies = [];
       let oracles = [];
       for await (let custody of poolData.custodies) {
-        let c = await program.account.Custody.fetch(new PublicKey(custody));
+        let c = await program.account.custody.fetch(new PublicKey(custody));
         let ora = c.oracle;
         custodies.push({ pubkey: custody, isSigner: false, isWritable: true });
         oracles.push({ pubkey: ora, isSigner: false, isWritable: true });
@@ -2078,16 +2240,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const remainingAccounts = custodies.concat(oracles);
 
       const transaction = await program.methods
-        .add_liquidity({
+        .addLiquidity({
           amountIn: new BN(amount),
           minLpAmountOut: new BN(1),
           poolName: "SOL/USDC",
         })
         .accountsPartial({
           owner: publicKey,
-          funding_account: fundingAccount,
-          custody_mint: asset,
-          custody_oracle_account: custodyData.oracle,
+          fundingAccount: fundingAccount,
+          custodyMint: asset,
+          custodyOracleAccount: custodyData.oracle,
         })
         .remainingAccounts(remainingAccounts)
         .transaction();
@@ -2125,9 +2287,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         [Buffer.from("custody"), pool.toBuffer(), asset.toBuffer()],
         program.programId
       );
-      const poolData = await program.account.Pool.fetch(pool);
+      const poolData = await program.account.pool.fetch(pool);
 
-      const custodyData = await program.account.Custody.fetch(custody);
+      const custodyData = await program.account.custody.fetch(custody);
       const receivingAccount = getAssociatedTokenAddressSync(
         asset,
         wallet.publicKey
@@ -2135,7 +2297,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       let custodies = [];
       let oracles = [];
       for await (let custody of poolData.custodies) {
-        let c = await program.account.Custody.fetch(new PublicKey(custody));
+        let c = await program.account.custody.fetch(new PublicKey(custody));
         let ora = c.oracle;
         custodies.push({ pubkey: custody, isSigner: false, isWritable: true });
         oracles.push({ pubkey: ora, isSigner: false, isWritable: true });
@@ -2175,24 +2337,24 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const remainingAccounts = custodies.concat(oracles);
 
       const transaction = await program.methods
-        .remove_liquidity({
+        .removeLiquidity({
           lpAmountIn: new BN(amount),
           minAmountOut: new BN(0),
           poolName: "SOL/USDC",
         })
         .accountsPartial({
           owner: publicKey,
-          receiving_account: receivingAccount,
-          transfer_authority: transferAuthority,
+          receivingAccount: receivingAccount,
+          transferAuthority: transferAuthority,
           contract: contract,
           pool: poolPDA,
           custody: CustodyPDA,
-          custody_oracle_account: WSOL_ORACLE,
-          custody_token_account: custodyTokenAccount,
-          lp_token_mint: lpTokenMint,
-          lp_token_account: lpTokenAccount,
-          custody_mint: asset,
-          token_program: TOKEN_PROGRAM_ID,
+          custodyOracleAccount: WSOL_ORACLE,
+          custodyTokenAccount: custodyTokenAccount,
+          lpTokenMint: lpTokenMint,
+          lpTokenAccount: lpTokenAccount,
+          custodyMint: asset,
+          tokenProgram: TOKEN_PROGRAM_ID,
         })
         .remainingAccounts(remainingAccounts)
         .transaction();
@@ -2263,9 +2425,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Initial refresh only when wallet/provider changes
         await refreshPositions();
+        await getCustodies(program);
       }
     })();
   }, [wallet, publicKey]);
+
+  useEffect(() => {
+    (async () => {
+      await refreshVolumeData();
+    })();
+  }, [perpPositions, positions]);
 
   return (
     <ContractContext.Provider
@@ -2296,7 +2465,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         refreshPerpPositions,
         positionsLoading,
         poolData,
-        getPoolUtilization
+        getPoolUtilization,
+        volumeData,
+        getVolumeData,
+        refreshVolumeData
       }}
     >
       {children}

@@ -39,7 +39,7 @@ export default function PositionDetails({type} : PositionDetailsProps){
                     </div>
                     <div className='flex space-x-2 items-center'>
                         <span>---</span>
-                        <Tpsl />
+                        {/* <Tpsl /> */}
                     </div>
                 </div>
             </div>

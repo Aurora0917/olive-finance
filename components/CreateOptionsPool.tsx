@@ -175,22 +175,22 @@ export default function CreateOptionsPool() {
 
     console.log(program.methods);
 
-    const tx = await program.methods
-      .addPool({ name: poolName })
-      .accounts({
-        signer: wallet.publicKey,
-        pool: poolPda,
-        lpTokenMint: lpMintPda,
-        contract: contractPda,
-        multisig: multisigPda,
-        transferAuthority: transferAuthorityPda,
-        tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
-        systemProgram: PublicKey.default,
-        rent: PublicKey.findProgramAddressSync([], PublicKey.default)[0], // use SYSVAR_RENT_PUBKEY if imported
-      })
-      .rpc();
+    // const tx = await program.methods
+    //   .addPool({ name: poolName })
+    //   .accounts({
+    //     signer: wallet.publicKey,
+    //     pool: poolPda,
+    //     lpTokenMint: lpMintPda,
+    //     contract: contractPda,
+    //     multisig: multisigPda,
+    //     transferAuthority: transferAuthorityPda,
+    //     tokenProgram: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+    //     systemProgram: PublicKey.default,
+    //     rent: PublicKey.findProgramAddressSync([], PublicKey.default)[0], // use SYSVAR_RENT_PUBKEY if imported
+    //   })
+    //   .rpc();
 
-      console.log("Pool created successfully. TX:", tx);
+    //   console.log("Pool created successfully. TX:", tx);
       alert("Pool created successfully!");
     } catch (err) {
       console.error("Failed to create pool:", err);

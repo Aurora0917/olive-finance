@@ -84,7 +84,7 @@ export default function EarnSidebar({
         poolSize: solPoolsize.toFixed(4),
         current_weightage: `${Math.round(((solPoolsize * price) / total) * 100)}%`,
         target_weightage: `${ratioData.get(WSOL_MINT.toBase58()).target.toNumber()}%`,
-        interest_rate: OptionDetailUtils.calculateBorrowRate(solCustodyData.tokenLocked.toNumber(), solCustodyData.tokenOwned.toNumber(), true),
+        interest_rate: OptionDetailUtils.getSolBorrowRate(solCustodyData.tokenLocked.toNumber(), solCustodyData.tokenOwned.toNumber()),
         utilization: `${Math.round((solCustodyData.tokenLocked.toNumber() / solCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
       {
@@ -94,7 +94,7 @@ export default function EarnSidebar({
         poolSize: usdcPoolsize.toFixed(4),
         current_weightage: `${100 - Math.round(((solPoolsize * price) / total) * 100)}%`,
         target_weightage: `${ratioData.get(USDC_MINT.toBase58()).target.toNumber()}%`,
-        interest_rate: OptionDetailUtils.calculateBorrowRate(usdcCustodyData.tokenLocked.toNumber(), usdcCustodyData.tokenOwned.toNumber(), false),
+        interest_rate: OptionDetailUtils.getUsdcBorrowRate(usdcCustodyData.tokenLocked.toNumber(), usdcCustodyData.tokenOwned.toNumber()),
         utilization: `${Math.round((usdcCustodyData.tokenLocked.toNumber() / usdcCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
     ];

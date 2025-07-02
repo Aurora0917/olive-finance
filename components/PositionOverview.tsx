@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils"
 import { format } from "date-fns"
 import { Input } from "./ui/input"
 
-interface PositionOverviewProps{
+interface PositionOverviewProps {
     type: string
     expiry: string
     size: number
@@ -18,13 +18,13 @@ interface PositionOverviewProps{
     purchaseDate?: string
 }
 
-export default function PositionOverview({type, expiry, size, pnl, strikePrice} : PositionOverviewProps){
+export default function PositionOverview({ type, expiry, size, pnl, strikePrice }: PositionOverviewProps) {
     const [isCalendarOpen, setIsCalendarOpen] = useState(false);
     const [isExpiry, setIsExpiry] = useState(false);
     const [isSize, setIsSize] = useState(false);
     const [isStrike, setIsStrike] = useState(false);
     const [customDate, setCustomDate] = useState<Date>();
-    
+
 
     return (
         <div className='w-full flex flex-col space-y-1'>
@@ -37,7 +37,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                     <span>{size}</span>
                     <Popover open={isSize} onOpenChange={setIsSize}>
                         <PopoverTrigger asChild>
-                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
+                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer" />
                         </PopoverTrigger>
                         <PopoverContent align="end" className="p-3 space-y-4">
                             <div className="space-y-2 flex flex-col">
@@ -57,7 +57,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <Button 
+                                <Button
                                     variant='outline'
                                     onClick={() => setIsSize(false)}
                                 >
@@ -79,7 +79,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                     <span>{strikePrice}</span>
                     <Popover open={isStrike} onOpenChange={setIsStrike}>
                         <PopoverTrigger asChild>
-                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
+                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer" />
                         </PopoverTrigger>
                         <PopoverContent align="end" className="p-3 space-y-4">
                             <div className="space-y-2 flex flex-col">
@@ -99,7 +99,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <Button 
+                                <Button
                                     variant='outline'
                                     onClick={() => setIsStrike(false)}
                                 >
@@ -121,7 +121,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                     <span>{expiry}</span>
                     <Popover open={isExpiry} onOpenChange={setIsExpiry}>
                         <PopoverTrigger asChild>
-                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
+                            <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer" />
                         </PopoverTrigger>
                         <PopoverContent align="end" className="p-3 space-y-4">
                             <div className="space-y-2">
@@ -133,8 +133,8 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                                         <Button
                                             variant={"outline"}
                                             className={cn(
-                                            "w-full justify-start text-left text-xs font-normal hover:bg-inherit hover:text-secondary-foreground border-border p-2 [&_svg]:size-3",
-                                            !customDate && "text-muted-foreground"
+                                                "w-full justify-start text-left text-xs font-normal hover:bg-inherit hover:text-secondary-foreground border-border p-2 [&_svg]:size-3",
+                                                !customDate && "text-muted-foreground"
                                             )}
                                         >
                                             <Calendar className="h-3 w-3" />
@@ -142,16 +142,16 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                                         </Button>
                                     </PopoverTrigger>
                                     <PopoverContent className="w-auto p-0" align="start">
-                                    <CalendarComponent
-                                        mode="single"
-                                        selected={customDate}
-                                        onSelect={(date) => {
-                                            setCustomDate(date)
-                                            setIsCalendarOpen(false)
-                                        }}
-                                        initialFocus
-                                        disabled={(date) => date < new Date()}
-                                    />
+                                        <CalendarComponent
+                                            mode="single"
+                                            selected={customDate}
+                                            onSelect={(date) => {
+                                                setCustomDate(date)
+                                                setIsCalendarOpen(false)
+                                            }}
+                                            initialFocus
+                                            disabled={(date) => date < new Date()}
+                                        />
                                     </PopoverContent>
                                 </Popover>
                             </div>
@@ -164,7 +164,7 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                                 />
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                                <Button 
+                                <Button
                                     variant='outline'
                                     onClick={() => setIsExpiry(false)}
                                 >
@@ -174,34 +174,34 @@ export default function PositionOverview({type, expiry, size, pnl, strikePrice} 
                             </div>
                         </PopoverContent>
                     </Popover>
-                    
+
                 </div>
-                
+
             </div>
-            
-            
+
+
             <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
                 <div className='flex space-x-2 items-center'>
                     <PurchasePriceIcon />
                     <span>Purchase Price:</span>
                 </div>
-                <span>value</span>
+                <span>{strikePrice}</span>
             </div>
-
             <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
                 <div className='flex space-x-2 items-center'>
                     <ValueIcon />
-                    <span>Current Price:</span>
+                    <span>Value:</span>
                 </div>
                 <span>value</span>
             </div>
-
-
             <div className='w-full flex justify-between text-sm text-[#FF6889] font-normal'>
                 <div className='flex space-x-2 items-center'>
                     <RedArrowPnl />
                     <span>P&L:</span>
                 </div>
+                <span className={`${pnl > 0 ? 'text-green-500' : pnl < 0 ? 'text-red-500' : 'text-foreground'}`}>
+                    {pnl > 0 ? '+' : ''}{pnl.toFixed(2)}
+                </span>
             </div>
         </div>
     )

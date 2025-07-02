@@ -20,6 +20,7 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { ContractContext } from "@/contexts/contractProvider";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const";
+import { OptionDetailUtils } from "@/utils/optionsPricing";
 
 interface FutureCardProps {
   type: 'perps' | 'expiry';
@@ -47,12 +48,14 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
   const [limitPrice, setLimitPrice] = useState("");
   const [showExpirationModal, setShowExpirationModal] = useState(false);
   const [expiration, setExpiration] = useState<Date>(addWeeks(new Date(), 1));
-  const { onOpenPerp } = useContext(ContractContext);
+  const { onOpenPerp, poolData } = useContext(ContractContext);
   const [dropDownActive, setDropDownActive] = useState<boolean>(true);
 
   // New state variables for dynamic calculations
   const [liquidationPrice, setLiquidationPrice] = useState<number | null>(null);
   const [openFee, setOpenFee] = useState<number | null>(null);
+  const [borrowRate, setBorrowRate] = useState<number | null>(null);
+  const [availableLiquidity, setAvailableLiquidity] = useState<number | null>(null);
   const [collateralUSD, setCollateralUSD] = useState<number>(0);
   const [positionSize, setPositionSize] = useState<number>(0);
 
@@ -91,9 +94,16 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
   // Dynamic calculations useEffect
   useEffect(() => {
     const calculateValues = async () => {
+      if (priceData.price) {
+        const solPoolsize = (poolData!.sol.tokenOwned - poolData!.sol.tokenLocked) / 10 ** WSOL_DECIMALS;
+        const usdcPoolsize = (poolData!.usdc.tokenOwned - poolData!.usdc.tokenLocked) / 10 ** USDC_DECIMALS;
+        const availableLiquidity = solPoolsize * priceData.price + usdcPoolsize;
+        setAvailableLiquidity(availableLiquidity);
+      }
       if (!amount || !leverage || !priceData.price) {
         setLiquidationPrice(null);
         setOpenFee(null);
+        setBorrowRate(null);
         setCollateralUSD(0);
         setPositionSize(0);
         return;
@@ -113,7 +123,9 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
           // Calculate Open Fee (0.06% of position size)
           const openFeeValue = (grossPositionSizeValue * 0.0006) / (1 + 0.0006 * leverageNum); // 0.06% = 0.0006
           setOpenFee(openFeeValue);
-
+          console.log(poolData);
+          const borrowRateValue = payCurrency === 'Crypto.SOL/USD' ? OptionDetailUtils.getSolBorrowRate(poolData!.sol.tokenLocked, poolData!.sol.tokenOwned) : OptionDetailUtils.getSolBorrowRate(poolData!.usdc.tokenLocked, poolData!.usdc.tokenOwned);
+          setBorrowRate(borrowRateValue / 24.0 / 365.0);
 
           setCollateralUSD(collateralUSDValue - openFeeValue);
 
@@ -141,12 +153,14 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
         } else {
           setLiquidationPrice(null);
           setOpenFee(null);
+          setBorrowRate(null);
           setPositionSize(0);
         }
       } catch (error) {
         console.error("Error calculating values:", error);
         setLiquidationPrice(null);
         setOpenFee(null);
+        setBorrowRate(null);
         setPositionSize(0);
       }
     };
@@ -158,7 +172,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
     if (isNotNull(priceData.price)) {
       if (collateralUSD > 10) {
         await onOpenPerp(collateralUSD * (10 ** (selectedTx === "long" ? WSOL_DECIMALS : USDC_DECIMALS)), positionSize * (10 ** WSOL_DECIMALS), selectedTx, priceData.price,
-          payCurrency === "Crypto.SOL/USD", parseFloat(amount) * ( 10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS)));
+          payCurrency === "Crypto.SOL/USD", parseFloat(amount) * (10 ** (payCurrency === "Crypto.SOL/USD" ? WSOL_DECIMALS : USDC_DECIMALS)));
       }
     } else {
       console.error("Price data is unavailable.");
@@ -423,6 +437,13 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
       {/* Connect Wallet Button */}
       <div className="p-6 pt-0">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+          </div>
+          <div className="text-sm text-secondary-foreground">
+            Available Liquidity: ${availableLiquidity?.toFixed(2) || 0.00}
+          </div>
+        </div>
         {connected ? (
           <Button
             className={`w-full h-10 rounded-sm text-black ${collateralUSD > 10
@@ -485,6 +506,12 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
               <span>Open Fee (0.06%)</span>
               <span>
                 {openFee ? `$${openFee.toFixed(2)}` : '-'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm text-secondary-foreground font-normal">
+              <span>Borrow Fee Due</span>
+              <span>
+                {borrowRate ? `$${borrowRate.toFixed(6)}` : '-'}
               </span>
             </div>
             <div className="flex justify-between text-sm text-secondary-foreground font-normal">

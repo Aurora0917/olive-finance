@@ -892,10 +892,10 @@ export function PriceIcon(){
 
 export function PurchaseDateIcon(){
   return <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none">
-  <path d="M4.6665 1.16699V2.91699" stroke="#808693" stroke-miterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-  <path d="M9.3335 1.16699V2.91699" stroke="#808693" stroke-miterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-  <path d="M2.0415 5.30273H11.9582" stroke="#808693" stroke-miterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
-  <path d="M12.25 4.95866V9.91699C12.25 11.667 11.375 12.8337 9.33333 12.8337H4.66667C2.625 12.8337 1.75 11.667 1.75 9.91699V4.95866C1.75 3.20866 2.625 2.04199 4.66667 2.04199H9.33333C11.375 2.04199 12.25 3.20866 12.25 4.95866Z" stroke="#808693" stroke-miterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M4.6665 1.16699V2.91699" stroke="#808693" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M9.3335 1.16699V2.91699" stroke="#808693" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M2.0415 5.30273H11.9582" stroke="#808693" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
+  <path d="M12.25 4.95866V9.91699C12.25 11.667 11.375 12.8337 9.33333 12.8337H4.66667C2.625 12.8337 1.75 11.667 1.75 9.91699V4.95866C1.75 3.20866 2.625 2.04199 4.66667 2.04199H9.33333C11.375 2.04199 12.25 3.20866 12.25 4.95866Z" stroke="#808693" strokeMiterlimit="10" strokeLinecap="round" strokeLinejoin="round"/>
   <path d="M6.99745 7.99186H7.00269" stroke="#808693" strokeLinecap="round" strokeLinejoin="round"/>
   <path d="M4.83827 7.99186H4.84351" stroke="#808693" strokeLinecap="round" strokeLinejoin="round"/>
   <path d="M4.83827 9.74186H4.84351" stroke="#808693" strokeLinecap="round" strokeLinejoin="round"/>

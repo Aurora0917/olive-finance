@@ -18,6 +18,7 @@ import { HoverCardTrigger } from "@radix-ui/react-hover-card";
 import { Progress } from "./ui/progress";
 import CircularProgressBar from "./ui/circular-progress-bar";
 import { RatioBar } from "./RatioBar";
+import { USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const";
 
 
 type CryptoData = {
@@ -50,6 +51,8 @@ interface TradingViewTopNavProps {
     marketChanges: MarketChanges;
     onTokenSelect: (token: CryptoData) => void;
     priceData: any;
+    poolData: any;
+    volumeData: any;
     marketData: any;
     priceLoading: boolean;
     marketLoading: boolean;
@@ -64,6 +67,8 @@ export default function TradingViewTopNav({
     marketChanges,
     onTokenSelect,
     priceData,
+    poolData,
+    volumeData,
     marketData,
     priceLoading,
     marketLoading,
@@ -270,7 +275,7 @@ export default function TradingViewTopNav({
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">24h volume</span>
-                    <span className="text-foreground text-xs font-medium">$</span>
+                    <span className="text-foreground text-xs font-medium">${volumeData?.volume24h || 0}</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical"/>
@@ -279,12 +284,12 @@ export default function TradingViewTopNav({
                     <HoverCardTrigger asChild>
                         <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer"> 
                             <span className="text-secondary-foreground font-normal text-[10px] h-3">SOL Utilization</span>
-                            <Progress value={66} className="h-1"/>
+                            <Progress value={poolData?.sol.utilizationPercent || 0} className="h-1"/>
                         </div>
                     </HoverCardTrigger>
                     <HoverCardContent align="center" className="flex flex-col justify-center bg-accent p-2 rounded-sm gap-2">
                         <div className="flex justify-center ">
-                            <CircularProgressBar />
+                            <CircularProgressBar percentage={poolData?.sol.utilizationPercent.toFixed(2) || 0} />
                         </div>
                         <div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
@@ -293,15 +298,15 @@ export default function TradingViewTopNav({
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Call Available Liquidity</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground"> {((poolData?.sol.tokenOwned - poolData?.sol.tokenLocked) / 10 ** WSOL_DECIMALS).toFixed(2) || 0} SOL </span>
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Call Intereset Rate</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground">{poolData?.sol.borrowRate}%</span>
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Call Volatility</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground">85%</span>
                             </div>                    
                         </div>
                     </HoverCardContent>
@@ -313,12 +318,12 @@ export default function TradingViewTopNav({
                     <HoverCardTrigger asChild>
                         <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer"> 
                             <span className="text-secondary-foreground font-normal text-[10px] h-3">USDC Utilization</span>
-                            <Progress value={66} className="h-1"/>
+                            <Progress value={poolData?.usdc.utilizationPercent.toFixed(2) || 0} className="h-1"/>
                         </div>
                     </HoverCardTrigger>
                     <HoverCardContent align="center" className="flex flex-col bg-accent justify-center p-2 rounded-sm gap-2">
                         <div className="flex justify-center">
-                            <CircularProgressBar />
+                            <CircularProgressBar percentage={poolData?.usdc.utilizationPercent.toFixed(2) || 0} />
                         </div>
                         <div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
@@ -327,15 +332,15 @@ export default function TradingViewTopNav({
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Put Available Liquidity</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground"> {((poolData?.usdc.tokenOwned - poolData?.usdc.tokenLocked) / 10 ** USDC_DECIMALS).toFixed(2) || 0} USDC </span>
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Put Intereset Rate</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground">{poolData?.usdc.borrowRate}%</span>
                             </div>
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Put Volatility</span>
-                                <span className="text-foreground">XXX</span>
+                                <span className="text-foreground">25%</span>
                             </div>
                         </div>
                     </HoverCardContent>
@@ -362,11 +367,11 @@ export default function TradingViewTopNav({
                 <div className="flex gap-1">
                     <div className="flex flex-col items-center bg-green-500/10 px-2 rounded-sm">
                         <span className="text-green-500 font-normal text-[10px] h-3">Call</span>
-                        <span className="text-green-500 text-xs font-medium">6</span>
+                        <span className="text-green-500 text-xs font-medium">{volumeData?.callCount || 0}</span>
                     </div>
                     <div className="flex flex-col bg-red-500/10 px-2 rounded-sm items-center">
                         <span className="text-red-500 font-normal text-[10px] h-3">Put</span>
-                        <span className="text-red-500 text-xs font-medium">4</span>
+                        <span className="text-red-500 text-xs font-medium">{volumeData?.putCount || 0}</span>
                     </div>
                 </div>
                 <div className="px-4 py-1">

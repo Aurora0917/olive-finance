@@ -3,7 +3,8 @@ import axiosInstance from './axiosInstance';
 export interface TpSlOrderRequest {
     user: string;
     positionId: string;
-    positionType: 'perp' | 'option'; // Updated to match schema
+    contractType: 'perp' | 'option';
+    positionType: 'long' | 'short';
     takeProfit?: {
         price: number;
         enabled: boolean;
@@ -14,8 +15,10 @@ export interface TpSlOrderRequest {
         enabled: boolean;
         triggerCondition: 'above' | 'below';
     };
+    closePercent: number,
     poolName?: string;
     custody: string;
+    receiveAsset: 'SOL' | 'USDC';
     isActive?: boolean;
 }
 
@@ -23,7 +26,8 @@ export interface TpSlOrderResponse {
     _id: string;
     user: string;
     positionId: string;
-    positionType: 'perp' | 'option'; // Updated to match schema
+    contractType: 'perp' | 'option';
+    positionType: 'long' | 'short';
     takeProfit?: {
         price: number;
         enabled: boolean;
@@ -34,8 +38,10 @@ export interface TpSlOrderResponse {
         enabled: boolean;
         triggerCondition: 'above' | 'below';
     };
+    closePercent: number;
     poolName: string;
     custody: string;
+    receiveAsset: 'SOL' | 'USDC';
     isActive: boolean;
     createdAt: string;
     updatedAt: string;

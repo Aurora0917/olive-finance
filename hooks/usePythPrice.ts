@@ -106,9 +106,7 @@ export function usePyth24hChange(token : string) : PriceChangeState{
 
         const nowData = await nowRes.json();
         const pastData = await pastRes.json();
-
-        console.log('now',nowData);
-        console.log('past',pastData);
+        
         const currentPrice = parseFloat(nowData.parsed[0].price.price);
         const pastPrice = parseFloat(pastData.parsed[0].price.price);
         const change = currentPrice - pastPrice;
