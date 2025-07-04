@@ -222,7 +222,7 @@ export default function RecentTrades() {
         // Get accounts with correct typing
         const optionAccounts = await program.account.optionDetail.all([
           {
-            dataSize: 276
+            dataSize: 292
           }
         ]);
         const _optionDetails: OptionDetail[] = [];

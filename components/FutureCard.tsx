@@ -437,13 +437,6 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
       {/* Connect Wallet Button */}
       <div className="p-6 pt-0">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-          </div>
-          <div className="text-sm text-secondary-foreground">
-            Available Liquidity: ${availableLiquidity?.toFixed(2) || 0.00}
-          </div>
-        </div>
         {connected ? (
           <Button
             className={`w-full h-10 rounded-sm text-black ${collateralUSD > 10
@@ -500,6 +493,12 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
               <span>Liquidation Price</span>
               <span className={liquidationPrice ? (selectedTx === "long" ? 'text-red-500' : 'text-green-500') : ''}>
                 {liquidationPrice ? `$${liquidationPrice.toFixed(2)}` : '-'}
+              </span>
+            </div>
+            <div className="flex justify-between text-sm text-secondary-foreground font-normal">
+              <span>Available Liquidity</span>
+              <span>
+                ${availableLiquidity?.toFixed(2) || 0.00}
               </span>
             </div>
             <div className="flex justify-between text-sm text-secondary-foreground font-normal">

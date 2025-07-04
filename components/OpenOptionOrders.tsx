@@ -74,7 +74,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {limitPrice}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isLimit} onOpenChange={setIsLimit}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -112,7 +112,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {strikePrice}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isStrike} onOpenChange={setIsStrike}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -151,7 +151,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {size}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isSize} onOpenChange={setIsSize}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -190,7 +190,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {expiry}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isExpiry} onOpenChange={setIsExpiry}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>

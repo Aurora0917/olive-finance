@@ -1,5 +1,5 @@
 {
-  "address": "GSmqNhxAhrLJjcxd9G2ts3obF9va9QBRezm6PMQJuE9b",
+  "address": "Gz4U6LcbehnjbuhVXEFEAAomXHuQPU4TrwYyR56NPGnc",
   "metadata": {
     "name": "option_contract",
     "version": "0.1.0",
@@ -1187,10 +1187,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -1404,10 +1401,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -1683,10 +1677,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -2054,10 +2045,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -2754,6 +2742,331 @@
       ]
     },
     {
+      "name": "edit_option",
+      "discriminator": [
+        194,
+        203,
+        14,
+        70,
+        229,
+        164,
+        100,
+        91
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "funding_account",
+            "refund_account"
+          ]
+        },
+        {
+          "name": "funding_account",
+          "writable": true
+        },
+        {
+          "name": "refund_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_mint",
+          "writable": true
+        },
+        {
+          "name": "pay_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "locked_custody_mint",
+          "writable": true
+        },
+        {
+          "name": "custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pay_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pay_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "locked_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "locked_custody_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pay_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "pay_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "option_detail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "custody_oracle_account"
+        },
+        {
+          "name": "pay_custody_oracle_account"
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "associated_token_program",
+          "address": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "EditOptionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "exercise_option",
       "discriminator": [
         231,
@@ -2895,10 +3208,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -3596,10 +3906,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -3882,10 +4189,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -4140,10 +4444,7 @@
                   117,
                   115,
                   101,
-                  114,
-                  95,
-                  118,
-                  50
+                  114
                 ]
               },
               {
@@ -5420,143 +5721,153 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidPoolBalanceError"
+      "name": "MultisigAccountNotAuthorized",
+      "msg": "Account is not authorized to sign this instruction"
     },
     {
       "code": 6001,
-      "name": "InvalidLockedBalanceError"
+      "name": "MultisigAlreadySigned",
+      "msg": "Account has already signed this instruction"
     },
     {
       "code": 6002,
-      "name": "InvalidSignerBalanceError"
+      "name": "MultisigAlreadyExecuted",
+      "msg": "This instruction has already been executed"
     },
     {
       "code": 6003,
-      "name": "InvalidOptionIndexError"
+      "name": "MathOverflow",
+      "msg": "Overflow in arithmetic operation"
     },
     {
       "code": 6004,
-      "name": "InvalidTimeError"
+      "name": "UnsupportedOracle",
+      "msg": "Unsupported price oracle"
     },
     {
       "code": 6005,
-      "name": "InvalidMintError"
+      "name": "InvalidOracleAccount",
+      "msg": "Invalid oracle account"
     },
     {
       "code": 6006,
-      "name": "InvalidPriceRequirementError"
+      "name": "InvalidOracleState",
+      "msg": "Invalid oracle state"
     },
     {
       "code": 6007,
-      "name": "StalePriceError"
+      "name": "StaleOraclePrice",
+      "msg": "Stale oracle price"
     },
     {
       "code": 6008,
-      "name": "InvalidPayAmountError"
+      "name": "InvalidOraclePrice",
+      "msg": "Invalid oracle price"
     },
     {
       "code": 6009,
-      "name": "InvalidOwner"
+      "name": "InvalidEnvironment",
+      "msg": "Instruction is not allowed in production"
     },
     {
       "code": 6010,
-      "name": "OptionNotValid"
+      "name": "InvalidPoolState",
+      "msg": "Invalid pool state"
     },
     {
       "code": 6011,
-      "name": "OptionAlreadyExercised"
+      "name": "InvalidCustodyState",
+      "msg": "Invalid custody state"
     },
     {
       "code": 6012,
-      "name": "InsufficientFundsError"
+      "name": "InvalidCollateralCustody",
+      "msg": "Invalid collateral custody"
     },
     {
       "code": 6013,
-      "name": "InvalidQuantityError"
+      "name": "InvalidPositionState",
+      "msg": "Invalid position state"
     },
     {
       "code": 6014,
-      "name": "InsufficientQuantityError"
+      "name": "InvalidPerpetualsConfig",
+      "msg": "Invalid perpetuals config"
     },
     {
       "code": 6015,
-      "name": "BorrowRateNotInitialized"
+      "name": "InvalidPoolConfig",
+      "msg": "Invalid pool config"
     },
     {
       "code": 6016,
-      "name": "AssetTypeNotSet"
+      "name": "InvalidCustodyConfig",
+      "msg": "Invalid custody config"
     },
     {
       "code": 6017,
-      "name": "InvalidPoolIndex"
+      "name": "InsufficientAmountReturned",
+      "msg": "Insufficient token amount returned"
     },
     {
       "code": 6018,
-      "name": "UtilizationTooHigh"
+      "name": "MaxPriceSlippage",
+      "msg": "Price slippage limit exceeded"
     },
     {
       "code": 6019,
-      "name": "InvalidUtilizationRate"
+      "name": "MaxLeverage",
+      "msg": "Position leverage limit exceeded"
     },
     {
       "code": 6020,
-      "name": "InvalidBorrowRateCurvePoint"
+      "name": "CustodyAmountLimit",
+      "msg": "Custody amount limit exceeded"
     },
     {
       "code": 6021,
-      "name": "InsufficientPoolLiquidity"
+      "name": "PositionAmountLimit",
+      "msg": "Position amount limit exceeded"
     },
     {
       "code": 6022,
-      "name": "InsufficientBalance"
+      "name": "TokenRatioOutOfRange",
+      "msg": "Token ratio out of range"
     },
     {
       "code": 6023,
-      "name": "InvalidAmount"
+      "name": "UnsupportedToken",
+      "msg": "Token is not supported"
     },
     {
       "code": 6024,
-      "name": "InvalidLeverage"
+      "name": "InstructionNotAllowed",
+      "msg": "Instruction is not allowed at this time"
     },
     {
       "code": 6025,
-      "name": "InvalidSlippage"
+      "name": "MaxUtilization",
+      "msg": "Token utilization limit exceeded"
     },
     {
       "code": 6026,
-      "name": "MathOverflow"
+      "name": "PermissionlessOracleMissingSignature",
+      "msg": "Permissionless oracle update must be preceded by Ed25519 signature verification instruction"
     },
     {
       "code": 6027,
-      "name": "PriceSlippage"
+      "name": "PermissionlessOracleMalformedEd25519Data",
+      "msg": "Ed25519 signature verification data does not match expected format"
     },
     {
       "code": 6028,
-      "name": "PositionLiquidated"
+      "name": "PermissionlessOracleSignerMismatch",
+      "msg": "Ed25519 signature was not signed by the oracle authority"
     },
     {
       "code": 6029,
-      "name": "Unauthorized"
-    },
-    {
-      "code": 6030,
-      "name": "InvalidLiquidationPrice"
-    },
-    {
-      "code": 6031,
-      "name": "InvalidPoolName"
-    },
-    {
-      "code": 6032,
-      "name": "InsufficientCollateral"
-    },
-    {
-      "code": 6033,
-      "name": "InvalidCollateralAsset"
-    },
-    {
-      "code": 6034,
-      "name": "PositionNotLiquidatable"
+      "name": "PermissionlessOracleMessageMismatch",
+      "msg": "Signed message does not match instruction params"
     }
   ],
   "types": [
@@ -5802,6 +6113,42 @@
           {
             "name": "token_account_bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EditOptionParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "option_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "new_strike",
+            "type": {
+              "option": "f64"
+            }
+          },
+          {
+            "name": "new_expiry",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "max_additional_premium",
+            "type": "u64"
+          },
+          {
+            "name": "min_refund_amount",
+            "type": "u64"
           }
         ]
       }
@@ -6129,6 +6476,14 @@
           {
             "name": "executed",
             "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "f64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
           }
         ]
       }

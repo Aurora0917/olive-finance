@@ -19,20 +19,23 @@ import { ContractContext } from "@/contexts/contractProvider";
 import Pagination from "./Pagination";
 import OpenOptionOrders from "./OpenOptionOrders";
 import { motion, AnimatePresence } from "framer-motion";
+import { usePythPrice } from "@/hooks/usePythPrice";
 
 export default function TradingPositions() {
   const [activeTab, setActiveTab] = useState<string>("Positions");
   const [currentPage, setCurrentPage] = useState(1);
+  const { priceData, loading: priceLoading } = usePythPrice('Crypto.SOL/USD');
   const itemsPerPage = 5;
-  
-  const { 
-    positions, 
-    expiredPositions, 
+
+  const {
+    positions,
+    expiredPositions,
     donePositions,
-    refreshPositions, 
-    positionsLoading, 
-    onClaimOption, 
-    onExerciseOption 
+    refreshPositions,
+    positionsLoading,
+    onClaimOption,
+    onExerciseOption,
+    onCloseLimitOption
   } = useContext(ContractContext);
 
   const handleClickTab = (state: string) => {
@@ -41,11 +44,11 @@ export default function TradingPositions() {
       setCurrentPage(1); // Reset to first page when switching tabs
     }
   };
-  
+
   const onClaim = (optionindex: number, solPrice: number) => {
     onClaimOption(optionindex, solPrice);
   };
-  
+
   const onExercise = (index: number) => {
     onExerciseOption(index);
   };
@@ -54,12 +57,12 @@ export default function TradingPositions() {
   useEffect(() => {
     // Initial load
     refreshPositions();
-    
+
     // Set up interval for periodic refresh (every 30 seconds)
     const intervalId = setInterval(() => {
       refreshPositions();
     }, 30000);
-    
+
     // Clean up interval on component unmount
     return () => clearInterval(intervalId);
   }, []); // Empty dependency array to run only once on mount
@@ -73,7 +76,7 @@ export default function TradingPositions() {
   // Filter positions based on limitPrice
   const actualPositions = positions?.filter(position => position.limitPrice === 0 || position.executed === true) || [];
   const actualOrders = positions?.filter(position => position.limitPrice !== 0 && position.executed === false) || [];
-  
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
@@ -116,7 +119,7 @@ export default function TradingPositions() {
           </TabsList>
         </Tabs>
         <div className="hidden md:flex gap-3 items-center">
-          <Button 
+          <Button
             className="bg-secondary p-2 w-full h-auto rounded-sm"
             onClick={() => refreshPositions()}
             disabled={positionsLoading}
@@ -144,7 +147,7 @@ export default function TradingPositions() {
             align="end"
             className="p-1 min-w-fit rounded-[12px]"
           >
-            <DropdownMenuItem 
+            <DropdownMenuItem
               className="space-x-[6px] gap-0 w-fit"
               onClick={() => refreshPositions()}
             >
@@ -164,7 +167,7 @@ export default function TradingPositions() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      
+
       {activeTab === "Positions" && (
         <div className="px-3 md:px-6 py-4 pb-[10px] space-y-[10px] min-h-[300px] flex flex-col justify-between">
           <div className="space-y-[10px] flex-grow">
@@ -182,6 +185,7 @@ export default function TradingPositions() {
                     entryPrice={position.entryPrice}
                     limitPrice={position.limitPrice}
                     expiry={position.expiry}
+                    currentPrice={priceData?.price || 0}
                     size={parseInt(position.quantity.toString())}
                     pnl={position.pnl}
                     purchaseDate={position.purchaseDate}
@@ -220,19 +224,19 @@ export default function TradingPositions() {
             {actualOrders && actualOrders.length > 0 ? (
               <>
                 {paginatedOrders.map((order, idx) => (
-                  <OpenOptionOrders 
+                  <OpenOptionOrders
                     key={idx}
                     logo={order.logo}
                     token={order.token}
                     symbol={order.symbol}
                     type={order.type}
                     limitPrice={order.limitPrice || 0}
-                    transaction={order.type}
+                    transaction={"buy"}
                     strikePrice={order.strikePrice}
                     expiry={order.expiry}
-                    size={order.size}
+                    size={parseInt(order.quantity.toString())}
                     orderDate={order.purchaseDate || ''}
-                    onCancel={() => {}}
+                    onCancel={() => onCloseLimitOption(order.index, parseInt(order.quantity.toString()))}
                   />
                 ))}
               </>
@@ -254,7 +258,7 @@ export default function TradingPositions() {
           )}
         </div>
       )}
-      
+
       {activeTab === "Expired" && (
         <div className="md:pb-[44px] min-h-[300px] flex">
           {expiredPositions && expiredPositions.length > 0 ? (
@@ -266,7 +270,7 @@ export default function TradingPositions() {
           )}
         </div>
       )}
-      
+
       {activeTab === "History" && (
         <div className="px-3 md:px-6 py-4 pb-[20px] md:pb-[10px] space-y-[10px] min-h-[300px] flex flex-col justify-between">
           <div className="flex-grow">

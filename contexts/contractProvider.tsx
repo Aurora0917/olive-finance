@@ -75,6 +75,7 @@ interface ContractContextType {
   onOpenLimitOption: Function;
   onCloseLimitOption: Function;
   onOpenOption: Function;
+  onEditOption: Function;
   onCloseOption: Function;
   onClaimOption: Function;
   onExerciseOption: Function;
@@ -112,6 +113,7 @@ export const ContractContext = createContext<ContractContextType>({
   onOpenLimitOption: async () => { },
   onCloseLimitOption: () => { },
   onOpenOption: async () => { },
+  onEditOption: async () => { },
   onCloseOption: () => { },
   onClaimOption: () => { },
   onExerciseOption: () => { },
@@ -256,7 +258,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Calculate option premium for volume
         try {
-          const timeToExpiry = (new Date(position.expiry).getTime() - now) / (365.25 * 24 * 60 * 60 * 1000);          
+          const timeToExpiry = (new Date(position.expiry).getTime() - now) / (365.25 * 24 * 60 * 60 * 1000);
           const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
           const premium = OptionDetailUtils.blackScholesWithBorrowRate(
             currentPrice,
@@ -453,7 +455,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user_v2"), publicKey.toBuffer()],
+      [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
 
@@ -612,7 +614,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     );
 
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user_v2"), publicKey.toBuffer()],
+      [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
 
@@ -635,7 +637,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           },
         },
         {
-          dataSize: 276
+          dataSize: 292
         }
       ]);
 
@@ -820,7 +822,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user_v2"), publicKey.toBuffer()],
+      [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
     let optionIndex;
@@ -897,11 +899,217 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     return true;
   };
 
+  const onEditOption = async (params: {
+    optionIndex: number;
+    poolName: string;
+    newSize?: number;
+    newStrike?: number;
+    newExpiry?: number; // Unix timestamp
+    maxAdditionalPremium?: number;
+    minRefundAmount?: number;
+  }) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      console.log("Editing option with params:", params);
+
+      // Find pool PDA
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      // Find contract PDA
+      const [contract] = PublicKey.findProgramAddressSync(
+        [Buffer.from("contract")],
+        program.programId
+      );
+
+      // Find transfer authority PDA
+      const [transferAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from("transfer_authority")],
+        program.programId
+      );
+
+      // Find user PDA
+      const [userPDA] = PublicKey.findProgramAddressSync(
+        [Buffer.from("user"), publicKey.toBuffer()],
+        program.programId
+      );
+
+      // Find both custodies (SOL and USDC)
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Try to find the option detail account with both custodies
+      let optionDetailAccount;
+      let optionDetailData;
+      let custody;
+
+      // First try with SOL custody
+      try {
+        const solOptionDetail = getOptionDetailAccount(params.optionIndex, pool, solCustody);
+        if (solOptionDetail) {
+          optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
+          optionDetailAccount = solOptionDetail;
+          custody = solCustody;
+          console.log("Found option with SOL custody");
+        }
+      } catch (e) {
+        // If SOL fails, try with USDC custody
+        try {
+          const usdcOptionDetail = getOptionDetailAccount(params.optionIndex, pool, usdcCustody);
+          if (usdcOptionDetail) {
+            optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
+            optionDetailAccount = usdcOptionDetail;
+            custody = usdcCustody;
+            console.log("Found option with USDC custody");
+          }
+        } catch (e2) {
+          console.error("Option detail not found with either custody");
+          return false;
+        }
+      }
+
+      if (!optionDetailAccount || !optionDetailData) {
+        console.error("Option detail not found");
+        return false;
+      }
+
+      console.log("Using custody:", custody.toBase58());
+      console.log("Option detail account:", optionDetailAccount.toBase58());
+
+      // Determine custodies based on option data
+      const premiumAsset = optionDetailData.premiumAsset; // What user paid with
+      const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
+
+      // Get pay custody (for premium payments/refunds)
+      const payCustody = premiumAsset;
+      const payCustodyData = await program.account.custody.fetch(payCustody);
+
+      // Get locked custody (for collateral management)
+      const lockedCustody = lockedAsset;
+      const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
+
+      // Determine mint types
+      const isPremiumSOL = premiumAsset.equals(solCustody);
+      const isLockedSOL = lockedAsset.equals(solCustody);
+
+      const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
+      const lockedCustodyMint = isLockedSOL ? WSOL_MINT : USDC_MINT;
+      const custodyMint = custody?.equals(solCustody) ? WSOL_MINT : USDC_MINT;
+
+      // Get custody token accounts
+      const [payCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          payCustodyMint.toBuffer(),
+        ],
+        program.programId
+      );
+
+      // User token accounts for payments and refunds
+      const fundingAccount = getAssociatedTokenAddressSync(
+        payCustodyMint, // User pays/receives in the same asset they originally paid with
+        wallet.publicKey
+      );
+
+      const refundAccount = getAssociatedTokenAddressSync(
+        payCustodyMint, // Refunds also in the same asset
+        wallet.publicKey
+      );
+
+      // Get oracle accounts
+      const custodyOracleAccount = custody?.equals(solCustody)
+        ? new PublicKey(WSOL_ORACLE)
+        : new PublicKey(USDC_ORACLE);
+
+      const payCustodyOracleAccount = isPremiumSOL
+        ? new PublicKey(WSOL_ORACLE)
+        : new PublicKey(USDC_ORACLE);
+
+      console.log("Edit option accounts:", {
+        optionIndex: params.optionIndex,
+        poolName: params.poolName,
+        optionDetailAccount: optionDetailAccount.toBase58(),
+        custody: custody.toBase58(),
+        payCustody: payCustody.toBase58(),
+        lockedCustody: lockedCustody.toBase58(),
+        fundingAccount: fundingAccount.toBase58(),
+        refundAccount: refundAccount.toBase58(),
+        newStrike: params.newStrike,
+        newExpiry: params.newExpiry,
+      });
+
+      // Build the transaction
+      const transaction = await program.methods
+        .editOption({
+          optionIndex: new BN(params.optionIndex),
+          poolName: params.poolName,
+          newStrike: params.newStrike ? params.newStrike : null,
+          newExpiry: params.newExpiry ? new BN(params.newExpiry) : null,
+          maxAdditionalPremium: new BN(Math.floor((params.maxAdditionalPremium || 0) * 1_000_000)), // Convert to microUSDC
+          minRefundAmount: new BN(Math.floor((params.minRefundAmount || 0) * 1_000_000)), // Convert to microUSDC
+        })
+        .accountsPartial({
+          owner: publicKey,
+          fundingAccount: fundingAccount,
+          refundAccount: refundAccount,
+          pool: pool,
+          custodyMint: WSOL_MINT,
+          payCustodyMint: payCustodyMint,
+          lockedCustodyMint: lockedCustodyMint,
+          payCustody: payCustody,
+          lockedCustody: lockedCustody,
+          custodyOracleAccount: custodyOracleAccount,
+          payCustodyOracleAccount: payCustodyOracleAccount,
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
+
+      // Simulate transaction first
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Edit option simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Edit option simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log("Option edited successfully:", signature);
+
+      // Refresh positions after successful transaction
+      await refreshPositions();
+      return true;
+
+    } catch (error) {
+      console.error("Error editing option:", error);
+      return false;
+    }
+  };
+
   const getPositionIndexFromAccount = async (accountAddress: string, owner: PublicKey, pool: PublicKey) => {
     // Try different position indices until we find the matching account
 
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user_v2"), owner.toBuffer()],
+      [Buffer.from("user"), owner.toBuffer()],
       program!.programId
     );
 
@@ -1100,7 +1308,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       const [userPDA] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_v2"), publicKey.toBuffer()],
+        [Buffer.from("user"), publicKey.toBuffer()],
         program.programId
       );
 
@@ -1713,7 +1921,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       program.programId
     );
     const [userPDA] = PublicKey.findProgramAddressSync(
-      [Buffer.from("user_v2"), publicKey.toBuffer()],
+      [Buffer.from("user"), publicKey.toBuffer()],
       program.programId
     );
     let optionIndex;
@@ -2037,7 +2245,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Find user PDA
       const [user] = PublicKey.findProgramAddressSync(
-        [Buffer.from("user_v2"), publicKey.toBuffer()],
+        [Buffer.from("user"), publicKey.toBuffer()],
         program.programId
       );
 
@@ -2446,6 +2654,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onOpenLimitOption,
         onCloseLimitOption,
         onOpenOption,
+        onEditOption,
         onCloseOption,
         onClaimOption,
         onExerciseOption,
