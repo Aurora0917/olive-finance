@@ -983,7 +983,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         return false;
       }
 
-      console.log("Using custody:", custody.toBase58());
+      console.log("Using custody:", custody!.toBase58());
       console.log("Option detail account:", optionDetailAccount.toBase58());
 
       // Determine custodies based on option data
@@ -1040,7 +1040,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         optionIndex: params.optionIndex,
         poolName: params.poolName,
         optionDetailAccount: optionDetailAccount.toBase58(),
-        custody: custody.toBase58(),
+        custody: custody!.toBase58(),
         payCustody: payCustody.toBase58(),
         lockedCustody: lockedCustody.toBase58(),
         fundingAccount: fundingAccount.toBase58(),
