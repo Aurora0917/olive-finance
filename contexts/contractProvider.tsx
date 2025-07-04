@@ -707,7 +707,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               expiry: new Date(detail.expiredDate.toNumber() * 1000).toString(),
               size: detail.amount.toNumber() / (10 ** (isPremiumSOL ? WSOL_DECIMALS : USDC_DECIMALS)),                // Size in SOL units (underlying asset)
               pnl: pnl,
-              entryPrice: detail.boughtBack,
+              entryPrice: detail.entryPrice,
               executed: detail.executed,
               quantity: detail.quantity,
               purchaseDate: new Date(detail.purchaseDate * 1000).toString(),
@@ -905,8 +905,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     newSize?: number;
     newStrike?: number;
     newExpiry?: number; // Unix timestamp
-    maxAdditionalPremium?: number;
-    minRefundAmount?: number;
+    maxAdditionalPremium?: number; // Already in token units
+    minRefundAmount?: number; // Already in token units
+    paymentToken?: 'SOL' | 'USDC'; // Selected payment token
   }) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
@@ -915,7 +916,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Find pool PDA
       const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        [Buffer.from("pool"), Buffer.from(params.poolName)],
         program.programId
       );
 
@@ -932,12 +933,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       // Find user PDA
-      const [userPDA] = PublicKey.findProgramAddressSync(
+      const [user] = PublicKey.findProgramAddressSync(
         [Buffer.from("user"), publicKey.toBuffer()],
         program.programId
       );
 
-      // Find both custodies (SOL and USDC)
+      // Find both custodies
       const [solCustody] = PublicKey.findProgramAddressSync(
         [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
         program.programId
@@ -948,63 +949,106 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      // Try to find the option detail account with both custodies
+      // CRITICAL FIX: Create a corrected PDA derivation function that uses publicKey
+      const getOptionDetailAccountCorrected = (
+        index: number,
+        pool: PublicKey,
+        custody: PublicKey
+      ) => {
+        const [optionDetail] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("option"),
+            publicKey.toBuffer(), // Use publicKey (transaction signer) not wallet.publicKey
+            new BN(index).toArrayLike(Buffer, "le", 8),
+            pool.toBuffer(),
+            custody.toBuffer(),
+          ],
+          program.programId
+        );
+        return optionDetail;
+      };
+
+      // Search for the option with both possible custodies and use the one that works
       let optionDetailAccount;
       let optionDetailData;
-      let custody;
+      let custody; // The custody that was actually used in the original PDA
 
-      // First try with SOL custody
+      // Try SOL custody first
       try {
-        const solOptionDetail = getOptionDetailAccount(params.optionIndex, pool, solCustody);
-        if (solOptionDetail) {
-          optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
-          optionDetailAccount = solOptionDetail;
-          custody = solCustody;
-          console.log("Found option with SOL custody");
-        }
+        const solOptionDetail = getOptionDetailAccountCorrected(params.optionIndex, pool, solCustody);
+        optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
+        optionDetailAccount = solOptionDetail;
+        custody = solCustody;
+        console.log("✅ Found option with SOL custody");
+        console.log("Option account:", optionDetailAccount.toBase58());
       } catch (e) {
-        // If SOL fails, try with USDC custody
+        // If SOL fails, try USDC custody
         try {
-          const usdcOptionDetail = getOptionDetailAccount(params.optionIndex, pool, usdcCustody);
-          if (usdcOptionDetail) {
-            optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
-            optionDetailAccount = usdcOptionDetail;
-            custody = usdcCustody;
-            console.log("Found option with USDC custody");
-          }
+          const usdcOptionDetail = getOptionDetailAccountCorrected(params.optionIndex, pool, usdcCustody);
+          optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
+          optionDetailAccount = usdcOptionDetail;
+          custody = usdcCustody;
+          console.log("✅ Found option with USDC custody");
+          console.log("Option account:", optionDetailAccount.toBase58());
         } catch (e2) {
-          console.error("Option detail not found with either custody");
+          console.error("❌ Option not found with either custody");
+          console.error("Tried SOL custody:", solCustody.toBase58());
+          console.error("Tried USDC custody:", usdcCustody.toBase58());
           return false;
         }
       }
 
-      if (!optionDetailAccount || !optionDetailData) {
+      if (!optionDetailAccount || !optionDetailData || !custody) {
         console.error("Option detail not found");
         return false;
       }
 
-      console.log("Using custody:", custody!.toBase58());
-      console.log("Option detail account:", optionDetailAccount.toBase58());
+      // Verify the owner matches the transaction signer
+      if (!optionDetailData.owner.equals(publicKey)) {
+        console.error("Option owner mismatch:", {
+          expected: publicKey.toBase58(),
+          actual: optionDetailData.owner.toBase58()
+        });
+        return false;
+      }
+
+      // Use the custody that was actually found (DON'T override it)
+      const custodyMint = custody.equals(solCustody) ? WSOL_MINT : USDC_MINT;
+      const custodyOracleAccount = custody.equals(solCustody)
+        ? new PublicKey(WSOL_ORACLE)
+        : new PublicKey(USDC_ORACLE);
+
+      console.log("Using custody found in option:", custody.toBase58());
+      console.log("Using custody mint:", custodyMint.toBase58());
+      console.log("Using custody oracle:", custodyOracleAccount.toBase58());
+      console.log("Option data:", {
+        index: optionDetailData.index.toNumber(),
+        valid: optionDetailData.valid,
+        premiumAsset: optionDetailData.premiumAsset.toBase58(),
+        lockedAsset: optionDetailData.lockedAsset.toBase58(),
+        strikePrice: optionDetailData.strikePrice,
+        quantity: optionDetailData.quantity.toNumber(),
+      });
 
       // Determine custodies based on option data
-      const premiumAsset = optionDetailData.premiumAsset; // What user paid with
       const lockedAsset = optionDetailData.lockedAsset; // What's locked by protocol
 
-      // Get pay custody (for premium payments/refunds)
-      const payCustody = premiumAsset;
-      const payCustodyData = await program.account.custody.fetch(payCustody);
+      // NEW: Use selected payment token instead of original premium asset
+      const selectedPaymentToken = params.paymentToken || 'USDC'; // Default to USDC
+      const payCustody = selectedPaymentToken === 'SOL' ? solCustody : usdcCustody;
+      const payCustodyMint = selectedPaymentToken === 'SOL' ? WSOL_MINT : USDC_MINT;
+
+      console.log(`💰 Using ${selectedPaymentToken} for payment:`, payCustody.toBase58());
 
       // Get locked custody (for collateral management)
       const lockedCustody = lockedAsset;
       const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
 
       // Determine mint types
-      const isPremiumSOL = premiumAsset.equals(solCustody);
+      const isPremiumSOL = selectedPaymentToken === 'SOL'; // Based on selection, not original
       const isLockedSOL = lockedAsset.equals(solCustody);
 
-      const payCustodyMint = isPremiumSOL ? WSOL_MINT : USDC_MINT;
       const lockedCustodyMint = isLockedSOL ? WSOL_MINT : USDC_MINT;
-      const custodyMint = custody?.equals(solCustody) ? WSOL_MINT : USDC_MINT;
 
       // Get custody token accounts
       const [payCustodyTokenAccount] = PublicKey.findProgramAddressSync(
@@ -1016,61 +1060,83 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      // User token accounts for payments and refunds
+      // Use publicKey for token accounts to match transaction signer
       const fundingAccount = getAssociatedTokenAddressSync(
-        payCustodyMint, // User pays/receives in the same asset they originally paid with
-        wallet.publicKey
+        payCustodyMint,
+        publicKey
       );
 
       const refundAccount = getAssociatedTokenAddressSync(
-        payCustodyMint, // Refunds also in the same asset
-        wallet.publicKey
+        payCustodyMint,
+        publicKey
       );
 
-      // Get oracle accounts
-      const custodyOracleAccount = custody?.equals(solCustody)
-        ? new PublicKey(WSOL_ORACLE)
-        : new PublicKey(USDC_ORACLE);
-
+      // Get oracle for selected pay custody
       const payCustodyOracleAccount = isPremiumSOL
         ? new PublicKey(WSOL_ORACLE)
         : new PublicKey(USDC_ORACLE);
 
-      console.log("Edit option accounts:", {
-        optionIndex: params.optionIndex,
-        poolName: params.poolName,
+      console.log("Final transaction accounts:", {
+        owner: publicKey.toBase58(),
         optionDetailAccount: optionDetailAccount.toBase58(),
-        custody: custody!.toBase58(),
+        custody: custody.toBase58(),
+        custodyMint: custodyMint.toBase58(),
+        custodyOracleAccount: custodyOracleAccount.toBase58(),
         payCustody: payCustody.toBase58(),
+        payCustodyMint: payCustodyMint.toBase58(),
+        payCustodyOracleAccount: payCustodyOracleAccount.toBase58(),
         lockedCustody: lockedCustody.toBase58(),
+        lockedCustodyMint: lockedCustodyMint.toBase58(),
         fundingAccount: fundingAccount.toBase58(),
         refundAccount: refundAccount.toBase58(),
-        newStrike: params.newStrike,
-        newExpiry: params.newExpiry,
+        selectedPaymentToken,
       });
 
-      // Build the transaction
+      // Check if user has enough balance in the selected token
+      try {
+        const userTokenAccount = await connection.getTokenAccountBalance(fundingAccount);
+        const userBalance = userTokenAccount.value.uiAmount || 0;
+        console.log(`User ${selectedPaymentToken} balance:`, userBalance);
+
+        if (userBalance === 0) {
+          console.warn(`⚠️ User has no ${selectedPaymentToken} balance`);
+        }
+      } catch (error) {
+        console.warn(`Could not fetch ${selectedPaymentToken} balance:`, error);
+      }
+
+      // Build the transaction with the EXACT accounts that were found
       const transaction = await program.methods
         .editOption({
           optionIndex: new BN(params.optionIndex),
           poolName: params.poolName,
           newStrike: params.newStrike ? params.newStrike : null,
           newExpiry: params.newExpiry ? new BN(params.newExpiry) : null,
-          maxAdditionalPremium: new BN(Math.floor((params.maxAdditionalPremium || 0) * 1_000_000)), // Convert to microUSDC
-          minRefundAmount: new BN(Math.floor((params.minRefundAmount || 0) * 1_000_000)), // Convert to microUSDC
+          newSize: params.newSize ? params.newSize : null,
+          maxAdditionalPremium: new BN(Math.floor(params.maxAdditionalPremium || 0)),
+          minRefundAmount: new BN(Math.floor(params.minRefundAmount || 0)),
         })
         .accountsPartial({
           owner: publicKey,
-          fundingAccount: fundingAccount,
-          refundAccount: refundAccount,
+          fundingAccount: fundingAccount, // Selected token account
+          refundAccount: refundAccount,   // Selected token account
+          transferAuthority: transferAuthority,
+          contract: contract,
           pool: pool,
-          custodyMint: WSOL_MINT,
-          payCustodyMint: payCustodyMint,
+          user: user,
+          custodyMint: custodyMint, // Use the mint that matches the found custody
+          payCustodyMint: payCustodyMint, // Selected payment token mint
           lockedCustodyMint: lockedCustodyMint,
-          payCustody: payCustody,
+          custody: custody, // Use the custody that was actually found
+          payCustody: payCustody, // Selected payment custody
           lockedCustody: lockedCustody,
-          custodyOracleAccount: custodyOracleAccount,
-          payCustodyOracleAccount: payCustodyOracleAccount,
+          payCustodyTokenAccount: payCustodyTokenAccount, // Selected token pool account
+          optionDetail: optionDetailAccount, // Use the account that was actually found
+          custodyOracleAccount: custodyOracleAccount, // Use the oracle that matches the found custody
+          payCustodyOracleAccount: payCustodyOracleAccount, // Selected token oracle
+          tokenProgram: TOKEN_PROGRAM_ID,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
         })
         .transaction();
 
@@ -1093,7 +1159,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         signature: signature,
       });
 
-      console.log("Option edited successfully:", signature);
+      console.log(`Option edited successfully with ${selectedPaymentToken}:`, signature);
 
       // Refresh positions after successful transaction
       await refreshPositions();

@@ -22,6 +22,7 @@ interface PositionOverviewProps {
     value: number
     pnl: number
     strikePrice: number
+    entryPrice: number
     purchaseDate?: string
     position?: any
     optionIndex?: number
@@ -34,6 +35,7 @@ export default function PositionOverview({
     value,
     pnl,
     strikePrice,
+    entryPrice,
     position,
     optionIndex
 }: PositionOverviewProps) {
@@ -48,7 +50,7 @@ export default function PositionOverview({
     const [isStrikeLoading, setIsStrikeLoading] = useState(false);
     const [isExpiryLoading, setIsExpiryLoading] = useState(false);
 
-    // Token selection states
+    // Token selection states - Default to USDC for better liquidity
     const [selectedTokenSize, setSelectedTokenSize] = useState("SOL");
     const [selectedTokenStrike, setSelectedTokenStrike] = useState("SOL");
     const [selectedTokenExpiry, setSelectedTokenExpiry] = useState("SOL");
@@ -66,7 +68,7 @@ export default function PositionOverview({
 
     const {
         getPoolUtilization,
-        onEditOption, // Add this from ContractContext
+        onEditOption,
     } = useContext(ContractContext);
     const { priceData: pythPriceData } = usePythPrice("Crypto.SOL/USD");
 
@@ -115,8 +117,8 @@ export default function PositionOverview({
                 return 0;
             }
 
-            // Calculate current option value (total for current size)
-            let currentOptionValue = 0;
+            // Calculate current TOTAL option value (current size * per-unit value)
+            let currentTotalOptionValue = 0;
             try {
                 const currentValuePerUnit = OptionDetailUtils.blackScholesWithBorrowRate(
                     currentPrice,
@@ -127,18 +129,18 @@ export default function PositionOverview({
                     utilization.tokenOwned,
                     isCall
                 );
-                currentOptionValue = currentValuePerUnit * size;
+                currentTotalOptionValue = currentValuePerUnit * size;
             } catch (error) {
                 console.error("Error calculating current option value:", error);
                 // Fallback to intrinsic value
                 const intrinsicValue = isCall ?
                     Math.max(0, currentPrice - strikePrice) :
                     Math.max(0, strikePrice - currentPrice);
-                currentOptionValue = intrinsicValue * size;
+                currentTotalOptionValue = intrinsicValue * size;
             }
 
-            // Calculate new option value
-            let newOptionValue = 0;
+            // Calculate new TOTAL option value (new size * per-unit value)
+            let newTotalOptionValue = 0;
             try {
                 const newValuePerUnit = OptionDetailUtils.blackScholesWithBorrowRate(
                     currentPrice,
@@ -149,18 +151,18 @@ export default function PositionOverview({
                     utilization.tokenOwned,
                     isCall
                 );
-                newOptionValue = newValuePerUnit * calcSize;
+                newTotalOptionValue = newValuePerUnit * calcSize;
             } catch (error) {
                 console.error("Error calculating new option value:", error);
                 // Fallback to intrinsic value
                 const intrinsicValue = isCall ?
                     Math.max(0, currentPrice - calcStrike) :
                     Math.max(0, calcStrike - currentPrice);
-                newOptionValue = intrinsicValue * calcSize;
+                newTotalOptionValue = intrinsicValue * calcSize;
             }
 
             // Calculate difference (positive = user pays more, negative = user gets refund)
-            const difference = newOptionValue - currentOptionValue;
+            const difference = newTotalOptionValue - currentTotalOptionValue;
 
             console.log(`${changeType} calculation:`, {
                 currentPrice,
@@ -168,13 +170,13 @@ export default function PositionOverview({
                 currentStrike: strikePrice,
                 newSize: calcSize,
                 newStrike: calcStrike,
-                currentOptionValue,
-                newOptionValue,
+                currentTotalOptionValue,
+                newTotalOptionValue,
                 difference
             });
 
+            // Convert to display token (SOL or USDC)
             let amount;
-
             switch (changeType) {
                 case 'size':
                     amount = selectedTokenSize === 'SOL' ? difference / currentPrice : difference;
@@ -232,15 +234,26 @@ export default function PositionOverview({
 
         setIsSizeLoading(true);
         try {
-            // onEditOption expects regular token amounts (not wei/micro units)
-            // The function itself will handle the conversion to micro units
+            // Convert amounts to token units based on selected token
+            const amountInTokenUnits = selectedTokenSize === 'SOL' 
+                ? Math.abs(sizePayAmount) * 1_000_000_000  // SOL: 9 decimals
+                : Math.abs(sizePayAmount) * 1_000_000;     // USDC: 6 decimals
+
+            console.log('Size edit transaction details:', {
+                selectedToken: selectedTokenSize,
+                payAmount: sizePayAmount,
+                amountInTokenUnits,
+                newSize: parseFloat(newSize)
+            });
+
             const success = await onEditOption({
                 optionIndex: optionIndex,
                 poolName: "SOL/USDC",
                 newSize: parseFloat(newSize),
-                // Slippage protection: 5% tolerance
-                maxAdditionalPremium: sizePayAmount > 0 ? Math.abs(sizePayAmount) * 1.05 : 0,
-                minRefundAmount: sizePayAmount < 0 ? Math.abs(sizePayAmount) * 0.95 : 0,
+                paymentToken: selectedTokenSize as 'SOL' | 'USDC', // Pass selected token
+                // Slippage protection: 5% tolerance for payments, 15% for refunds
+                maxAdditionalPremium: sizePayAmount > 0 ? amountInTokenUnits * 1.05 : 0,
+                minRefundAmount: sizePayAmount < 0 ? amountInTokenUnits * 0.85 : 0,
             });
 
             if (success) {
@@ -266,15 +279,23 @@ export default function PositionOverview({
 
         setIsStrikeLoading(true);
         try {
-            // Convert amounts to proper scale
+            // Convert amounts to token units based on selected token
             const amountInTokenUnits = selectedTokenStrike === 'SOL' 
-                ? Math.abs(strikePayAmount) * 1_000_000_000
-                : Math.abs(strikePayAmount) * 1_000_000;
+                ? Math.abs(strikePayAmount) * 1_000_000_000  // SOL: 9 decimals
+                : Math.abs(strikePayAmount) * 1_000_000;     // USDC: 6 decimals
+
+            console.log('Strike edit transaction details:', {
+                selectedToken: selectedTokenStrike,
+                payAmount: strikePayAmount,
+                amountInTokenUnits,
+                newStrike: parseFloat(newStrike)
+            });
 
             const success = await onEditOption({
                 optionIndex: optionIndex,
                 poolName: "SOL/USDC",
                 newStrike: parseFloat(newStrike),
+                paymentToken: selectedTokenStrike as 'SOL' | 'USDC', // Pass selected token
                 // Slippage protection: 5% tolerance
                 maxAdditionalPremium: strikePayAmount > 0 ? amountInTokenUnits * 1.05 : 0,
                 minRefundAmount: strikePayAmount < 0 ? amountInTokenUnits * 0.95 : 0,
@@ -303,15 +324,23 @@ export default function PositionOverview({
 
         setIsExpiryLoading(true);
         try {
-            // Convert amounts to proper scale
+            // Convert amounts to token units based on selected token
             const amountInTokenUnits = selectedTokenExpiry === 'SOL' 
-                ? Math.abs(expiryPayAmount) * 1_000_000_000
-                : Math.abs(expiryPayAmount) * 1_000_000;
+                ? Math.abs(expiryPayAmount) * 1_000_000_000  // SOL: 9 decimals
+                : Math.abs(expiryPayAmount) * 1_000_000;     // USDC: 6 decimals
+
+            console.log('Expiry edit transaction details:', {
+                selectedToken: selectedTokenExpiry,
+                payAmount: expiryPayAmount,
+                amountInTokenUnits,
+                newExpiry: Math.floor(newExpiry.getTime() / 1000)
+            });
 
             const success = await onEditOption({
                 optionIndex: optionIndex,
                 poolName: "SOL/USDC",
                 newExpiry: Math.floor(newExpiry.getTime() / 1000), // Convert to Unix timestamp
+                paymentToken: selectedTokenExpiry as 'SOL' | 'USDC', // Pass selected token
                 // Slippage protection: 5% tolerance
                 maxAdditionalPremium: expiryPayAmount > 0 ? amountInTokenUnits * 1.05 : 0,
                 minRefundAmount: expiryPayAmount < 0 ? amountInTokenUnits * 0.95 : 0,
@@ -661,7 +690,7 @@ export default function PositionOverview({
                     <PurchasePriceIcon />
                     <span>Purchase Price:</span>
                 </div>
-                <span>${position?.entryPrice || strikePrice}</span>
+                <span>${entryPrice.toFixed(2)}</span>
             </div>
             <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
                 <div className='flex space-x-2 items-center'>

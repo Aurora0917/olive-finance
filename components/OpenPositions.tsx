@@ -19,7 +19,7 @@ interface OpenPositionProps {
     logo: string
     symbol: string
     strikePrice: number,
-    entryPrice?: number,
+    entryPrice: number,
     currentPrice: number,
     type: string
     expiry: string
@@ -36,7 +36,7 @@ interface OpenPositionProps {
     onExercise: () => void
 }
 
-export default function OpenPositions({ token, logo, symbol, type, expiry, size, pnl, greeks, strikePrice, index, purchaseDate, currentPrice, limitPrice, onExercise }: OpenPositionProps) {
+export default function OpenPositions({ token, logo, symbol, type, expiry, size, pnl, greeks, strikePrice, index, purchaseDate, entryPrice, currentPrice, limitPrice, onExercise }: OpenPositionProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const [activeTab, setActiveTab] = useState<string>('Overview')
 
@@ -146,6 +146,7 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
                                 pnl={pnl}
                                 value={premium * size}
                                 strikePrice={strikePrice}
+                                entryPrice={entryPrice}
                                 purchaseDate={purchaseDate}
                                 optionIndex={index}
                             />

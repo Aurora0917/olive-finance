@@ -5721,153 +5721,27 @@
   "errors": [
     {
       "code": 6000,
-      "name": "MultisigAccountNotAuthorized",
-      "msg": "Account is not authorized to sign this instruction"
+      "name": "InvalidWithdrawError"
     },
     {
       "code": 6001,
-      "name": "MultisigAlreadySigned",
-      "msg": "Account has already signed this instruction"
+      "name": "InvalidPoolBalanceError"
     },
     {
       "code": 6002,
-      "name": "MultisigAlreadyExecuted",
-      "msg": "This instruction has already been executed"
+      "name": "InvalidSignerBalanceError"
     },
     {
       "code": 6003,
-      "name": "MathOverflow",
-      "msg": "Overflow in arithmetic operation"
+      "name": "InvalidCustodyTokenError"
     },
     {
       "code": 6004,
-      "name": "UnsupportedOracle",
-      "msg": "Unsupported price oracle"
+      "name": "InvalidPoolState"
     },
     {
       "code": 6005,
-      "name": "InvalidOracleAccount",
-      "msg": "Invalid oracle account"
-    },
-    {
-      "code": 6006,
-      "name": "InvalidOracleState",
-      "msg": "Invalid oracle state"
-    },
-    {
-      "code": 6007,
-      "name": "StaleOraclePrice",
-      "msg": "Stale oracle price"
-    },
-    {
-      "code": 6008,
-      "name": "InvalidOraclePrice",
-      "msg": "Invalid oracle price"
-    },
-    {
-      "code": 6009,
-      "name": "InvalidEnvironment",
-      "msg": "Instruction is not allowed in production"
-    },
-    {
-      "code": 6010,
-      "name": "InvalidPoolState",
-      "msg": "Invalid pool state"
-    },
-    {
-      "code": 6011,
-      "name": "InvalidCustodyState",
-      "msg": "Invalid custody state"
-    },
-    {
-      "code": 6012,
-      "name": "InvalidCollateralCustody",
-      "msg": "Invalid collateral custody"
-    },
-    {
-      "code": 6013,
-      "name": "InvalidPositionState",
-      "msg": "Invalid position state"
-    },
-    {
-      "code": 6014,
-      "name": "InvalidPerpetualsConfig",
-      "msg": "Invalid perpetuals config"
-    },
-    {
-      "code": 6015,
-      "name": "InvalidPoolConfig",
-      "msg": "Invalid pool config"
-    },
-    {
-      "code": 6016,
-      "name": "InvalidCustodyConfig",
-      "msg": "Invalid custody config"
-    },
-    {
-      "code": 6017,
-      "name": "InsufficientAmountReturned",
-      "msg": "Insufficient token amount returned"
-    },
-    {
-      "code": 6018,
-      "name": "MaxPriceSlippage",
-      "msg": "Price slippage limit exceeded"
-    },
-    {
-      "code": 6019,
-      "name": "MaxLeverage",
-      "msg": "Position leverage limit exceeded"
-    },
-    {
-      "code": 6020,
-      "name": "CustodyAmountLimit",
-      "msg": "Custody amount limit exceeded"
-    },
-    {
-      "code": 6021,
-      "name": "PositionAmountLimit",
-      "msg": "Position amount limit exceeded"
-    },
-    {
-      "code": 6022,
-      "name": "TokenRatioOutOfRange",
-      "msg": "Token ratio out of range"
-    },
-    {
-      "code": 6023,
-      "name": "UnsupportedToken",
-      "msg": "Token is not supported"
-    },
-    {
-      "code": 6024,
-      "name": "InstructionNotAllowed",
-      "msg": "Instruction is not allowed at this time"
-    },
-    {
-      "code": 6025,
-      "name": "MaxUtilization",
-      "msg": "Token utilization limit exceeded"
-    },
-    {
-      "code": 6026,
-      "name": "PermissionlessOracleMissingSignature",
-      "msg": "Permissionless oracle update must be preceded by Ed25519 signature verification instruction"
-    },
-    {
-      "code": 6027,
-      "name": "PermissionlessOracleMalformedEd25519Data",
-      "msg": "Ed25519 signature verification data does not match expected format"
-    },
-    {
-      "code": 6028,
-      "name": "PermissionlessOracleSignerMismatch",
-      "msg": "Ed25519 signature was not signed by the oracle authority"
-    },
-    {
-      "code": 6029,
-      "name": "PermissionlessOracleMessageMismatch",
-      "msg": "Signed message does not match instruction params"
+      "name": "InvalidCustodyState"
     }
   ],
   "types": [
@@ -6140,6 +6014,12 @@
             "name": "new_expiry",
             "type": {
               "option": "i64"
+            }
+          },
+          {
+            "name": "new_size",
+            "type": {
+              "option": "f64"
             }
           },
           {

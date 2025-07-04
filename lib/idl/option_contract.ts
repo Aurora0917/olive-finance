@@ -5727,153 +5727,27 @@ export type OptionContract = {
   "errors": [
     {
       "code": 6000,
-      "name": "multisigAccountNotAuthorized",
-      "msg": "Account is not authorized to sign this instruction"
+      "name": "invalidWithdrawError"
     },
     {
       "code": 6001,
-      "name": "multisigAlreadySigned",
-      "msg": "Account has already signed this instruction"
+      "name": "invalidPoolBalanceError"
     },
     {
       "code": 6002,
-      "name": "multisigAlreadyExecuted",
-      "msg": "This instruction has already been executed"
+      "name": "invalidSignerBalanceError"
     },
     {
       "code": 6003,
-      "name": "mathOverflow",
-      "msg": "Overflow in arithmetic operation"
+      "name": "invalidCustodyTokenError"
     },
     {
       "code": 6004,
-      "name": "unsupportedOracle",
-      "msg": "Unsupported price oracle"
+      "name": "invalidPoolState"
     },
     {
       "code": 6005,
-      "name": "invalidOracleAccount",
-      "msg": "Invalid oracle account"
-    },
-    {
-      "code": 6006,
-      "name": "invalidOracleState",
-      "msg": "Invalid oracle state"
-    },
-    {
-      "code": 6007,
-      "name": "staleOraclePrice",
-      "msg": "Stale oracle price"
-    },
-    {
-      "code": 6008,
-      "name": "invalidOraclePrice",
-      "msg": "Invalid oracle price"
-    },
-    {
-      "code": 6009,
-      "name": "invalidEnvironment",
-      "msg": "Instruction is not allowed in production"
-    },
-    {
-      "code": 6010,
-      "name": "invalidPoolState",
-      "msg": "Invalid pool state"
-    },
-    {
-      "code": 6011,
-      "name": "invalidCustodyState",
-      "msg": "Invalid custody state"
-    },
-    {
-      "code": 6012,
-      "name": "invalidCollateralCustody",
-      "msg": "Invalid collateral custody"
-    },
-    {
-      "code": 6013,
-      "name": "invalidPositionState",
-      "msg": "Invalid position state"
-    },
-    {
-      "code": 6014,
-      "name": "invalidPerpetualsConfig",
-      "msg": "Invalid perpetuals config"
-    },
-    {
-      "code": 6015,
-      "name": "invalidPoolConfig",
-      "msg": "Invalid pool config"
-    },
-    {
-      "code": 6016,
-      "name": "invalidCustodyConfig",
-      "msg": "Invalid custody config"
-    },
-    {
-      "code": 6017,
-      "name": "insufficientAmountReturned",
-      "msg": "Insufficient token amount returned"
-    },
-    {
-      "code": 6018,
-      "name": "maxPriceSlippage",
-      "msg": "Price slippage limit exceeded"
-    },
-    {
-      "code": 6019,
-      "name": "maxLeverage",
-      "msg": "Position leverage limit exceeded"
-    },
-    {
-      "code": 6020,
-      "name": "custodyAmountLimit",
-      "msg": "Custody amount limit exceeded"
-    },
-    {
-      "code": 6021,
-      "name": "positionAmountLimit",
-      "msg": "Position amount limit exceeded"
-    },
-    {
-      "code": 6022,
-      "name": "tokenRatioOutOfRange",
-      "msg": "Token ratio out of range"
-    },
-    {
-      "code": 6023,
-      "name": "unsupportedToken",
-      "msg": "Token is not supported"
-    },
-    {
-      "code": 6024,
-      "name": "instructionNotAllowed",
-      "msg": "Instruction is not allowed at this time"
-    },
-    {
-      "code": 6025,
-      "name": "maxUtilization",
-      "msg": "Token utilization limit exceeded"
-    },
-    {
-      "code": 6026,
-      "name": "permissionlessOracleMissingSignature",
-      "msg": "Permissionless oracle update must be preceded by Ed25519 signature verification instruction"
-    },
-    {
-      "code": 6027,
-      "name": "permissionlessOracleMalformedEd25519Data",
-      "msg": "Ed25519 signature verification data does not match expected format"
-    },
-    {
-      "code": 6028,
-      "name": "permissionlessOracleSignerMismatch",
-      "msg": "Ed25519 signature was not signed by the oracle authority"
-    },
-    {
-      "code": 6029,
-      "name": "permissionlessOracleMessageMismatch",
-      "msg": "Signed message does not match instruction params"
+      "name": "invalidCustodyState"
     }
   ],
   "types": [
@@ -6146,6 +6020,12 @@ export type OptionContract = {
             "name": "newExpiry",
             "type": {
               "option": "i64"
+            }
+          },
+          {
+            "name": "newSize",
+            "type": {
+              "option": "f64"
             }
           },
           {
