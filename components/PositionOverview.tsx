@@ -298,7 +298,7 @@ export default function PositionOverview({
                 paymentToken: selectedTokenStrike as 'SOL' | 'USDC', // Pass selected token
                 // Slippage protection: 5% tolerance
                 maxAdditionalPremium: strikePayAmount > 0 ? amountInTokenUnits * 1.05 : 0,
-                minRefundAmount: strikePayAmount < 0 ? amountInTokenUnits * 0.95 : 0,
+                minRefundAmount: strikePayAmount < 0 ? amountInTokenUnits * 0.85 : 0,
             });
 
             if (success) {
@@ -343,7 +343,7 @@ export default function PositionOverview({
                 paymentToken: selectedTokenExpiry as 'SOL' | 'USDC', // Pass selected token
                 // Slippage protection: 5% tolerance
                 maxAdditionalPremium: expiryPayAmount > 0 ? amountInTokenUnits * 1.05 : 0,
-                minRefundAmount: expiryPayAmount < 0 ? amountInTokenUnits * 0.95 : 0,
+                minRefundAmount: expiryPayAmount < 0 ? amountInTokenUnits * 0.85 : 0,
             });
 
             if (success) {
