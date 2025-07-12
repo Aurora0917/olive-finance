@@ -106,9 +106,7 @@ export function usePyth24hChange(token : string) : PriceChangeState{
 
         const nowData = await nowRes.json();
         const pastData = await pastRes.json();
-
-        console.log('now',nowData);
-        console.log('past',pastData);
+        
         const currentPrice = parseFloat(nowData.parsed[0].price.price);
         const pastPrice = parseFloat(pastData.parsed[0].price.price);
         const change = currentPrice - pastPrice;
@@ -153,8 +151,12 @@ export const getPythPrice = async (token: string, timestamp: number) => {
   const priceFeed = PRICE_FEEDS.find((feed) => feed.token === token);
   const globalConnection = new HermesClient(PYTH_ENDPOINT);
   if (!priceFeed) return 0;
-  const priceData = await globalConnection.getPriceUpdatesAtTimestamp(
-    Math.round(timestamp / 1000),
+  // const priceData = await globalConnection.getPriceUpdatesAtTimestamp(
+  //   Math.round(timestamp / 1000),
+  //   [priceFeed.id],
+  //   { parsed: true, ignoreInvalidPriceIds: true }
+  // );
+  const priceData = await globalConnection.getLatestPriceUpdates(
     [priceFeed.id],
     { parsed: true, ignoreInvalidPriceIds: true }
   );

@@ -3,12 +3,14 @@
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./ui/button";
 import Image from "next/image";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useRef, useState } from "react";
 import TradingViewTopNav from "./TradingViewTopNav";
 import { usePythMarketData } from "@/hooks/usePythMarketData";
 import { usePyth24hChange, usePythPrice, type PythPriceState } from "@/hooks/usePythPrice";
 import type { MarketDataState } from "@/hooks/usePythMarketData";
 import { tokenList, Token } from "@/lib/data/tokenlist";
+
+import { ContractContext } from "@/contexts/contractProvider";
 
 
 const cryptoData: Token[] = tokenList
@@ -103,6 +105,7 @@ export default function CryptoNav({
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
     const [marketChanges, setMarketChanges] = useState<MarketChanges>({});
+    const { poolData, volumeData } = useContext(ContractContext);
 
     const handleMarketChange = React.useCallback((symbol: string, change: number | null) => {
         setMarketChanges(prev => ({
@@ -241,6 +244,8 @@ export default function CryptoNav({
                 pythSymbol={cryptoData[active].pythSymbol} 
                 logo={cryptoData[active].iconPath}
                 tokens={cryptoData}
+                poolData={poolData}
+                volumeData={volumeData}
                 marketChanges={marketChanges}
                 onTokenSelect={handleTokenSelect}
                 priceData={priceData}

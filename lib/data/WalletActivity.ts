@@ -9,6 +9,7 @@ export interface Transaction{
     optionType: string
     expiry: string
     strikePrice: number
+    timestamp?: number
 }
 
 export interface FuturesTransaction{
@@ -25,7 +26,7 @@ export interface FuturePos{
     token: Token;
     symbol: string;
     futureType: 'perps' | 'dated';
-    position: 'long' | 'short';
+    position: "long" | "short";
     entryPrice: number;
     LiqPrice: number;
     size: number;
@@ -34,6 +35,9 @@ export interface FuturePos{
     logo: string;
     leverage: number;
     purchaseDate: string;
+    unrealizedPnl?: number;
+    marginRatio?: number;
+    accountAddress?: string;
 }
 
 export const formatDate = (date: Date): string => {
@@ -87,7 +91,7 @@ export const futuresTx : FuturesTransaction[] = tokenList.map((token) => {
     const formattedPurchase = format(new Date(purchaseDate), 'dd MMM, yyyy HH:mm:ss')
     const leverage = randomLeverage()
     const futureType = Math.random() > 0.5 ? 'Perps' : 'Dated'
-    const transactionType = Math.random() > 0.5 ? 'Long' : 'Short'
+    const transactionType = Math.random() > 0.5 ? "long" : "short"
 
     return {
         transactionID: `${token.symbol}-${futureType === 'Dated' ? formatDate(expiryDate) + '-' : ''}${transactionType.toUpperCase()}-${leverage + 'X'}`,
@@ -102,15 +106,15 @@ export const futuresTx : FuturesTransaction[] = tokenList.map((token) => {
 
 export const futurePos : FuturePos[] = tokenList.map((token) => {
     const futureType = Math.random() < 0.5 ? 'perps' : 'dated';
-    const position = Math.random() < 0.5 ? 'long' : 'short';
+    const position = Math.random() < 0.5 ? "long" : "short";
     const entryPrice = parseFloat((Math.random() * 10000 + 1).toFixed(2));
     const priceDelta = entryPrice * (Math.random() * 0.1 + 0.02);
-    const LiqPrice = position === 'long' 
+    const LiqPrice = position === "long" 
         ? parseFloat((entryPrice - priceDelta).toFixed(2))
         : parseFloat((entryPrice + priceDelta).toFixed(2));
     const size = parseFloat((Math.random() * 1000 + 1).toFixed(2));
     const collateral = parseFloat((entryPrice * size / (Math.random() * 10 + 1)).toFixed(2));
-    const TPSL = position === 'long'
+    const TPSL = position === "long"
         ? parseFloat((entryPrice + priceDelta * 2).toFixed(2))
         : parseFloat((entryPrice - priceDelta * 2).toFixed(2));
     const leverage = parseFloat((Math.random() * 50 + 1).toFixed(1));

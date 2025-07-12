@@ -47,6 +47,8 @@ import PoolDropdown from "./PoolDropDown";
 import { ExternalLink } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { TooltipIcon } from "@/public/svgs/icons";
+import { getMint } from "@solana/spl-token";
+import { OptionDetailUtils } from "@/utils/optionsPricing";
 
 interface EarnSidebarProps {
   name: string;
@@ -63,55 +65,37 @@ export default function EarnSidebar({
   apy,
   apr,
 }: EarnSidebarProps) {
-  const poolData = (
+  const poolData = async (
     pooldata: Map<string, any>,
     ratioData: Map<string, any>,
     price: number
   ) => {
     const solCustodyData = pooldata.get(WSOL_MINT.toBase58());
     const usdcCustodyData = pooldata.get(USDC_MINT.toBase58());
-    const solPoolsize =
-      solCustodyData.tokenOwned.toNumber() / 10 ** WSOL_DECIMALS;
-    const usdcPoolsize =
-      usdcCustodyData.tokenOwned.toNumber() / 10 ** USDC_DECIMALS;
+    const solPoolsize = solCustodyData.tokenOwned.toNumber() / 10 ** WSOL_DECIMALS;
+    const usdcPoolsize = usdcCustodyData.tokenOwned.toNumber() / 10 ** USDC_DECIMALS;
     const total = solPoolsize * price + usdcPoolsize;
+
     return [
       {
         img: logo,
         symbol: symbol,
         name: name,
-        poolSize: `${solPoolsize} ${symbol}`,
-        current_weightage: `${Math.round(
-          ((solPoolsize * price) / total) * 100
-        )}%`,
-        target_weightage: `${ratioData
-          .get(WSOL_MINT.toBase58())
-          .target.toNumber()}%`,
-        utilization: `${
-          Math.round(
-            (solCustodyData.tokenLocked.toNumber() /
-              solCustodyData.tokenOwned.toNumber()) *
-              100
-          ) ?? 0
-        }%`,
+        poolSize: solPoolsize.toFixed(4),
+        current_weightage: `${Math.round(((solPoolsize * price) / total) * 100)}%`,
+        target_weightage: `${ratioData.get(WSOL_MINT.toBase58()).target.toNumber()}%`,
+        interest_rate: OptionDetailUtils.getSolBorrowRate(solCustodyData.tokenLocked.toNumber(), solCustodyData.tokenOwned.toNumber()),
+        utilization: `${Math.round((solCustodyData.tokenLocked.toNumber() / solCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
       {
         img: usdc,
         symbol: "USDC",
         name: "USD Coin",
-        poolSize: `${usdcPoolsize} USDC`,
-        current_weightage: `${
-          100 - Math.round(((solPoolsize * price) / total) * 100)
-        }%`,
-        target_weightage: `${ratioData
-          .get(USDC_MINT.toBase58())
-          .target.toNumber()}%`,
-        utilization: `${
-          Math.round(
-            usdcCustodyData.tokenLocked.toNumber() /
-              usdcCustodyData.tokenOwned.toNumber()
-          ) ?? 0
-        }%`,
+        poolSize: usdcPoolsize.toFixed(4),
+        current_weightage: `${100 - Math.round(((solPoolsize * price) / total) * 100)}%`,
+        target_weightage: `${ratioData.get(USDC_MINT.toBase58()).target.toNumber()}%`,
+        interest_rate: OptionDetailUtils.getUsdcBorrowRate(usdcCustodyData.tokenLocked.toNumber(), usdcCustodyData.tokenOwned.toNumber()),
+        utilization: `${Math.round((usdcCustodyData.tokenLocked.toNumber() / usdcCustodyData.tokenOwned.toNumber()) * 100) ?? 0}%`,
       },
     ];
   };
@@ -127,6 +111,13 @@ export default function EarnSidebar({
   const [program, setProgram] = useState<Program<OptionContract>>();
   const [loading, setLoading] = useState(false);
   const router = useRouter()
+  const [poolFees, setPoolFees] = useState<{
+    ratioMultiplier: string;
+    addLiquidityFee: string;
+    removeLiquidityFee: string;
+  } | null>(null);
+  const [lpPrice, setLpPrice] = useState<string>("0.00");
+  const [isComponentMounted, setIsComponentMounted] = useState(true);
 
   const handleOpenChange = (open: boolean) => {
     setIsOpen(open);
@@ -139,7 +130,10 @@ export default function EarnSidebar({
     setIsOpen(false);
   };
   useEffect(() => {
-    (async () => {
+    setIsComponentMounted(true);
+    let isMounted = true;
+
+    const initializeData = async () => {
       let provider: Provider;
       if (wallet && connected) {
         try {
@@ -152,13 +146,51 @@ export default function EarnSidebar({
           idl as OptionContract,
           provider
         );
+
+        if (!isMounted) return;
+
         setProgram(program);
+
         const price = await getPythPrice("Crypto.SOL/USD", Date.now());
+        if (!isMounted) return;
+
         const [data, ratios] = await sc?.getCustodies(program);
-        setPoolDatas(poolData(data, ratios, price));
+        if (!isMounted) return;
+
+        setPoolDatas(await poolData(data, ratios, price));
       }
-    })();
+    };
+
+    initializeData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [connected]);
+
+  useEffect(() => {
+    let isMounted = true;
+  
+    const fetchPoolFees = async () => {
+      if (sc && sc.getPoolFees) {
+        const fees = await sc.getPoolFees();
+        console.log('Raw fees from contract:', fees);
+        if (fees) {
+          console.log('Add Liquidity Fee:', convertBasisPointsToPercentage(fees.addLiquidityFee) + '%');
+          console.log('Remove Liquidity Fee:', convertBasisPointsToPercentage(fees.removeLiquidityFee) + '%');
+        }
+        if (isMounted) {
+          setPoolFees(fees);
+        }
+      }
+    };
+  
+    fetchPoolFees();
+  
+    return () => {
+      isMounted = false;
+    };
+  }, [sc?.program, connected, publicKey]);
 
   const onSubmit = () => {
     if (connected) {
@@ -202,10 +234,90 @@ export default function EarnSidebar({
     }, 500);
   };
 
-  setTimeout(() => {
+  useEffect(() => {
+    const timer = setTimeout(() => {
       setLoading(!loading);
-  }, 2000);
+    }, 2000);
 
+    return () => clearTimeout(timer);
+  }, []);
+
+  const calculateLPPrice = async () => {
+    if (!program || !poolDatas || !isComponentMounted) return "0.00";
+
+    try {
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      const [lpTokenMint] = PublicKey.findProgramAddressSync(
+        [Buffer.from("lp_token_mint"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      const poolData = await program.account.pool.fetch(pool);
+      const lpMintData = await getMint(connection, lpTokenMint);
+
+      if (!isComponentMounted) return "0.00";
+
+      const solPrice = await getPythPrice("Crypto.SOL/USD", Date.now());
+
+      if (!isComponentMounted) return "0.00";
+
+      const solValue = poolDatas[0].poolSize * solPrice;
+      const usdcValue = parseFloat(poolDatas[1].poolSize);
+      const totalValueUSD = solValue + usdcValue;
+
+      const lpSupply = Number(lpMintData.supply) / (10 ** LP_DECIMALS);
+      const price = totalValueUSD / lpSupply;
+
+      return price.toFixed(2);
+    } catch (error) {
+      if (isComponentMounted) {
+        console.error("Error calculating LP price:", error);
+      }
+      return "0.00";
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const updateLPPrice = async () => {
+      if (poolDatas && program) {
+        const price = await calculateLPPrice();
+        if (isMounted) {
+          setLpPrice(price);
+        }
+      }
+    };
+
+    updateLPPrice();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [poolDatas, program]);
+
+  const formatLPSupply = () => {
+    if (!poolDatas) return "...";
+    try {
+      const supply = parseFloat(poolDatas[0].poolSize);
+      return new Intl.NumberFormat('en-US', {
+        maximumFractionDigits: 2
+      }).format(supply);
+    } catch (error) {
+      console.error("Error formatting LP supply:", error);
+      return "...";
+    }
+  };
+
+  const convertBasisPointsToPercentage = (basisPoints: string) => {
+    if (!basisPoints) return "0.00";
+    // 1 basis point = 0.01%, so divide by 100 to get percentage
+    return (Number(basisPoints) / 100).toFixed(2);
+  };
 
   return (
     <SheetContent className="space-y-6 w-full md:w-[720px] rounded-sm bg-accent overflow-y-auto">
@@ -336,6 +448,9 @@ export default function EarnSidebar({
                   <TableHead className="px-3 py-4 text-secondary-foreground font-medium whitespace-nowrap">
                     Target Weightage
                   </TableHead>
+                  <TableHead className="px-3 py-4 text-secondary-foreground font-medium whitespace-nowrap">
+                    Interest Rate
+                  </TableHead>
                   <TableHead className="px-3 py-4 text-secondary-foreground font-medium">
                     Utilization
                   </TableHead>
@@ -381,7 +496,7 @@ export default function EarnSidebar({
                         {row.target_weightage}
                       </TableCell>
                       <TableCell className="text-xs text-foreground text-center">
-                        XXX %
+                        {row.interest_rate} %
                       </TableCell>
                       <TableCell className="text-xs text-foreground text-center">
                         {row.utilization}
@@ -391,13 +506,29 @@ export default function EarnSidebar({
               </TableBody>
             </Table>
             <div className="border-t pt-3">
-              <div className="flex flex-col">
+              <div className="flex flex-col space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-xs text-secondary-foreground font-normal">
+                    Add Liquidity Fee
+                  </span>
+                  <span className="text-xs text-foreground font-medium">
+                    {poolFees ? `${convertBasisPointsToPercentage(poolFees.addLiquidityFee)}%` : '...'}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-xs text-secondary-foreground font-normal">
+                    Remove Liquidity Fee
+                  </span>
+                  <span className="text-xs text-foreground font-medium">
+                    {poolFees ? `${convertBasisPointsToPercentage(poolFees.removeLiquidityFee)}%` : '...'}
+                  </span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-xs text-secondary-foreground font-normal">
                     {symbol}LP Price
                   </span>
                   <span className="text-xs text-foreground font-medium">
-                    $4,228
+                    ${lpPrice}
                   </span>
                 </div>
                 <div className="flex justify-between">
@@ -405,7 +536,7 @@ export default function EarnSidebar({
                     Total Supply
                   </span>
                   <span className="text-xs text-foreground font-medium">
-                    375 157 373,224 {symbol}LP
+                    {formatLPSupply()} {symbol}LP
                   </span>
                 </div>
               </div>

@@ -22,12 +22,13 @@ export default function Homepage(){
     const [active ,setActive] = useState('chart')
     const [tokenIdx, setTokenIdx] = useState(0)
     const [selectedSymbol, setSelectedSymbol] = useState<string>('Crypto.SOL/USD')
-    const [positionType, setPositionType] = useState<string>('long')
+    const [positionType, setPositionType] = useState<string>('Long')
     const [contractType, setContractType] = useState<'Call' | 'Put'>('Call')
     const [currency, setCurrency] = useState(selectedSymbol)
     const [selectedLogo, setSelectedLogo] = useState<string>('/images/solana.png')
     const { priceData, loading: priceLoading } = usePythPrice(selectedSymbol);
     const { marketData, loading: marketLoading } = usePythMarketData(selectedSymbol);
+    const [ limitPrice, setLimitPrice ] = useState<number>(0);
     const [payAmount, setPayAmount] = useState('')
     const [strikePrice, setStrikePrice] = useState('')
     const [expiry , setExpiry] = useState<Date>(addWeeks(new Date(), 1))
@@ -52,7 +53,9 @@ export default function Homepage(){
         type: contractType,
         currentPrice: s,
         strikePrice: k,
-        expiryDate: expiry
+        expiryDate: expiry,
+        useEnhancedPricing: true,
+        assetType: contractType == 'Call' ? 'SOL' : 'USDC',
     })
 
     const greeks = useGreeks({
@@ -108,6 +111,8 @@ export default function Homepage(){
                       onContractTypeChange={setContractType}
                       onCurrencyChange={setCurrency}
                       priceData={priceData}
+                      onLimitPriceChange={setLimitPrice}
+                      premium={premium.premium}
                       marketData={marketData}
                       priceLoading={priceLoading}
                       marketLoading={marketLoading}

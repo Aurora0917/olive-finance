@@ -1,6 +1,7 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
+import Image from "next/image";
 import {
   ArrowUpRight,
   ArrowDownRight,
@@ -8,127 +9,122 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { format, setDefaultOptions } from "date-fns";
+import { format } from "date-fns";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
-import {
-  AnchorProvider,
-  getProvider,
-  Program,
-  Provider,
-} from "@coral-xyz/anchor";
-import { connection, WSOL_MINT } from "@/utils/const";
-import { OptionContract } from "@/lib/idl/option_contract";
-import * as idl from "../lib/idl/option_contract.json";
 import { ContractContext } from "@/contexts/contractProvider";
-import { PublicKey } from "@solana/web3.js";
+import { Position } from "@/lib/data/Positions";
 
-interface Option {
-  id: number;
-  type: "Call" | "Put";
-  strikePrice: number;
-  expiration: Date;
-  size: number;
-  purchaseDate: Date;
-  status: "Active" | "Expired" | "Exercised" | string;
-}
+// Type guard to check if value is a BigNumber-like object
+const isBigNumber = (value: any): value is { toNumber: () => number } => {
+  return value && typeof value === 'object' && typeof value.toNumber === 'function';
+};
+
+// Helper function to safely convert BigNumber or number to JavaScript number
+const toNumber = (value: any): number => {
+  if (isBigNumber(value)) {
+    return value.toNumber();
+  }
+  if (typeof value === 'number') {
+    return value;
+  }
+  if (typeof value === 'string') {
+    return parseFloat(value);
+  }
+  return 0;
+};
 
 export default function SellCard() {
   const { connected } = useWallet();
   const wallet = useAnchorWallet();
-  const [selectedOption, setSelectedOption] = useState<Option | null>(null);
-  const sc = useContext(ContractContext);
-  // Simulated options data
-  const [options, setOptions] = useState<Option[]>([]);
+  const [selectedOption, setSelectedOption] = useState<Position | null>(null);
+  const [closeQuantity, setCloseQuantity] = useState<string>("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { positions, onCloseOption, onCloseLimitOption } = useContext(ContractContext);
 
-  const formatPrice = (price: string) => {
-    const num = parseFloat(price);
+  // Reset close quantity when option changes
+  useEffect(() => {
+    if (selectedOption) {
+      const quantity = toNumber(selectedOption.quantity);
+      console.log(selectedOption);
+      setCloseQuantity(quantity.toString());
+    }
+  }, [selectedOption]);
+
+  const formatPrice = (price: any): string => {
+    const num = toNumber(price);
     return `$${num.toLocaleString()}`;
   };
 
-  const getStatusColor = (status: Option["status"]) => {
-    switch (status) {
-      case "Active":
-        return "text-emerald-500";
-      case "Expired":
-        return "text-red-500";
-      case "Exercised":
-        return "text-blue-500";
-      default:
-        return "text-red-400";
+  const validateCloseQuantity = (): { isValid: boolean; error?: string } => {
+    if (!selectedOption) return { isValid: false, error: "No option selected" };
+
+    const quantity = parseFloat(closeQuantity);
+    const maxQuantity = toNumber(selectedOption.quantity);
+
+    if (isNaN(quantity) || quantity <= 0) {
+      return { isValid: false, error: "Quantity must be a positive number" };
+    }
+
+    if (quantity > maxQuantity) {
+      return { isValid: false, error: `Cannot close more than ${maxQuantity} calls` };
+    }
+
+    if (!Number.isInteger(quantity)) {
+      return { isValid: false, error: "Quantity must be a whole number" };
+    }
+
+    return { isValid: true };
+  };
+
+  const onSellOptionHandler = async (): Promise<void> => {
+    if (!selectedOption) return;
+
+    const validation = validateCloseQuantity();
+    if (!validation.isValid) {
+      alert(validation.error);
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      console.log("Closing option:", selectedOption.index, "Quantity:", closeQuantity);
+      let success;
+      if (selectedOption.limitPrice === 0) {
+        success = await onCloseOption(selectedOption.index, parseInt(closeQuantity));
+      } else {
+        success = await onCloseLimitOption(selectedOption.index, parseInt(closeQuantity));
+      }
+
+      if (success) {
+        // Reset to list view after successful close
+        setSelectedOption(null);
+        setCloseQuantity("");
+      }
+    } catch (error) {
+      console.error("Error closing option:", error);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const onSellOptionHandler = async () => {
-    console.log(1)
+  const handleQuantityChange = (value: string): void => {
+    // Only allow numbers
+    const sanitized = value.replace(/[^0-9]/g, '');
+    setCloseQuantity(sanitized);
+  };
+
+  const setMaxQuantity = (): void => {
     if (selectedOption) {
-    console.log(2, selectedOption)
-
-      await sc.onCloseOption(selectedOption.id);
+      const maxQuantity = toNumber(selectedOption.quantity);
+      setCloseQuantity(maxQuantity.toString());
     }
-  }
+  };
 
-  useEffect(() => {
-    (async () => {
-      let provider: Provider;
-      if (wallet && connected) {
-        try {
-          provider = getProvider();
-        } catch {
-          provider = new AnchorProvider(connection, wallet, {});
-        }
-
-        const program = new Program<OptionContract>(
-          idl as OptionContract,
-          provider
-        );
-        const [pool] = PublicKey.findProgramAddressSync(
-          [Buffer.from("pool"), Buffer.from("SOL-USDC")],
-          program.programId
-        );
-        const [custody] = PublicKey.findProgramAddressSync(
-          [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
-          program.programId
-        );
-        const [userPDA] = PublicKey.findProgramAddressSync(
-          [Buffer.from("user"), wallet.publicKey.toBuffer()],
-          program.programId
-        );
-        const userData = await program.account.User
-          .fetch(userPDA)
-          .catch((e) => null);
-        if (!userData) return [];
-        const optionDatas: Option[] = [];
-        for (let i = 1; i <= userData.option_index.toNumber(); i++) {
-          const optionDetailAccount = sc.getOptionDetailAccount(
-            i,
-            pool,
-            custody
-          );
-          const optionData = await program.account.OptionDetail.fetch(
-            optionDetailAccount
-          );
-          const lockedAssetData = await program.account.Custody.fetch(optionData.locked_asset);
-          console.log("premium", i, optionData.premium.toNumber())
-          optionDatas.push({
-            id: optionData.index.toNumber(),
-            type: optionData.locked_asset.equals(custody) ? "Call" : "Put",
-            strikePrice: optionData.strike_price,
-            size: optionData.amount.toNumber() / (10 ** lockedAssetData.decimals),
-            status: optionData.valid ? "Active" : "Invalid",
-            expiration: new Date(optionData.expired_date.toNumber() * 1000),
-            purchaseDate: new Date(
-              (optionData.expired_date.toNumber() -
-                optionData.period * 3600 * 24) *
-                1000
-            ),
-          });
-        }
-        setOptions(optionDatas);
-      }
-    })();
-  }, [connected]);
+  const validation = validateCloseQuantity();
+  const currentQuantity = selectedOption ? toNumber(selectedOption.quantity) : 0;
+  const isPartialClose = selectedOption && parseFloat(closeQuantity) < currentQuantity;
 
   return selectedOption ? (
     <div className="w-full flex flex-col flex-grow bg-card rounded-sm rounded-t-none p-6 space-y-5 border border-t-0">
@@ -143,12 +139,13 @@ export default function SellCard() {
           >
             <ArrowLeft className="w-4 h-4" />
           </Button>
-          <div className="bg-blue-500 rounded-full w-6 h-6 flex items-center justify-center text-white">
-            W
-          </div>
-          <span className="font-semibold">WETH</span>
+
+          <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
+          <span className="font-semibold">{selectedOption.symbol}</span>
           <span className="text-sm text-secondary-foreground">
-            {format(selectedOption.purchaseDate, "dd MMM yyyy")}
+            {selectedOption.purchaseDate
+              ? format(selectedOption.purchaseDate, "dd MMM yyyy")
+              : "No Date Available"}
           </span>
         </div>
       </div>
@@ -156,11 +153,10 @@ export default function SellCard() {
       {/* Trading Direction and Status */}
       <div className="flex items-center space-x-3">
         <div
-          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md border ${
-            selectedOption.type === "Call"
-              ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
-              : "border-red-500 bg-red-500/10 text-red-500"
-          }`}
+          className={`flex-1 flex items-center justify-center px-4 py-2 rounded-md border ${selectedOption.type === "Call"
+            ? "border-emerald-500 bg-emerald-500/10 text-emerald-500"
+            : "border-red-500 bg-red-500/10 text-red-500"
+            }`}
         >
           {selectedOption.type === "Call" ? (
             <>
@@ -175,11 +171,9 @@ export default function SellCard() {
           )}
         </div>
         <div
-          className={`px-4 py-2 rounded-md bg-secondary ${getStatusColor(
-            selectedOption.status
-          )}`}
+          className={`px-4 py-2 rounded-md bg-secondary ${(selectedOption.limitPrice != 0 && !selectedOption.executed)? 'text-red-500' : 'text-emerald-500'}`}
         >
-          {selectedOption.status}
+          {selectedOption.limitPrice != 0 && selectedOption.executed == false ? 'Not Executed' : 'Active'}
         </div>
       </div>
 
@@ -190,7 +184,7 @@ export default function SellCard() {
         </label>
         <div className="grid grid-cols-1 gap-2">
           <div className="w-full flex items-center px-4 py-2 rounded-sm bg-backgroundSecondary text-primary">
-            {formatPrice(`${selectedOption.strikePrice}`)}
+            {formatPrice(selectedOption.strikePrice)}
           </div>
         </div>
       </div>
@@ -200,37 +194,78 @@ export default function SellCard() {
         <label className="text-secondary-foreground text-sm">Expiration</label>
         <div className="grid grid-cols-1 gap-2">
           <div className="w-full flex items-center px-4 py-2 rounded-sm bg-backgroundSecondary text-primary">
-            {format(selectedOption.expiration, "dd MMM yyyy")}
+            {format(selectedOption.expiry, "dd MMM yyyy")}
           </div>
         </div>
       </div>
 
-      {/* Option Size */}
+      {/* Total Position Size */}
       <div className="space-y-2">
-        <label className="text-secondary-foreground text-sm">Option Size</label>
+        <label className="text-secondary-foreground text-sm">Total Position</label>
         <div className="relative">
           <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
-            <div className="bg-blue-500 rounded-full w-5 h-5 flex items-center justify-center text-xs text-white">
-              W
-            </div>
+            <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
+          </div>
+          <div className="pl-12 py-2 pr-2 border border-border rounded-sm bg-backgroundSecondary text-foreground flex items-center">
+            {currentQuantity} Contracts
+          </div>
+        </div>
+      </div>
+
+      {/* Close Quantity */}
+      <div className="space-y-2">
+        <div className="flex items-center justify-between">
+          <label className="text-secondary-foreground text-sm">
+            Quantity to Close
+          </label>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={setMaxQuantity}
+            className="text-xs text-blue-500 hover:text-blue-600 h-auto p-1"
+          >
+            Max
+          </Button>
+        </div>
+        <div className="relative">
+          <div className="absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+            <Image src={selectedOption.logo} alt={selectedOption.token} width={20} height={20} className="w-6 h-6 rounded-full" />
           </div>
           <Input
             type="text"
-            value={selectedOption.size}
-            readOnly
-            className="pl-12 py-2 pr-2 border-border text-foreground"
+            value={closeQuantity}
+            onChange={(e) => handleQuantityChange(e.target.value)}
+            placeholder="Enter quantity"
+            className={`pl-12 py-2 pr-2 border-border text-foreground ${!validation.isValid && closeQuantity ? 'border-red-500' : ''
+              }`}
           />
         </div>
+        {!validation.isValid && closeQuantity && (
+          <p className="text-red-500 text-xs">{validation.error}</p>
+        )}
+        {isPartialClose && validation.isValid && (
+          <p className="text-blue-500 text-xs">
+            Partial close: {parseFloat(closeQuantity)} of {currentQuantity} Contracts
+          </p>
+        )}
       </div>
 
       {/* Action Buttons */}
-      {selectedOption.status === "Active" && (
-        <div className="pt-4">
-          <Button className="w-full" size="lg" onClick={onSellOptionHandler}>
-            Sell Option
-          </Button>
-        </div>
-      )}
+      <div className="pt-4">
+        <Button
+          className="w-full"
+          size="lg"
+          onClick={onSellOptionHandler}
+          disabled={!validation.isValid || isSubmitting}
+        >
+          {isSubmitting
+            ? "Processing..."
+            : isPartialClose
+              ? `Partially Close Position (${closeQuantity}/${currentQuantity})`
+              : "Close Full Position"
+          }
+        </Button>
+      </div>
     </div>
   ) : (
     <div className="w-full flex flex-col flex-grow bg-card rounded-sm rounded-t-none p-6 space-y-6 border border-t-0">
@@ -238,12 +273,12 @@ export default function SellCard() {
         <h2 className="text-xl font-semibold">Your Options</h2>
       </div>
 
-      {options.length > 0 ? (
+      {positions.length > 0 ? (
         <ScrollArea className="h-[395px] w-full">
           <div className="space-y-2">
-            {options.map((option) => (
+            {positions.map((option) => (
               <Button
-                key={option.id}
+                key={option.index}
                 variant="outline"
                 className="w-full h-auto p-4 border-border rounded-sm hover:text-secondary-foreground"
                 onClick={() => setSelectedOption(option)}
@@ -258,11 +293,14 @@ export default function SellCard() {
                     <span>{option.type}</span>
                   </div>
                   <div className="flex items-center space-x-4">
-                    <span>{format(option.expiration, "MMM dd")}</span>
+                    <span>{format(option.expiry, "MMM dd")}</span>
+                    <span className="text-xs text-secondary-foreground">
+                      {toNumber(option.quantity)} Contracts
+                    </span>
                     <span
-                      className={`font-medium ${getStatusColor(option.status)}`}
+                      className={`font-medium ${(option.limitPrice != 0 && !option.executed)? 'text-red-500' : 'text-emerald-500'}`}
                     >
-                      {option.status}
+                      {option.limitPrice != 0 && option.executed == false ? 'Not Executed' : 'Active'}
                     </span>
                   </div>
                 </div>

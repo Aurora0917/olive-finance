@@ -1,6 +1,6 @@
 import { Coin, coins } from "./coins"
 
-export interface Strategy{
+export interface Strategy {
     symbol: string
     name: string
     asset: Coin
@@ -11,7 +11,7 @@ export interface Strategy{
     }
 }
 
-export const generateStrategies = (count: number) : Strategy[] =>{
+export const generateStrategies = (count: number): Strategy[] => {
     return Array(count).fill(null).map((_, index) => {
         const coin = coins[index % coins.length]
         return {
@@ -23,6 +23,20 @@ export const generateStrategies = (count: number) : Strategy[] =>{
                 apy: Math.round((Math.random() * 10 + 1) * 100) / 100,
                 apr: Math.round((Math.random() * 15 + 1.5) * 100) / 100,
             }
-        }   
+        }
     })
+}
+
+export const getStrategy = (tvl: number): Strategy => {
+    const coin = coins[1];
+    return {
+        symbol: coin.symbol,
+        name: coin.name,
+        asset: coin,
+        stats: {
+            tvl: tvl,
+            apy: Math.round((Math.random() * 10 + 1) * 100) / 100,
+            apr: Math.round((Math.random() * 15 + 1.5) * 100) / 100,
+        }
+    }
 }

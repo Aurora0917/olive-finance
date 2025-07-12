@@ -95,6 +95,25 @@ const expiredPositions = [
   },
 ];
 
+// Helper function to safely render values
+const renderValue = (value: any): string => {
+  if (value === null || value === undefined) {
+    return "—";
+  }
+  if (typeof value === 'object') {
+    // If it's an object, try to extract a meaningful value
+    // You may need to adjust this based on your actual data structure
+    if (typeof value.valueOf === 'function') {
+      return String(value.valueOf());
+    }
+    if (value.toString && typeof value.toString === 'function') {
+      return value.toString();
+    }
+    return JSON.stringify(value);
+  }
+  return String(value);
+};
+
 export default function ExpiredOptions({
   infos,
   onClaim,
@@ -143,11 +162,11 @@ export default function ExpiredOptions({
                       {pos.transaction}
                     </span>
                   </TableCell>
-                  <TableCell>{pos.strikePrice}</TableCell>
-                  <TableCell>{pos.qty}</TableCell>
-                  <TableCell>{pos.expiryPrice}</TableCell>
-                  <TableCell>{pos.tokenAmount}</TableCell>
-                  <TableCell>{pos.dollarAmount}</TableCell>
+                  <TableCell>{renderValue(pos.strikePrice)}</TableCell>
+                  <TableCell>{renderValue(pos.qty)}</TableCell>
+                  <TableCell>{renderValue(pos.expiryPrice)}</TableCell>
+                  <TableCell>{renderValue(pos.tokenAmount)}</TableCell>
+                  <TableCell>{renderValue(pos.dollarAmount)}</TableCell>
                   <TableCell>
                     <Button
                       className="bg-inherit border border-primary-foreground px-[10px] py-1 w-fit h-fit shadow-none rounded-[8px] text-primary text-xs font-medium"
@@ -192,13 +211,13 @@ export default function ExpiredOptions({
                   <span className="text-xs font-medium text-secondary-foreground">
                     Strike Price
                   </span>
-                  <span className="text-sm font-normal">{pos.strikePrice}</span>
+                  <span className="text-sm font-normal">{renderValue(pos.strikePrice)}</span>
                 </div>
                 <div className="w-full flex flex-col space-y-1">
                   <span className="text-xs font-medium text-secondary-foreground">
                     Quantity
                   </span>
-                  <span className="text-sm font-normal">{pos.qty}</span>
+                  <span className="text-sm font-normal">{renderValue(pos.qty)}</span>
                 </div>
               </div>
               <div className="flex space-x-[14px]">
@@ -206,13 +225,13 @@ export default function ExpiredOptions({
                   <span className="text-xs font-medium text-secondary-foreground">
                     Token Price at Expiry
                   </span>
-                  <span className="text-sm font-normal">{pos.expiryPrice}</span>
+                  <span className="text-sm font-normal">{renderValue(pos.expiryPrice)}</span>
                 </div>
                 <div className="w-full flex flex-col space-y-1">
                   <span className="text-xs font-medium text-secondary-foreground">
                     Amount in Tokens
                   </span>
-                  <span className="text-sm font-normal">{pos.tokenAmount}</span>
+                  <span className="text-sm font-normal">{renderValue(pos.tokenAmount)}</span>
                 </div>
               </div>
               <div className="flex space-x-[14px]">
@@ -221,11 +240,14 @@ export default function ExpiredOptions({
                     Amount in Dollars
                   </span>
                   <span className="text-sm font-normal">
-                    {pos.dollarAmount}
+                    {renderValue(pos.dollarAmount)}
                   </span>
                 </div>
               </div>
-              <Button className="bg-inherit border border-primary-foreground px-4 py-2 w-full h-fit shadow-none rounded-[12px] text-primary text-xs font-medium">
+              <Button 
+                className="bg-inherit border border-primary-foreground px-4 py-2 w-full h-fit shadow-none rounded-[12px] text-primary text-xs font-medium"
+                onClick={() => onClaim(pos.index, pos.expiryPrice)}
+              >
                 Claim
               </Button>
             </div>

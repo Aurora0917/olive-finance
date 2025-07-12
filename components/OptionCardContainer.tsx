@@ -20,6 +20,8 @@ interface OptionCardContainerProps{
   onContractTypeChange: (type: 'Call' | 'Put') => void;
   onTransactionChange: (type: string) => void;
   index: number;
+  onLimitPriceChange: (limitPrice: number) => void;
+  premium: number;
   priceData: PythPriceState;
   marketData: MarketDataState;
   priceLoading: boolean;
@@ -33,10 +35,10 @@ export default function OptionCardContainer({
   onStrikePriceChange, 
   onExpiryChange, 
   onContractTypeChange, 
-  onCurrencyChange,
+  onCurrencyChange, onLimitPriceChange,
   onTransactionChange,
   index, 
-  selectedSymbol, 
+  premium, selectedSymbol, 
   priceData, 
   marketData, 
   priceLoading, 
@@ -51,7 +53,7 @@ export default function OptionCardContainer({
   }
   
   return (
-      <div className="w-full flex flex-col h-[540px] space-y-0">
+      <div className="w-full flex flex-col space-y-0">
         <div className='w-full flex items-center justify-between border rounded-sm rounded-b-none px-4 py-1 h-[42px]'>
           <div className="flex gap-4">
             <Button 
@@ -93,6 +95,8 @@ export default function OptionCardContainer({
             onContractTypeChange={onContractTypeChange}
             onCurrencyChange={onCurrencyChange}
             active={index}
+            onLimitPriceChange={onLimitPriceChange}
+            premium={premium}
             orderType={orderType}
             priceData={priceData}
             marketData={marketData}

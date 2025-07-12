@@ -63,7 +63,7 @@ export default function Futures(){
                         priceLoading={priceLoading}
                         marketLoading={marketLoading}
                     />
-                    <FuturesQuote />
+                    {/* <FuturesQuote /> */}
                 </div>
             </div>
             <div className="w-full p-3 pb-10 bottom-0 sticky border-t bg-background z-10 lg:hidden">

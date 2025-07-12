@@ -6,7 +6,9 @@ import {
   clusterUrl,
   Option_Program_Address,
   USDC_DECIMALS,
+  USDC_MINT,
   WSOL_DECIMALS,
+  WSOL_MINT,
 } from "@/utils/const";
 
 import {
@@ -66,10 +68,30 @@ interface OptionDetail {
   purchasedPrice: string;
 }
 
-interface ProgramAccount {
-  pubkey: PublicKey;
+// Update interface to match Anchor's actual return type
+interface AnchorProgramAccount {
+  publicKey: PublicKey; // Note: publicKey, not pubkey
   account: {
-    data: string;
+    index: any;
+    owner: PublicKey;
+    amount: any;
+    quantity: any;
+    strikePrice: number;
+    period: any;
+    expiredDate: any;
+    purchaseDate: any;
+    optionType: number;
+    premium: any;
+    premiumAsset: PublicKey;
+    profit: any;
+    lockedAsset: PublicKey;
+    custody: PublicKey;
+    pool: PublicKey;
+    valid: boolean;
+    boughtBack: any;
+    claimed: any;
+    exercised: any;
+    bump: number;
   };
 }
 
@@ -96,69 +118,85 @@ export default function RecentTrades() {
     }
   }, []);
 
+  // Update function signature to match Anchor's return type
   const processOptionAccount = async (
-    account: ProgramAccount,
+    account: AnchorProgramAccount,
     program: Program<OptionContract>
-  ) => {
+  ): Promise<OptionDetail | null> => {
     try {
-      const optionDetailAccount = await program.account.OptionDetail.fetch(
-        account.pubkey
-      );
+      // Use account.account instead of fetching again (data is already available)
+      const optionDetailAccount = account.account;
 
       const poolInfo = pools.find(
         (pool) => pool.programId === optionDetailAccount.pool.toString()
       );
 
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
       const purchaseTimestamp =
-        parseInt(optionDetailAccount.expired_date) * 1000 -
-        parseInt(optionDetailAccount.period) * 86400 * 1000 -
+        parseInt(optionDetailAccount.expiredDate.toString()) * 1000 -
+        parseInt(optionDetailAccount.period.toString()) * 86400 * 1000 -
         86400000;
 
-      const priceData = await getPythPrice(selectedSymbol, purchaseTimestamp);
+      console.log(optionDetailAccount);
 
-      const isCall =
-        optionDetailAccount.locked_asset.toString() ==
-        optionDetailAccount.premium_asset.toString();
+      // const priceData = await getPythPrice(selectedSymbol, purchaseTimestamp);
 
-      const premium = parseFloat(optionDetailAccount.premium);
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      const isCall = optionDetailAccount.lockedAsset.equals(solCustody);
+
+      const premium = parseFloat(optionDetailAccount.premium.toString());
       const quantity = optionDetailAccount.quantity.toString();
       const profile = optionDetailAccount.owner.toString();
       const tx =
         optionDetailAccount.exercised.toString() != "0"
           ? "Exercised"
-          : optionDetailAccount.bought_back.toString() != "0"
-          ? "Sold"
-          : "Bought";
+          : optionDetailAccount.boughtBack.toString() != "0"
+            ? "Sold"
+            : "Bought";
+
       return {
         quantity: quantity,
         profile: profile,
         amount: optionDetailAccount.amount.toString(),
-        boughtBack: optionDetailAccount.bought_back.toString(),
+        boughtBack: optionDetailAccount.boughtBack.toString(),
         claimed: optionDetailAccount.claimed.toString(),
         custody: optionDetailAccount.custody.toString(),
         exercised: optionDetailAccount.exercised.toString(),
         expiredDate: new Date(
-          parseInt(optionDetailAccount.expired_date) * 1000
+          parseInt(optionDetailAccount.expiredDate.toString()) * 1000
         ).toLocaleString(),
         index: optionDetailAccount.index.toString(),
-        lockedAsset: optionDetailAccount.locked_asset.toString(),
+        lockedAsset: optionDetailAccount.lockedAsset.toString(),
         period: optionDetailAccount.period.toString(),
         pool: poolInfo?.name || "",
         premium: optionDetailAccount.premium.toString(),
-        premiumAsset: optionDetailAccount.premium_asset.toString(),
+        premiumAsset: optionDetailAccount.premiumAsset.toString(),
         profit: optionDetailAccount.profit.toString(),
-        strikePrice: optionDetailAccount.strike_price.toString(),
+        strikePrice: optionDetailAccount.strikePrice.toString(),
         valid: optionDetailAccount.valid.toString(),
         tx: tx,
         type: isCall ? "Call" : "Put",
         executedDate:
           tx === "Exercised"
-            ? parseInt(optionDetailAccount.exercised)
+            ? `${parseInt(optionDetailAccount.exercised)}`
             : tx === "Sold"
-            ? parseInt(optionDetailAccount.bought_back)
-            : parseInt(optionDetailAccount.purchase_date),
-        purchaseDate: optionDetailAccount.purchase_date,
-        purchasedPrice: priceData,
+              ? `${parseInt(optionDetailAccount.boughtBack)}`
+              : `${parseInt(optionDetailAccount.purchaseDate)}`,
+        purchaseDate: optionDetailAccount.purchaseDate.toString(),
+        purchasedPrice: priceData.price?.toString() || '160',
       };
     } catch (error) {
       console.error("Error processing option account:", error);
@@ -174,23 +212,6 @@ export default function RecentTrades() {
           position: "bottom-right",
         });
 
-        const { data } = await axios.post(clusterUrl, {
-          jsonrpc: "2.0",
-          id: 1,
-          method: "getProgramAccounts",
-          params: [
-            Option_Program_Address,
-            {
-              encoding: "base64",
-              filters: [
-                {
-                  dataSize: 267,
-                },
-              ],
-            },
-          ],
-        });
-
         const provider = initializeProvider();
         const program = new Program<OptionContract>(
           idl as OptionContract,
@@ -198,18 +219,33 @@ export default function RecentTrades() {
         );
         setProgram(program);
 
-        // Process accounts in batches to avoid overwhelming the system
-
-        const optionAccounts = data.result;
+        // Get accounts with correct typing
+        const optionAccounts = await program.account.optionDetail.all([
+          {
+            dataSize: 292
+          }
+        ]);
         const _optionDetails: OptionDetail[] = [];
 
-        const results = await Promise.all(
-          optionAccounts.map((account: ProgramAccount) =>
+        // Process accounts and filter out null results
+        const results = await Promise.allSettled(
+          optionAccounts.map((account: AnchorProgramAccount) =>
             processOptionAccount(account, program)
           )
         );
-        _optionDetails.push(...results);
 
+        // Filter successful results and remove null values
+        const validResults = results
+          .filter(
+            (result): result is PromiseFulfilledResult<OptionDetail> =>
+              result.status === "fulfilled" && result.value !== null
+          )
+          .map((result) => result.value);
+
+        console.log("Valid results:", validResults);
+        _optionDetails.push(...validResults);
+
+        // Process sold or exercised options
         const _solOrexcise = _optionDetails.filter((detail) => {
           return detail.tx != "Bought";
         });
@@ -277,32 +313,30 @@ export default function RecentTrades() {
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Bought"
                 ? (
-                    parseFloat(row.amount) /
-                    10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)
-                  ).toFixed(2)
+                  parseFloat(row.amount) /
+                  10 ** (row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? WSOL_DECIMALS : USDC_DECIMALS) : (row.lockedAsset == row.premiumAsset ? USDC_DECIMALS : WSOL_DECIMALS))
+                ).toFixed(2)
                 : row.tx == "Sold"
-                ? (
+                  ? (
                     ((parseFloat(row.amount) / 10) * 9) /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
+                    10 ** (row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? WSOL_DECIMALS : USDC_DECIMALS) : (row.lockedAsset == row.premiumAsset ? USDC_DECIMALS : WSOL_DECIMALS))
                   ).toFixed(2)
-                : row.tx == "Exercised"
-                ? row.claimed != "0"
-                  ? row.claimed
-                  : parseFloat(row.profit).toFixed(2)
-                : "0"}{" "}
-              {row.type == "Call" ? "SOL" : "USDC"}
+                  : row.tx == "Exercised"
+                    ? row.claimed != "0"
+                      ? row.claimed
+                      : (parseFloat(row.profit) / 10 ** (row.type == "Call" ? WSOL_DECIMALS : USDC_DECIMALS)).toFixed(2)
+                    : "0"}{" "}
+              {(row.type == "Call" ? (row.lockedAsset == row.premiumAsset ? "SOL" : "USDC") : (row.lockedAsset == row.premiumAsset ? "USDC" : "SOL"))}
             </TableCell>
             <TableCell className="text-sm text-foreground font-normal text-justify px-3 py-[14px]">
               {row.tx == "Sold"
                 ? (
-                    parseFloat(row.amount) /
-                    10 /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
-                  ).toFixed(2)
+                  parseFloat(row.amount) /
+                  10 /
+                  (row.type == "Call"
+                    ? 10 ** WSOL_DECIMALS
+                    : 10 ** USDC_DECIMALS)
+                ).toFixed(2)
                 : "0"}{" "}
               {row.type == "Call" ? "SOL" : "USDC"}
             </TableCell>
@@ -329,16 +363,18 @@ export default function RecentTrades() {
               $
               {row.purchasedPrice
                 ? (
-                    (Number(row.amount) * Number(row.purchasedPrice)) /
-                    (row.type == "Call"
-                      ? 10 ** WSOL_DECIMALS
-                      : 10 ** USDC_DECIMALS)
-                  ).toFixed(2)
+                  (Number(row.amount) * Number(row.purchasedPrice)) /
+                  (row.type == "Call"
+                    ? 10 ** WSOL_DECIMALS
+                    : 10 ** USDC_DECIMALS)
+                ).toFixed(2)
                 : "0"}{" "}
               USD
             </TableCell>
             <TableCell className="text-sm text-foreground font-normal text-justify pl-3 pr-5 py-[14px]">
-              {new Date(parseInt(row.executedDate) * 1000).toLocaleString()}
+              <span className="whitespace-nowrap">
+                {new Date(parseInt(row.executedDate) * 1000).toLocaleString()}
+              </span>
             </TableCell>
           </TableRow>
         ))}
@@ -386,16 +422,14 @@ export default function RecentTrades() {
               <TableHead className="text-xs text-secondary-foreground font-medium text-justify px-3 py-4">
                 Trade Size
               </TableHead>
-              <TableHead className="text-xs text-secondary-foreground font-medium text-justify pr-5 pl-3 py-4">
+              <TableHead className="text-xs text-secondary-foreground font-medium text-justify pr-5 pl-3 py-4 bg-primary/10">
                 Purchase Date
               </TableHead>
             </TableRow>
           </TableHeader>
           {memoizedTableContent}
         </Table>
-        <ToastContainer
-          theme="dark"
-        />
+        <ToastContainer theme="dark" />
         <ScrollBar orientation="horizontal" />
       </ScrollArea>
     </div>

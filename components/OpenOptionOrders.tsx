@@ -23,10 +23,11 @@ interface OpenOptionOrdersProps{
     strikePrice: number
     expiry: string
     orderDate: string
-    size: number
+    size: number,
+    onCancel: () => void,
 }
 
-export default function OpenOptionOrders({logo, token, symbol, type, transaction, limitPrice, strikePrice, expiry, orderDate, size} : OpenOptionOrdersProps){
+export default function OpenOptionOrders({logo, token, symbol, type, transaction, limitPrice, strikePrice, expiry, orderDate, size, onCancel} : OpenOptionOrdersProps){
     const [isOpen, setIsOpen] = useState<boolean>(false);
     const [isLimit, setIsLimit] = useState<boolean>(false);
     const [isStrike, setIsStrike] = useState<boolean>(false);
@@ -73,7 +74,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {limitPrice}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isLimit} onOpenChange={setIsLimit}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -111,7 +112,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {strikePrice}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isStrike} onOpenChange={setIsStrike}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -150,7 +151,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {size}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isSize} onOpenChange={setIsSize}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -189,7 +190,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
                             <span>
                                 {expiry}
                             </span>
-                            {transaction === 'buy' &&(
+                            {transaction !== 'buy' &&(
                                 <Popover open={isExpiry} onOpenChange={setIsExpiry}>
                                     <PopoverTrigger asChild>
                                         <SquarePen size={13} className="text-foreground hover:text-primary cursor-pointer"/>
@@ -255,7 +256,7 @@ export default function OpenOptionOrders({logo, token, symbol, type, transaction
 
                     <div className="w-full flex justify-end gap-2">
                         
-                        <Button className="bg-secondary w-fit h-auto py-[6px] px-[10px] rounded-sm">
+                        <Button className="bg-secondary w-fit h-auto py-[6px] px-[10px] rounded-sm" onClick={onCancel}>
                             <Ban className="text-secondary-foreground p-0" />
                             <span className="text-sm font-normal text-secondary-foreground p-0">
                                 Cancel

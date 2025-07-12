@@ -27,7 +27,7 @@ export function formatPrice(price: number): string {
       return price.toFixed(4);
     } else {
       const digitsToShow = firstNonZeroIndex + 4;
-      return price.toFixed(Math.min(digitsToShow, 8));
+      return price.toFixed(2);
     }
   } else {
     return price.toFixed(2);

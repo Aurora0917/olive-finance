@@ -17,6 +17,7 @@ import Image from "next/image";
 
 import { Badge } from "./ui/badge";
 import Settings from "./Settings";
+import Slippage from "./Slippage";
 import { ArrowDown, EarnIcon, MoreIcon, OptionsIcon, WalletIcon} from "@/public/svgs/icons";
 import NavBarMobile from "./NavBarMobile";
 import Notifications from "./Notifications";
@@ -194,6 +195,7 @@ export default function NavBar(){
             </div>
             <div className="flex justify-between py-2 gap-3 items-center">
                 <PointsDropDown setActive={setActive} />
+                <Slippage />
                 <Settings />
                 <Notifications />
                 
