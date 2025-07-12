@@ -364,7 +364,7 @@ export default function SettledTpSls({
                         <span className="text-xs text-secondary-foreground bg-backgroundSecondary px-2 py-1 rounded">
                             {displayOrders.length}
                         </span>
-                        {userId && (
+                        {/* {userId && (
                             <span className="text-xs text-blue-400 px-1 py-0.5 bg-blue-500/10 rounded">
                                 Live
                             </span>
@@ -373,7 +373,7 @@ export default function SettledTpSls({
                             <span className="text-xs text-purple-400 px-1 py-0.5 bg-purple-500/10 rounded">
                                 {contractType.toUpperCase()}
                             </span>
-                        )}
+                        )} */}
                         {loadingOrders && (
                             <Loader2 className="w-3 h-3 animate-spin text-secondary-foreground" />
                         )}
@@ -444,13 +444,6 @@ export default function SettledTpSls({
                                                 'Refresh Orders'
                                             )}
                                         </Button>
-                                    </div>
-                                )}
-
-                                {/* Backend integration info */}
-                                {userId && backendOrders.length > 0 && (
-                                    <div className="text-xs text-blue-400 bg-blue-500/10 p-2 rounded">
-                                        Connected to backend with {backendOrders.length} active order(s)
                                     </div>
                                 )}
                             </>

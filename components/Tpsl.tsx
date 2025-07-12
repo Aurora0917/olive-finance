@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, CirclePlus, SquarePen, Loader2 } from "lucide-react";
+import { ChevronDown, CirclePlus, SquarePen, Loader2, Pencil } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
 import { useState } from "react";
 import { Switch } from "./ui/switch";
@@ -298,7 +298,7 @@ export default function Tpsl({
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger disabled={isLoading}>
-                <SquarePen 
+                <Pencil 
                     size={13} 
                     className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-foreground'} ${isLoading ? 'opacity-50' : ''}`} 
                 />

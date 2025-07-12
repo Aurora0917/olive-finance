@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronDown, SquarePen } from "lucide-react";
+import { ChevronDown, SquarePen, Pencil } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Input } from "./ui/input";
@@ -237,7 +237,7 @@ export default function Collateral({
     return (
         <Popover open={isOpen} onOpenChange={setIsOpen}>
             <PopoverTrigger>
-                <SquarePen size={13} className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-foreground'}`}/>
+                <Pencil size={13} className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-foreground'}`}/>
             </PopoverTrigger>
             <PopoverContent align="end" className="w-80">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>

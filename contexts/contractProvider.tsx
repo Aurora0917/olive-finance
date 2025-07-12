@@ -58,8 +58,12 @@ interface PoolData {
 
 interface VolumeData {
   volume24h: number;           // Total USD volume in last 24h
+  optionsCount24h: number;     // Total Options Count in last 24h
+  perpsCount24h: number;       // Total Perps Count in last 24h
   callCount: number;           // Active call options count
   putCount: number;            // Active put options count
+  longCount: number;           // Active long perps count
+  shortCount: number;          // Active short perps count
   callCount24h: number;        // Call options created in last 24h
   putCount24h: number;         // Put options created in last 24h
   optionVolume24h: number;     // Option premiums volume in last 24h
@@ -207,8 +211,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     decimals: number,
     isSol: boolean
   ): PoolUtilization => {
-    const tokenLocked = custodyData.tokenLocked.toNumber();
-    const tokenOwned = custodyData.tokenOwned.toNumber();
+    const tokenLocked = custodyData.tokenLocked.toNumber() / (isSol ? 10 ** 9 : 10 ** 6);
+    const tokenOwned = custodyData.tokenOwned.toNumber() / (isSol ? 10 ** 9 : 10 ** 6);
 
     // Calculate utilization percentage
     const utilizationPercent = tokenOwned > 0 ? (tokenLocked / tokenOwned) * 100 : 0;
@@ -220,11 +224,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       isSol
     );
 
+    const hourlyRate = borrowRate / 365 / 24;
+
     return {
       tokenLocked,
       tokenOwned,
       utilizationPercent,
-      borrowRate,
+      borrowRate: hourlyRate,
     };
   };
 
@@ -234,8 +240,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     const currentPrice = priceData.price || 0;
 
     let volume24h = 0;
+    let optionsCount24h = 0;
+    let perpsCount24h = 0;
     let callCount = 0;
     let putCount = 0;
+    let longCount = 0;
+    let shortCount = 0;
     let callCount24h = 0;
     let putCount24h = 0;
     let optionVolume24h = 0;
@@ -255,6 +265,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       if (purchaseTime >= oneDayAgo) {
         if (isCall) callCount24h++;
         if (isPut) putCount24h++;
+        optionsCount24h++;
 
         // Calculate option premium for volume
         try {
@@ -288,10 +299,14 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
     // Calculate from perp positions (created in last 24h)
     perpPositions.forEach((perpPosition: FuturePos) => {
+      const isLong = perpPosition.position === 'long';
+      if (isLong) longCount++;
+      else shortCount++;
       const purchaseTime = new Date(perpPosition.purchaseDate).getTime();
       if (purchaseTime >= oneDayAgo) {
         // Perp volume = position size * current price
         const perpValue = perpPosition.size * currentPrice;
+        perpsCount24h++;
         perpVolume24h += perpValue;
         volume24h += perpValue;
       }
@@ -328,8 +343,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
     return {
       volume24h: Math.round(volume24h * 100) / 100, // Round to 2 decimals
+      optionsCount24h,
+      perpsCount24h,
       callCount,
       putCount,
+      longCount,
+      shortCount,
       callCount24h,
       putCount24h,
       optionVolume24h: Math.round(optionVolume24h * 100) / 100,
@@ -359,6 +378,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     if (program && publicKey) {
       setPositionsLoading(true);
       try {
+        console.log("refresh position");
         // Fetch both options and perp positions
         const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
         const perpPos = await getPerpPositions(program, publicKey);
@@ -2683,6 +2703,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     (async () => {
       let provider: Provider;
+      console.log(wallet, publicKey);
       if (wallet && publicKey) {
         try {
           provider = getProvider();
@@ -2696,13 +2717,18 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         );
         setProgram(program);
         setPubKey(publicKey);
-
-        // Initial refresh only when wallet/provider changes
-        await refreshPositions();
-        await getCustodies(program);
       }
     })();
   }, [wallet, publicKey]);
+
+  useEffect(() => {
+    if (program) {
+      (async () => {
+        await refreshPositions();
+        await getCustodies(program);
+      })();
+    }
+  }, [program]);
 
   useEffect(() => {
     (async () => {

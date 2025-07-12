@@ -32,14 +32,14 @@ export default function FutureCardContainer({onSymbolChange, onIdxChange, active
             className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'perps' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
             onClick={() => setSelectedTrade('perps')}
           >
-            Perps
+            Buy/Open
           </Button>
           <Button 
             
             className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'expiry' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
             onClick={() => setSelectedTrade('expiry')}
           >
-            Expiry
+            Sell/Close
           </Button>
         </div>
         <Select defaultValue="market" onValueChange={(value) => {

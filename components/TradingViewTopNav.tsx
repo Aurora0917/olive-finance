@@ -60,10 +60,10 @@ interface TradingViewTopNavProps {
 }
 
 export default function TradingViewTopNav({
-    symbol, 
-    pythSymbol, 
-    logo, 
-    tokens, 
+    symbol,
+    pythSymbol,
+    logo,
+    tokens,
     marketChanges,
     onTokenSelect,
     priceData,
@@ -76,7 +76,8 @@ export default function TradingViewTopNav({
 }: TradingViewTopNavProps) {
     const [active, setActive] = useState<'all' | 'crypto' | 'memes' | 'forex' | 'ai' | 'metals' | 'commodities' | 'equities' | 'fixed'>('all');
     const router = useRouter();
-    const [query, setQuery] = useState("")
+    const [query, setQuery] = useState("");
+    const [activePeriod, setActivePeriod] = useState<1 | 8 | 8760>(1);
 
     return (
         <div className="border border-t-0 rounded-b-sm py-1 w-full flex h-fit">
@@ -84,18 +85,18 @@ export default function TradingViewTopNav({
                 <DropdownMenuTrigger asChild>
                     <div className="px-2 py-1 flex space-x-6 lg:space-x-2 items-center cursor-pointer group">
                         <div className="flex space-x-[6px] items-center">
-                            <Image src={logo} alt={symbol!} width={18} height={18} className="rounded-full"/>
+                            <Image src={logo} alt={symbol!} width={18} height={18} className="rounded-full" />
                             <span className="text-sm text-foreground font-medium hover:text-primary group-hover:text-primary">
                                 {symbol}/USDC
                             </span>
                         </div>
-                        <ChevronDown className="text-secondary-foreground h-3 w-3"/>
+                        <ChevronDown className="text-secondary-foreground h-3 w-3" />
                     </div>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent className="w-fit py-2 px-1 bg-accent rounded-sm flex flex-col space-y-2" align="start">
                     <div className="w-full px-1 flex flex-col space-y-2">
                         <div className="flex w-full h-fit space-x-2 items-center px-3 py-2 rounded-sm text-xs text-secondary-foreground bg-secondary">
-                            <Input 
+                            <Input
                                 type="text"
                                 name="query"
                                 placeholder="Search for a coin"
@@ -103,68 +104,68 @@ export default function TradingViewTopNav({
                                 value={query}
                                 onChange={(e) => setQuery(e.target.value)}
                             />
-                            <Search size={14} className="w-[14px] h-[14px] text-foreground"/>
+                            <Search size={14} className="w-[14px] h-[14px] text-foreground" />
                         </div>
                         <div className="flex flex-col space-y-2">
                             <div className="w-full flex justify-between py-[2px] border-b text-xs text-secondary-foreground font-medium">
-                                <button className={cn((active === 'all' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('all')}
+                                <button className={cn((active === 'all' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('all')}
                                 >
                                     <span>All</span>
                                     {active === 'all' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'memes' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('memes')}
+                                <button className={cn((active === 'memes' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('memes')}
                                 >
                                     <span>Memes</span>
                                     {active === 'memes' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'forex' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('forex')}
+                                <button className={cn((active === 'forex' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('forex')}
                                 >
                                     <span>Forex</span>
                                     {active === 'forex' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'ai' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('ai')}
+                                <button className={cn((active === 'ai' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('ai')}
                                 >
                                     <span>AI</span>
                                     {active === 'ai' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'metals' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('metals')}
+                                <button className={cn((active === 'metals' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('metals')}
                                 >
                                     <span>Metals</span>
                                     {active === 'metals' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'commodities' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('commodities')}
+                                <button className={cn((active === 'commodities' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('commodities')}
                                 >
                                     <span>Commodities</span>
                                     {active === 'commodities' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'equities' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('equities')}
+                                <button className={cn((active === 'equities' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('equities')}
                                 >
                                     <span>Equities</span>
                                     {active === 'equities' && (
                                         <div className="absolute -bottom-[3px] left-0 right-0 h-[1px] bg-primary" />
                                     )}
                                 </button>
-                                <button className={cn((active === 'fixed' ? 'text-primary' : ''),"px-1 relative")}
-                                    onClick={()=>setActive('fixed')}
+                                <button className={cn((active === 'fixed' ? 'text-primary' : ''), "px-1 relative")}
+                                    onClick={() => setActive('fixed')}
                                 >
                                     <span>Fixed Income</span>
                                     {active === 'fixed' && (
@@ -189,8 +190,8 @@ export default function TradingViewTopNav({
                         </div>
                     </div>
                     <div className="w-full flex flex-col">
-                        <TokenList 
-                            tokens={tokens} 
+                        <TokenList
+                            tokens={tokens}
                             category={active}
                             marketChanges={marketChanges}
                             onTokenSelect={onTokenSelect}
@@ -199,26 +200,26 @@ export default function TradingViewTopNav({
                     </div>
                 </DropdownMenuContent>
             </DropdownMenu>
-                <div className={`${type==='futures' ? 'hidden' : 'hidden'}`}>
-                    <div className="px-4 py-1">
-                        <Separator orientation="vertical"/>
-                    </div>
-                    <div className="py-1 flex items-center">
-                        <Button className={`bg-inherit p-0 w-fit h-fit gap-[6px] flex items-center ${type === 'options' ? 'text-foreground hover:text-primary' : 'text-primary hover:text-foreground'}`}
-                            onClick={() => router.push(`${type === 'options' ? '/options-chain' : '/'}`)}
-                        >
-                            <TableColumnsSplit />
-                            <span className="text-sm font-medium hidden md:flex">Options Chain</span>
-                        </Button>
-                    </div>
+            <div className={`${type === 'futures' ? 'hidden' : 'hidden'}`}>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
                 </div>
+                <div className="py-1 flex items-center">
+                    <Button className={`bg-inherit p-0 w-fit h-fit gap-[6px] flex items-center ${type === 'options' ? 'text-foreground hover:text-primary' : 'text-primary hover:text-foreground'}`}
+                        onClick={() => router.push(`${type === 'options' ? '/options-chain' : '/'}`)}
+                    >
+                        <TableColumnsSplit />
+                        <span className="text-sm font-medium hidden md:flex">Options Chain</span>
+                    </Button>
+                </div>
+            </div>
             <div className="hidden lg:flex">
                 <div className="hidden md:flex px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
                 <HoverCard>
                     <HoverCardTrigger asChild>
-                         <div className="hidden md:flex flex-col cursor-pointer">
+                        <div className="hidden md:flex flex-col cursor-pointer">
                             <span className="text-secondary-foreground font-normal text-[10px] h-3">Oracle Price</span>
                             <div className="flex space-x-0.5">
                                 <span>
@@ -238,10 +239,10 @@ export default function TradingViewTopNav({
                                     ({symbol}).
                                 </span>
                             </div>
-                            
+
                             <span className="flex items-center gap-1">
                                 {priceData.price ? formatPrice(priceData.price) : priceLoading}
-                                <Diff size={12}/>
+                                <Diff size={12} />
 
                             </span>
                         </div>
@@ -255,36 +256,125 @@ export default function TradingViewTopNav({
                         </div>
                     </HoverCardContent>
                 </HoverCard>
-               
+
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3">24h Change</span>
+                    {marketChanges[pythSymbol] ? (<span className={`text-xs font-medium ` +
+                        (marketChanges[pythSymbol] && marketChanges[pythSymbol] >= 0
+                            ? "text-green-500"
+                            : "text-red-500")
+                    }>
+                        {marketChanges[pythSymbol] !== null && (
+                            <>
+                                {marketChanges[pythSymbol] >= 0 ? "↑" : "↓"} ${formatPrice(priceData.price * Math.abs(marketChanges[pythSymbol]) / (100 + marketChanges[pythSymbol]))}({formatPrice(Math.abs(marketChanges[pythSymbol]))}%)
+                            </>
+                        )}
+                    </span>) : '-'}
+                </div>
+                {/* <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">24h high</span>
                     <span className="text-foreground text-xs font-medium">${marketData.high24h ? formatPrice(marketData.high24h) : marketLoading}</span>
                 </div>
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">24h low</span>
                     <span className="text-foreground text-xs font-medium">${marketData.low24h ? formatPrice(marketData.low24h) : marketLoading}</span>
-                </div>
+                </div> */}
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">24h volume</span>
                     <span className="text-foreground text-xs font-medium">${volumeData?.volume24h || 0}</span>
                 </div>
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
-                <HoverCard>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3">24h trades</span>
+                    <span className="text-foreground text-xs font-medium">{type === 'options' ? volumeData?.optionsCount24h : volumeData?.perpsCount24h}</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Open interest(L)</span>
+                    <span className="text-foreground text-xs font-medium">{(poolData?.sol.tokenLocked | 0).toFixed(2)} / {(poolData?.sol.tokenOwned | 0).toFixed(2)} SOL</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Open interest(S)</span>
+                    <span className="text-foreground text-xs font-medium">{(poolData?.usdc.tokenLocked | 0).toFixed(2)} / {(poolData?.usdc.tokenOwned | 0).toFixed(2)} USDC</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Borrowing(L)</span>
+                    <span className="text-red-500 text-xs font-medium">{(poolData?.sol.borrowRate ? poolData?.sol.borrowRate * activePeriod : 0).toFixed(6)} %</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Borrowing(S)</span>
+                    <span className="text-red-500 text-xs font-medium">{(poolData?.usdc.borrowRate ? poolData?.usdc.borrowRate * activePeriod : 0).toFixed(6)} %</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-row mt-1 space-x-2">
+                    <button className={`${activePeriod === 1 ? 'text-foreground' : 'text-secondary-foreground'} font-normal text-[11px] h-3`} onClick={() => setActivePeriod(1)}>1H</button>
+                    <button className={`${activePeriod === 8 ? 'text-foreground' : 'text-secondary-foreground'} font-normal text-[11px] h-3`} onClick={() => setActivePeriod(8)}>8H</button>
+                    <button className={`${activePeriod === 8760 ? 'text-foreground' : 'text-secondary-foreground'} font-normal text-[11px] h-3`} onClick={() => setActivePeriod(8760)}>1Y</button>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3">Skew</span>
+                    {type === 'options' ? <div className="flex flex-row">
+                        <span className="text-green-500 text-xs font-medium">{volumeData?.callCount + volumeData?.putCount === 0 ? '0.00' : (volumeData?.callCount * 100.0 / (volumeData?.callCount + volumeData?.putCount)).toFixed(2)}% / </span>
+                        <span className="text-red-500 text-xs font-medium">{volumeData?.callCount + volumeData?.putCount === 0 ? '0.00' : (volumeData?.putCount * 100.0 / (volumeData?.callCount + volumeData?.putCount)).toFixed(2)}%</span>
+                    </div> :
+                        <div className="flex flex-row">
+                            <span className="text-green-500 text-xs font-medium">{volumeData?.longCount + volumeData?.shortCount === 0 ? '0.00' : (volumeData?.longCount * 100.0 / (volumeData?.longCount + volumeData?.shortCount)).toFixed(2)}% / </span>
+                            <span className="text-red-500 text-xs font-medium">{volumeData?.longCount + volumeData?.shortCount === 0 ? '0.00' : (volumeData?.shortCount * 100.0 / (volumeData?.longCount + volumeData?.shortCount)).toFixed(2)}%</span>
+                        </div>
+                    }
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3">Next Funding</span>
+                    <span className="text-foreground text-xs font-medium">24:23</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                <div className="flex flex-col">
+                    <span className="text-secondary-foreground font-normal text-[10px] h-3">Maximum Leverage</span>
+                    <span className="text-foreground text-xs font-medium">100.00x</span>
+                </div>
+                <div className="px-4 py-1">
+                    <Separator orientation="vertical" />
+                </div>
+                {/* <HoverCard>
                     <HoverCardTrigger asChild>
-                        <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer"> 
+                        <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer">
                             <span className="text-secondary-foreground font-normal text-[10px] h-3">SOL Utilization</span>
-                            <Progress value={poolData?.sol.utilizationPercent || 0} className="h-1"/>
+                            <Progress value={poolData?.sol.utilizationPercent || 0} className="h-1" />
                         </div>
                     </HoverCardTrigger>
                     <HoverCardContent align="center" className="flex flex-col justify-center bg-accent p-2 rounded-sm gap-2">
@@ -307,18 +397,18 @@ export default function TradingViewTopNav({
                             <div className="flex justify-between text-secondary-foreground font-normal text-xs">
                                 <span>Call Volatility</span>
                                 <span className="text-foreground">85%</span>
-                            </div>                    
+                            </div>
                         </div>
                     </HoverCardContent>
                 </HoverCard>
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
                 <HoverCard>
                     <HoverCardTrigger asChild>
-                        <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer"> 
+                        <div className="flex flex-col flex-grow space-y-1.5 justify-start cursor-pointer">
                             <span className="text-secondary-foreground font-normal text-[10px] h-3">USDC Utilization</span>
-                            <Progress value={poolData?.usdc.utilizationPercent.toFixed(2) || 0} className="h-1"/>
+                            <Progress value={poolData?.usdc.utilizationPercent.toFixed(2) || 0} className="h-1" />
                         </div>
                     </HoverCardTrigger>
                     <HoverCardContent align="center" className="flex flex-col bg-accent justify-center p-2 rounded-sm gap-2">
@@ -346,8 +436,8 @@ export default function TradingViewTopNav({
                     </HoverCardContent>
                 </HoverCard>
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
-                </div>
+                    <Separator orientation="vertical" />
+                </div> */}
                 {/* <div className="flex lg:w-56 xl:w-80 space-x-3 items-center">
                     <span className="text-xs">
                         Call
@@ -364,7 +454,7 @@ export default function TradingViewTopNav({
                 <div className="px-4 py-1">
                     <Separator orientation="vertical"/>
                 </div> */}
-                <div className="flex gap-1">
+                {/* <div className="flex gap-1">
                     <div className="flex flex-col items-center bg-green-500/10 px-2 rounded-sm">
                         <span className="text-green-500 font-normal text-[10px] h-3">Call</span>
                         <span className="text-green-500 text-xs font-medium">{volumeData?.callCount || 0}</span>
@@ -375,11 +465,21 @@ export default function TradingViewTopNav({
                     </div>
                 </div>
                 <div className="px-4 py-1">
-                    <Separator orientation="vertical"/>
+                    <Separator orientation="vertical" />
                 </div>
+                <div className="flex gap-1">
+                    <div className="flex flex-col items-center bg-green-500/10 px-2 rounded-sm">
+                        <span className="text-green-500 font-normal text-[10px] h-3">Long</span>
+                        <span className="text-green-500 text-xs font-medium">{volumeData?.callCount || 0}</span>
+                    </div>
+                    <div className="flex flex-col bg-red-500/10 px-2 rounded-sm items-center">
+                        <span className="text-red-500 font-normal text-[10px] h-3">Short</span>
+                        <span className="text-red-500 text-xs font-medium">{volumeData?.putCount || 0}</span>
+                    </div>
+                </div> */}
             </div>
             <div className="flex justify-end w-full px-2 lg:hidden">
-                <MarketDetails logo={logo} symbol={symbol!} tokenPrice={priceData.price} high={marketData.high24h} low={marketData.low24h}/>
+                <MarketDetails logo={logo} symbol={symbol!} tokenPrice={priceData.price} high={marketData.high24h} low={marketData.low24h} />
             </div>
         </div>
     )
