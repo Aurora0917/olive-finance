@@ -31,16 +31,11 @@ export type OptionContract = {
           "writable": true,
           "signer": true,
           "relations": [
-            "solFundingAccount",
-            "usdcFundingAccount"
+            "fundingAccount"
           ]
         },
         {
-          "name": "solFundingAccount",
-          "writable": true
-        },
-        {
-          "name": "usdcFundingAccount",
+          "name": "fundingAccount",
           "writable": true
         },
         {
@@ -92,11 +87,6 @@ export type OptionContract = {
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  101,
-                  114,
-                  112,
-                  95,
                   112,
                   111,
                   115,
@@ -1294,6 +1284,322 @@ export type OptionContract = {
       ]
     },
     {
+      "name": "cancelLimitOrder",
+      "discriminator": [
+        132,
+        156,
+        132,
+        31,
+        67,
+        40,
+        232,
+        97
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "receivingAccount"
+          ]
+        },
+        {
+          "name": "receivingAccount",
+          "writable": true
+        },
+        {
+          "name": "transferAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "cancelLimitOrderParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "claimOption",
       "discriminator": [
         253,
@@ -2331,16 +2637,11 @@ export type OptionContract = {
           "writable": true,
           "signer": true,
           "relations": [
-            "userSolAccount",
-            "userUsdcAccount"
+            "receivingAccount"
           ]
         },
         {
-          "name": "userSolAccount",
-          "writable": true
-        },
-        {
-          "name": "userUsdcAccount",
+          "name": "receivingAccount",
           "writable": true
         },
         {
@@ -2422,11 +2723,6 @@ export type OptionContract = {
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  101,
-                  114,
-                  112,
-                  95,
                   112,
                   111,
                   115,
@@ -3073,6 +3369,205 @@ export type OptionContract = {
       ]
     },
     {
+      "name": "executeLimitOrder",
+      "discriminator": [
+        52,
+        33,
+        60,
+        30,
+        47,
+        100,
+        40,
+        22
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "executeLimitOrderParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "exerciseOption",
       "discriminator": [
         231,
@@ -3480,19 +3975,11 @@ export type OptionContract = {
           "signer": true
         },
         {
-          "name": "userSolAccount",
+          "name": "ownerSettlementAccount",
           "writable": true
         },
         {
-          "name": "userUsdcAccount",
-          "writable": true
-        },
-        {
-          "name": "liquidatorSolAccount",
-          "writable": true
-        },
-        {
-          "name": "liquidatorUsdcAccount",
+          "name": "liquidatorRewardAccount",
           "writable": true
         },
         {
@@ -3575,11 +4062,6 @@ export type OptionContract = {
                 "kind": "const",
                 "value": [
                   112,
-                  101,
-                  114,
-                  112,
-                  95,
-                  112,
                   111,
                   115,
                   105,
@@ -3592,7 +4074,7 @@ export type OptionContract = {
               {
                 "kind": "account",
                 "path": "position.owner",
-                "account": "perpPosition"
+                "account": "position"
               },
               {
                 "kind": "arg",
@@ -4759,16 +5241,11 @@ export type OptionContract = {
           "writable": true,
           "signer": true,
           "relations": [
-            "userSolAccount",
-            "userUsdcAccount"
+            "receivingAccount"
           ]
         },
         {
-          "name": "userSolAccount",
-          "writable": true
-        },
-        {
-          "name": "userUsdcAccount",
+          "name": "receivingAccount",
           "writable": true
         },
         {
@@ -4850,11 +5327,6 @@ export type OptionContract = {
               {
                 "kind": "const",
                 "value": [
-                  112,
-                  101,
-                  114,
-                  112,
-                  95,
                   112,
                   111,
                   115,
@@ -5580,6 +6052,134 @@ export type OptionContract = {
       "returns": "u8"
     },
     {
+      "name": "setOptionTpSl",
+      "discriminator": [
+        113,
+        83,
+        210,
+        171,
+        193,
+        150,
+        144,
+        233
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "user",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  117,
+                  115,
+                  101,
+                  114
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              }
+            ]
+          }
+        },
+        {
+          "name": "optionDetail",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  111,
+                  112,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.option_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "option_detail.custody",
+                "account": "optionDetail"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "setOptionTpSlParams"
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "setSigners",
       "discriminator": [
         16,
@@ -5629,6 +6229,90 @@ export type OptionContract = {
         }
       ],
       "returns": "u8"
+    },
+    {
+      "name": "setTpSl",
+      "discriminator": [
+        243,
+        36,
+        162,
+        182,
+        44,
+        224,
+        216,
+        34
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "setTpSlParams"
+            }
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -5685,19 +6369,6 @@ export type OptionContract = {
       ]
     },
     {
-      "name": "perpPosition",
-      "discriminator": [
-        49,
-        27,
-        181,
-        207,
-        128,
-        154,
-        176,
-        45
-      ]
-    },
-    {
       "name": "pool",
       "discriminator": [
         241,
@@ -5708,6 +6379,19 @@ export type OptionContract = {
         177,
         109,
         188
+      ]
+    },
+    {
+      "name": "position",
+      "discriminator": [
+        170,
+        188,
+        143,
+        228,
+        122,
+        64,
+        247,
+        208
       ]
     },
     {
@@ -5727,27 +6411,198 @@ export type OptionContract = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidWithdrawError"
+      "name": "positionLiquidated",
+      "msg": "Position has been liquidated"
     },
     {
       "code": 6001,
-      "name": "invalidPoolBalanceError"
+      "name": "positionNotLiquidatable",
+      "msg": "Position cannot be liquidated"
     },
     {
       "code": 6002,
-      "name": "invalidSignerBalanceError"
+      "name": "invalidLiquidationPrice",
+      "msg": "Invalid liquidation price"
     },
     {
       "code": 6003,
-      "name": "invalidCustodyTokenError"
+      "name": "invalidLeverage",
+      "msg": "Invalid leverage specified"
     },
     {
       "code": 6004,
-      "name": "invalidPoolState"
+      "name": "insufficientCollateral",
+      "msg": "Insufficient collateral"
     },
     {
       "code": 6005,
-      "name": "invalidCustodyState"
+      "name": "invalidCollateralAsset",
+      "msg": "Invalid collateral asset"
+    },
+    {
+      "code": 6006,
+      "name": "wouldCauseLiquidation",
+      "msg": "Would cause liquidation"
+    },
+    {
+      "code": 6007,
+      "name": "insufficientMargin",
+      "msg": "Insufficient margin"
+    },
+    {
+      "code": 6008,
+      "name": "invalidPositionType",
+      "msg": "Invalid position type"
+    },
+    {
+      "code": 6009,
+      "name": "notLimitOrder",
+      "msg": "Position is not a limit order"
+    },
+    {
+      "code": 6010,
+      "name": "notMarketOrder",
+      "msg": "Position is not a market order"
+    },
+    {
+      "code": 6011,
+      "name": "limitOrderNotTriggered",
+      "msg": "Limit order cannot be executed at current price"
+    },
+    {
+      "code": 6012,
+      "name": "positionAlreadyExecuted",
+      "msg": "Position already executed"
+    },
+    {
+      "code": 6013,
+      "name": "invalidTriggerPrice",
+      "msg": "Invalid trigger price"
+    },
+    {
+      "code": 6014,
+      "name": "invalidPositionSize",
+      "msg": "Invalid position size"
+    },
+    {
+      "code": 6015,
+      "name": "positionSizeTooSmall",
+      "msg": "Position size too small"
+    },
+    {
+      "code": 6016,
+      "name": "positionSizeTooLarge",
+      "msg": "Position size too large"
+    },
+    {
+      "code": 6017,
+      "name": "maxLeverageExceeded",
+      "msg": "Maximum leverage exceeded"
+    },
+    {
+      "code": 6018,
+      "name": "minMarginNotMet",
+      "msg": "Minimum margin requirement not met"
+    },
+    {
+      "code": 6019,
+      "name": "fundingPaymentFailed",
+      "msg": "Position funding payment failed"
+    },
+    {
+      "code": 6020,
+      "name": "interestPaymentFailed",
+      "msg": "Position interest payment failed"
+    },
+    {
+      "code": 6021,
+      "name": "invalidFundingRate",
+      "msg": "Invalid funding rate"
+    },
+    {
+      "code": 6022,
+      "name": "invalidInterestRate",
+      "msg": "Invalid interest rate"
+    },
+    {
+      "code": 6023,
+      "name": "pnLCalculationFailed",
+      "msg": "Position PnL calculation failed"
+    },
+    {
+      "code": 6024,
+      "name": "positionUpdateFailed",
+      "msg": "Position update failed"
+    },
+    {
+      "code": 6025,
+      "name": "invalidPositionState",
+      "msg": "Invalid position state"
+    },
+    {
+      "code": 6026,
+      "name": "positionNotFound",
+      "msg": "Position not found"
+    },
+    {
+      "code": 6027,
+      "name": "cannotModifyExecutedPosition",
+      "msg": "Cannot modify executed position"
+    },
+    {
+      "code": 6028,
+      "name": "invalidExecutionPrice",
+      "msg": "Invalid execution price"
+    },
+    {
+      "code": 6029,
+      "name": "positionCannotBeCanceled",
+      "msg": "Position cannot be canceled"
+    },
+    {
+      "code": 6030,
+      "name": "utilizationTooHigh",
+      "msg": "Utilization rate too high"
+    },
+    {
+      "code": 6031,
+      "name": "invalidUtilizationRate",
+      "msg": "Invalid utilization rate"
+    },
+    {
+      "code": 6032,
+      "name": "invalidBorrowRateCurvePoint",
+      "msg": "Invalid borrow rate curve point"
+    },
+    {
+      "code": 6033,
+      "name": "borrowRateNotInitialized",
+      "msg": "Borrow rate not initialized"
+    },
+    {
+      "code": 6034,
+      "name": "assetTypeNotSet",
+      "msg": "Asset type not set"
+    },
+    {
+      "code": 6035,
+      "name": "invalidPerpetualsConfig",
+      "msg": "Invalid perpetuals config"
+    },
+    {
+      "code": 6036,
+      "name": "custodyAmountLimit",
+      "msg": "Custody amount limit exceeded"
+    },
+    {
+      "code": 6037,
+      "name": "positionAmountLimit",
+      "msg": "Position amount limit exceeded"
+    },
+    {
+      "code": 6038,
+      "name": "maxUtilization",
+      "msg": "Maximum utilization exceeded"
     }
   ],
   "types": [
@@ -5839,6 +6694,47 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "borrowRateCurve",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "points",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "curvePoint"
+                  }
+                },
+                11
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "cancelLimitOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "receiveSol",
+            "type": "bool"
           }
         ]
       }
@@ -5950,6 +6846,22 @@ export type OptionContract = {
       }
     },
     {
+      "name": "curvePoint",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "utilizationRateBps",
+            "type": "u32"
+          },
+          {
+            "name": "borrowRateBps",
+            "type": "u32"
+          }
+        ]
+      }
+    },
+    {
       "name": "custody",
       "type": {
         "kind": "struct",
@@ -6040,6 +6952,26 @@ export type OptionContract = {
       }
     },
     {
+      "name": "executeLimitOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "executionPrice",
+            "type": "f64"
+          }
+        ]
+      }
+    },
+    {
       "name": "exerciseOptionParams",
       "type": {
         "kind": "struct",
@@ -6087,6 +7019,10 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          },
+          {
+            "name": "liquidatorRewardAccount",
+            "type": "pubkey"
           }
         ]
       }
@@ -6236,20 +7172,38 @@ export type OptionContract = {
         "kind": "struct",
         "fields": [
           {
-            "name": "collateralAmount",
+            "name": "sizeUsd",
             "type": "u64"
           },
           {
-            "name": "positionSize",
+            "name": "collateralAmount",
             "type": "u64"
           },
           {
             "name": "side",
             "type": {
               "defined": {
-                "name": "perpSide"
+                "name": "side"
               }
             }
+          },
+          {
+            "name": "positionType",
+            "type": {
+              "defined": {
+                "name": "positionType"
+              }
+            }
+          },
+          {
+            "name": "triggerPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "triggerAboveThreshold",
+            "type": "bool"
           },
           {
             "name": "maxSlippage",
@@ -6264,8 +7218,16 @@ export type OptionContract = {
             "type": "bool"
           },
           {
-            "name": "payAmount",
-            "type": "u64"
+            "name": "takeProfitPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stopLossPrice",
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
@@ -6293,7 +7255,7 @@ export type OptionContract = {
           },
           {
             "name": "strikePrice",
-            "type": "f64"
+            "type": "u64"
           },
           {
             "name": "period",
@@ -6365,105 +7327,23 @@ export type OptionContract = {
           },
           {
             "name": "entryPrice",
-            "type": "f64"
+            "type": "u64"
           },
           {
             "name": "lastUpdateTime",
             "type": "i64"
-          }
-        ]
-      }
-    },
-    {
-      "name": "perpPosition",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "owner",
-            "type": "pubkey"
           },
           {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "solCustody",
-            "type": "pubkey"
-          },
-          {
-            "name": "usdcCustody",
-            "type": "pubkey"
-          },
-          {
-            "name": "side",
+            "name": "takeProfitPrice",
             "type": {
-              "defined": {
-                "name": "perpSide"
-              }
+              "option": "u64"
             }
           },
           {
-            "name": "collateralAmount",
-            "type": "u64"
-          },
-          {
-            "name": "collateralAsset",
-            "type": "pubkey"
-          },
-          {
-            "name": "positionSize",
-            "type": "u64"
-          },
-          {
-            "name": "leverage",
-            "type": "f64"
-          },
-          {
-            "name": "entryPrice",
-            "type": "f64"
-          },
-          {
-            "name": "liquidationPrice",
-            "type": "f64"
-          },
-          {
-            "name": "openTime",
-            "type": "i64"
-          },
-          {
-            "name": "lastUpdateTime",
-            "type": "i64"
-          },
-          {
-            "name": "unrealizedPnl",
-            "type": "i64"
-          },
-          {
-            "name": "marginRatio",
-            "type": "f64"
-          },
-          {
-            "name": "isLiquidated",
-            "type": "bool"
-          },
-          {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "perpSide",
-      "type": {
-        "kind": "enum",
-        "variants": [
-          {
-            "name": "long"
-          },
-          {
-            "name": "short"
+            "name": "stopLossPrice",
+            "type": {
+              "option": "u64"
+            }
           }
         ]
       }
@@ -6504,6 +7384,190 @@ export type OptionContract = {
           {
             "name": "lpTokenBump",
             "type": "u8"
+          },
+          {
+            "name": "borrowRateCurve",
+            "type": {
+              "defined": {
+                "name": "borrowRateCurve"
+              }
+            }
+          },
+          {
+            "name": "cumulativeFundingRateLong",
+            "type": "i128"
+          },
+          {
+            "name": "cumulativeFundingRateShort",
+            "type": "i128"
+          },
+          {
+            "name": "cumulativeInterestRate",
+            "type": "u128"
+          },
+          {
+            "name": "lastRateUpdate",
+            "type": "i64"
+          },
+          {
+            "name": "longOpenInterestUsd",
+            "type": "u128"
+          },
+          {
+            "name": "shortOpenInterestUsd",
+            "type": "u128"
+          },
+          {
+            "name": "totalBorrowedUsd",
+            "type": "u128"
+          },
+          {
+            "name": "lastUtilizationUpdate",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "position",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateralCustody",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionType",
+            "type": {
+              "defined": {
+                "name": "positionType"
+              }
+            }
+          },
+          {
+            "name": "side",
+            "type": {
+              "defined": {
+                "name": "side"
+              }
+            }
+          },
+          {
+            "name": "isLiquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "sizeUsd",
+            "type": "u64"
+          },
+          {
+            "name": "borrowSizeUsd",
+            "type": "u64"
+          },
+          {
+            "name": "collateralUsd",
+            "type": "u64"
+          },
+          {
+            "name": "openTime",
+            "type": "i64"
+          },
+          {
+            "name": "updateTime",
+            "type": "i64"
+          },
+          {
+            "name": "liquidationPrice",
+            "type": "u64"
+          },
+          {
+            "name": "initialMarginBps",
+            "type": "u64"
+          },
+          {
+            "name": "maintenanceMarginBps",
+            "type": "u64"
+          },
+          {
+            "name": "cumulativeInterestSnapshot",
+            "type": "u128"
+          },
+          {
+            "name": "cumulativeFundingSnapshot",
+            "type": "u128"
+          },
+          {
+            "name": "totalFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "openingFeePaid",
+            "type": "u64"
+          },
+          {
+            "name": "lockedAmount",
+            "type": "u64"
+          },
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "takeProfitPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stopLossPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "triggerPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "triggerAboveThreshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "market"
+          },
+          {
+            "name": "limit"
           }
         ]
       }
@@ -6620,6 +7684,76 @@ export type OptionContract = {
           {
             "name": "minSignatures",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "setOptionTpSlParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "optionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "takeProfitPrice",
+            "type": {
+              "option": "f64"
+            }
+          },
+          {
+            "name": "stopLossPrice",
+            "type": {
+              "option": "f64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "setTpSlParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "takeProfitPrice",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stopLossPrice",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "side",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "long"
+          },
+          {
+            "name": "short"
           }
         ]
       }

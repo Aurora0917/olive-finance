@@ -13,6 +13,7 @@ import { ApyIcon, TooltipIcon, TvlIcon } from "@/public/svgs/icons"
 import { TooltipProvider } from "@radix-ui/react-tooltip"
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip"
 import { ContractContext } from "@/contexts/contractProvider";
+import { useDataContext } from "@/contexts/dataProvider";
 import { USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const"
 import { usePythPrice } from "@/hooks/usePythPrice"
 
@@ -21,14 +22,17 @@ export default function EarnCards() {
     const [currentPage, setCurrentPage] = useState(1)
     const cardsPerPage = 20;
     const [allStrategies, setAllStrategies] = useState<Strategy[]>([]);
-    const { poolData } = useContext(ContractContext);
+    // Get data from backend API
+    const { poolMetrics } = useDataContext();
+    
+    // Convert to contract provider format for compatibility
+    const poolData = poolMetrics.length > 0 ? poolMetrics[0] : null;
     const { priceData, loading: priceLoading } = usePythPrice('Crypto.SOL/USD');
 
     useEffect(() => {
         if (poolData) {
-            const solPoolsize = poolData!.sol.tokenOwned / 10 ** WSOL_DECIMALS;
-            const usdcPoolsize = poolData!.usdc.tokenOwned / 10 ** USDC_DECIMALS;
-            const total = solPoolsize * (priceData.price || 150) + usdcPoolsize;
+            // Backend API provides totalValueLocked directly
+            const total = poolData.totalValueLocked;
             // setAllStrategies(generateStrategies(19))
             setAllStrategies([getStrategy(total)]);
         }

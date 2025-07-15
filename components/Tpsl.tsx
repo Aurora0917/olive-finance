@@ -13,6 +13,8 @@ import { Input } from "./ui/input";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { tpSlApiService, TpSlOrderRequest } from "@/services/tpSlApiService";
 import { toast } from "sonner";
+import { ContractContext } from "@/contexts/contractProvider";
+import { useContext } from "react";
 
 interface TpSlFormData {
     type: 'take-profit' | 'stop-loss';
@@ -24,30 +26,35 @@ interface TpSlFormData {
 
 interface TpslProps {
     onCreateOrder?: (orderData: TpSlFormData) => void;
-    // Backend integration props
-    userId?: string;
-    positionId?: string;
+    // Onchain integration props
+    positionIndex?: number; // Required for onchain TP/SL
+    poolName?: string;
     positionType?: 'long' | 'short'; // Frontend still uses long/short for UI
     positionDirection?: 'long' | 'short'; // Keep for internal logic
-    contractType?: 'perp' | 'option'; // Backend position type
     currentPrice: number;
-    custody?: string;
-    poolName?: string;
     onOrderCreated?: () => void; // Callback to refresh orders
+    // Legacy backend props (deprecated)
+    userId?: string;
+    positionId?: string;
+    contractType?: 'perp' | 'option';
+    custody?: string;
 }
 
 export default function Tpsl({ 
     onCreateOrder, 
-    userId,
-    positionId,
+    positionIndex,
+    poolName = "SOL/USDC",
     positionType = 'long',
     positionDirection,
-    contractType = 'perp',
     currentPrice,
-    custody,
-    poolName,
-    onOrderCreated
+    onOrderCreated,
+    // Legacy props
+    userId,
+    positionId,
+    contractType = 'perp',
+    custody
 }: TpslProps) {
+    const { onSetTpSl } = useContext(ContractContext);
     const [isPartial, setIsPartial] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
     const [active, setActive] = useState('tp')
@@ -117,99 +124,43 @@ export default function Tpsl({
                 return;
             }
 
-            // If backend integration is available
-            if (userId && positionId && custody) {
+            // Use onchain transaction for TP/SL (preferred method)
+            if (positionIndex !== undefined && onSetTpSl) {
                 try {
-                    if (isPartial) {
-                        // For partial orders, create order based on active tab
-                        const price = activeTab === "TP" ? tp : sl;
-                        if (!price || price <= 0) {
-                            toast.error('Please enter a valid price');
-                            setIsLoading(false);
-                            return;
-                        }
+                    // Validate that at least one price is provided
+                    if ((!tp || tp <= 0) && (!sl || sl <= 0)) {
+                        toast.error('Please enter at least one TP or SL price');
+                        setIsLoading(false);
+                        return;
+                    }
 
-                        const orderData: TpSlOrderRequest = {
-                            user: userId,
-                            positionId: `${positionId}_${activeTab.toLowerCase()}_${Date.now()}`,
-                            contractType: contractType,
-                            positionType: positionType,
-                            poolName: poolName || 'SOL/USDC',
-                            receiveAsset: selectedToken === 'SOL' ? 'SOL' : 'USDC',
-                            custody: '6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY',
-                            closePercent: selectedSizePercentage,
-                            isActive: true
-                        };
+                    console.log("Setting TP/SL onchain for position:", positionIndex);
+                    
+                    // Call the onchain set_tp_sl instruction
+                    const result = await onSetTpSl(
+                        positionIndex,
+                        poolName,
+                        tp && tp > 0 ? tp : undefined,
+                        sl && sl > 0 ? sl : undefined
+                    );
 
-                        // Add the appropriate TP or SL
-                        if (activeTab === "TP") {
-                            orderData.takeProfit = {
-                                price: price,
-                                enabled: true,
-                                triggerCondition: tpSlApiService.getTriggerCondition(effectivePositionDirection, 'takeProfit')
-                            };
-                        } else {
-                            orderData.stopLoss = {
-                                price: price,
-                                enabled: true,
-                                triggerCondition: tpSlApiService.getTriggerCondition(effectivePositionDirection, 'stopLoss')
-                            };
-                        }
-
-                        await tpSlApiService.createTpSlOrder(orderData);
-                        toast.success(`${activeTab === "TP" ? 'Take Profit' : 'Stop Loss'} order created successfully`);
-                    } else {
-                        // For full orders, create a single order with both TP and SL if provided
-                        if ((!tp || tp <= 0) && (!sl || sl <= 0)) {
-                            toast.error('Please enter at least one TP or SL price');
-                            setIsLoading(false);
-                            return;
-                        }
-
-                        const orderData: TpSlOrderRequest = {
-                            user: userId,
-                            positionId: `${positionId}_full_${Date.now()}`,
-                            contractType: contractType,
-                            positionType: positionType,
-                            poolName: poolName || 'SOL/USDC',
-                            receiveAsset: selectedToken === 'SOL' ? 'SOL' : 'USDC',
-                            custody: '6fiDYq4uZgQQNUZVaBBcwu9jAUTWWBb7U8nmxt6BCaHY',
-                            closePercent: 100,
-                            isActive: true
-                        };
-
-                        // Add TP if provided
-                        if (tp && tp > 0) {
-                            orderData.takeProfit = {
-                                price: tp,
-                                enabled: true,
-                                triggerCondition: tpSlApiService.getTriggerCondition(effectivePositionDirection, 'takeProfit')
-                            };
-                        }
-
-                        // Add SL if provided
-                        if (sl && sl > 0) {
-                            orderData.stopLoss = {
-                                price: sl,
-                                enabled: true,
-                                triggerCondition: tpSlApiService.getTriggerCondition(effectivePositionDirection, 'stopLoss')
-                            };
-                        }
-
-                        await tpSlApiService.createTpSlOrder(orderData);
-                        
+                    if (result) {
                         const orderTypes = [];
                         if (tp && tp > 0) orderTypes.push('Take Profit');
                         if (sl && sl > 0) orderTypes.push('Stop Loss');
                         
-                        toast.success(`${orderTypes.join(' and ')} order(s) created successfully`);
+                        toast.success(`${orderTypes.join(' and ')} set successfully onchain`);
+                        
+                        // Callback to refresh data in parent component
+                        onOrderCreated?.();
+                    } else {
+                        toast.error('Failed to set TP/SL onchain');
+                        setIsLoading(false);
+                        return;
                     }
-
-                    // Callback to refresh orders in parent component
-                    onOrderCreated?.();
                 } catch (error: any) {
-                    console.error('Error creating TP/SL order:', error);
-                    toast.error(error.message || 'Failed to create TP/SL order');
+                    console.error('Error setting TP/SL onchain:', error);
+                    toast.error(error.message || 'Failed to set TP/SL onchain');
                     setIsLoading(false);
                     return;
                 }
@@ -310,9 +261,9 @@ export default function Tpsl({
                         <p className="text-xs text-secondary-foreground">
                             Current price: ${currentPrice.toFixed(2)} | Position: {effectivePositionDirection.toUpperCase()}
                         </p>
-                        {userId && (
-                            <p className="text-xs text-blue-400">
-                                Backend Mode: {contractType.toUpperCase()}
+                        {positionIndex !== undefined && (
+                            <p className="text-xs text-green-400">
+                                Onchain Mode: Position {positionIndex}
                             </p>
                         )}
                         {isPartial && (

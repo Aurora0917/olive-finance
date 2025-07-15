@@ -10,7 +10,9 @@ import Pagination from "./Pagination";
 import ExpiredFutures from "./ExpiredFutures";
 import FuturesOrderHistory from "./FuturesOrderHistory";
 import { ContractContext } from "@/contexts/contractProvider";
+import { useDataContext } from "@/contexts/dataProvider";
 import { FuturePos, FuturesTransaction } from "@/lib/data/WalletActivity";
+import { tokenList } from "@/lib/data/tokenlist";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { RefreshCw } from "lucide-react";
 
@@ -69,14 +71,46 @@ const EmptySection = ({ message }: { message: string }) => (
 );
 
 export default function FuturesPositions() {
+    // Get data from backend API
     const {
-        perpPositions,
-        positionsLoading,
+        positions: backendPositions,
+        transactions: donePositions,
+        isLoadingPositions: positionsLoading,
+        refreshUserData: refreshPerpPositions,
+    } = useDataContext();
+    
+    // Convert backend Position[] to FuturePos[]
+    const perpPositions: FuturePos[] = backendPositions
+        .filter(pos => pos.contractType === 'perp')
+        .map(pos => {
+            // Find the token from tokenList based on pool name
+            const tokenSymbol = pos.poolName.split('/')[0] || 'SOL';
+            const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0]; // Default to SOL
+            
+            return {
+                token: foundToken,
+                symbol: pos.poolName,
+                futureType: 'perps' as const,
+                position: pos.side ? 'long' : 'short' as 'long' | 'short',
+                entryPrice: pos.entryPrice,
+                LiqPrice: pos.liquidationPrice,
+                size: pos.positionSize,
+                collateral: pos.collateralAmount,
+                TPSL: pos.takeProfitPrice || pos.stopLossPrice || 0,
+                logo: foundToken.iconPath,
+                leverage: pos.leverage,
+                purchaseDate: new Date(pos.openedAt).toLocaleDateString(),
+                unrealizedPnl: pos.unrealizedPnl,
+                marginRatio: (pos.collateralAmount / pos.positionSize) * 100,
+                accountAddress: pos.positionId
+            };
+        });
+    
+    // Get transaction functions from contract provider
+    const {
         onClosePerp,
         onAddCollateral,
         onRemoveCollateral,
-        refreshPerpPositions,
-        donePositions,
         program,
     } = useContext(ContractContext);
 
@@ -109,7 +143,7 @@ export default function FuturesPositions() {
     const convertPerpPositionsToTransactions = (positions: FuturePos[]): FuturesTransaction[] => {
         return positions.map((pos, index) => ({
             transactionID: `PERP-${pos.accountAddress || index}-${pos.position}`,
-            token: pos.token,
+            token: pos.token, // This is now properly a Token object
             transactionType: pos.position, // "long" or "short"
             futureType: "Perps",
             expiry: "N/A", // Perps don't expire

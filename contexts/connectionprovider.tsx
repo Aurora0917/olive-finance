@@ -13,6 +13,7 @@ import { TorusWalletAdapter } from "@solana/wallet-adapter-torus";
 import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo } from "react";
 import { ContractProvider } from "./contractProvider";
+import { DataProvider } from "./dataProvider";
 
 export default ({ children }: { children: React.ReactNode }) => {
   const network = WalletAdapterNetwork.Mainnet;
@@ -31,7 +32,9 @@ export default ({ children }: { children: React.ReactNode }) => {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <ContractProvider>{children}</ContractProvider>
+        <ContractProvider>
+          <DataProvider>{children}</DataProvider>
+        </ContractProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

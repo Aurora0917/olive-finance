@@ -6405,198 +6405,103 @@
   "errors": [
     {
       "code": 6000,
-      "name": "PositionLiquidated",
-      "msg": "Position has been liquidated"
+      "name": "InvalidAmount",
+      "msg": "Invalid amount specified"
     },
     {
       "code": 6001,
-      "name": "PositionNotLiquidatable",
-      "msg": "Position cannot be liquidated"
+      "name": "InvalidSlippage",
+      "msg": "Invalid slippage tolerance"
     },
     {
       "code": 6002,
-      "name": "InvalidLiquidationPrice",
-      "msg": "Invalid liquidation price"
+      "name": "PriceSlippage",
+      "msg": "Price slippage exceeded limits"
     },
     {
       "code": 6003,
-      "name": "InvalidLeverage",
-      "msg": "Invalid leverage specified"
+      "name": "SlippageExceededError",
+      "msg": "Slippage exceeded on trade"
     },
     {
       "code": 6004,
-      "name": "InsufficientCollateral",
-      "msg": "Insufficient collateral"
+      "name": "InvalidParameterError",
+      "msg": "Invalid parameter provided"
     },
     {
       "code": 6005,
-      "name": "InvalidCollateralAsset",
-      "msg": "Invalid collateral asset"
+      "name": "InsufficientBalance",
+      "msg": "Insufficient balance for operation"
     },
     {
       "code": 6006,
-      "name": "WouldCauseLiquidation",
-      "msg": "Would cause liquidation"
+      "name": "InsufficientFundsError",
+      "msg": "Insufficient funds for transaction"
     },
     {
       "code": 6007,
-      "name": "InsufficientMargin",
-      "msg": "Insufficient margin"
+      "name": "InsufficientPoolLiquidity",
+      "msg": "Insufficient pool liquidity"
     },
     {
       "code": 6008,
-      "name": "InvalidPositionType",
-      "msg": "Invalid position type"
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
     },
     {
       "code": 6009,
-      "name": "NotLimitOrder",
-      "msg": "Position is not a limit order"
+      "name": "InvalidOwner",
+      "msg": "Invalid owner"
     },
     {
       "code": 6010,
-      "name": "NotMarketOrder",
-      "msg": "Position is not a market order"
+      "name": "InvalidMintError",
+      "msg": "Invalid mint specified"
     },
     {
       "code": 6011,
-      "name": "LimitOrderNotTriggered",
-      "msg": "Limit order cannot be executed at current price"
+      "name": "InvalidPrice",
+      "msg": "Invalid price specified"
     },
     {
       "code": 6012,
-      "name": "PositionAlreadyExecuted",
-      "msg": "Position already executed"
+      "name": "InvalidPriceRange",
+      "msg": "Invalid price range for TP/SL"
     },
     {
       "code": 6013,
-      "name": "InvalidTriggerPrice",
-      "msg": "Invalid trigger price"
+      "name": "InvalidTakeProfitPrice",
+      "msg": "Invalid take profit price"
     },
     {
       "code": 6014,
-      "name": "InvalidPositionSize",
-      "msg": "Invalid position size"
+      "name": "InvalidStopLossPrice",
+      "msg": "Invalid stop loss price"
     },
     {
       "code": 6015,
-      "name": "PositionSizeTooSmall",
-      "msg": "Position size too small"
+      "name": "InvalidSignerBalanceError",
+      "msg": "Insufficient balance to cover premium/collateral"
     },
     {
       "code": 6016,
-      "name": "PositionSizeTooLarge",
-      "msg": "Position size too large"
+      "name": "InvalidLockedBalanceError",
+      "msg": "Invalid locked balance in custody"
     },
     {
       "code": 6017,
-      "name": "MaxLeverageExceeded",
-      "msg": "Maximum leverage exceeded"
+      "name": "PriceConfidenceError",
+      "msg": "Price confidence interval too wide - oracle data unreliable"
     },
     {
       "code": 6018,
-      "name": "MinMarginNotMet",
-      "msg": "Minimum margin requirement not met"
+      "name": "PrecisionLossError",
+      "msg": "Precision loss detected in calculations - values too small"
     },
     {
       "code": 6019,
-      "name": "FundingPaymentFailed",
-      "msg": "Position funding payment failed"
-    },
-    {
-      "code": 6020,
-      "name": "InterestPaymentFailed",
-      "msg": "Position interest payment failed"
-    },
-    {
-      "code": 6021,
-      "name": "InvalidFundingRate",
-      "msg": "Invalid funding rate"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidInterestRate",
-      "msg": "Invalid interest rate"
-    },
-    {
-      "code": 6023,
-      "name": "PnLCalculationFailed",
-      "msg": "Position PnL calculation failed"
-    },
-    {
-      "code": 6024,
-      "name": "PositionUpdateFailed",
-      "msg": "Position update failed"
-    },
-    {
-      "code": 6025,
-      "name": "InvalidPositionState",
-      "msg": "Invalid position state"
-    },
-    {
-      "code": 6026,
-      "name": "PositionNotFound",
-      "msg": "Position not found"
-    },
-    {
-      "code": 6027,
-      "name": "CannotModifyExecutedPosition",
-      "msg": "Cannot modify executed position"
-    },
-    {
-      "code": 6028,
-      "name": "InvalidExecutionPrice",
-      "msg": "Invalid execution price"
-    },
-    {
-      "code": 6029,
-      "name": "PositionCannotBeCanceled",
-      "msg": "Position cannot be canceled"
-    },
-    {
-      "code": 6030,
-      "name": "UtilizationTooHigh",
-      "msg": "Utilization rate too high"
-    },
-    {
-      "code": 6031,
-      "name": "InvalidUtilizationRate",
-      "msg": "Invalid utilization rate"
-    },
-    {
-      "code": 6032,
-      "name": "InvalidBorrowRateCurvePoint",
-      "msg": "Invalid borrow rate curve point"
-    },
-    {
-      "code": 6033,
-      "name": "BorrowRateNotInitialized",
-      "msg": "Borrow rate not initialized"
-    },
-    {
-      "code": 6034,
-      "name": "AssetTypeNotSet",
-      "msg": "Asset type not set"
-    },
-    {
-      "code": 6035,
-      "name": "InvalidPerpetualsConfig",
-      "msg": "Invalid perpetuals config"
-    },
-    {
-      "code": 6036,
-      "name": "CustodyAmountLimit",
-      "msg": "Custody amount limit exceeded"
-    },
-    {
-      "code": 6037,
-      "name": "PositionAmountLimit",
-      "msg": "Position amount limit exceeded"
-    },
-    {
-      "code": 6038,
-      "name": "MaxUtilization",
-      "msg": "Maximum utilization exceeded"
+      "name": "StalePriceError",
+      "msg": "Stale price data"
     }
   ],
   "types": [
