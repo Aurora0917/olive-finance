@@ -11,6 +11,7 @@ import type { MarketDataState } from "@/hooks/usePythMarketData";
 import { tokenList, Token } from "@/lib/data/tokenlist";
 
 import { ContractContext } from "@/contexts/contractProvider";
+import { useDataContext } from "@/contexts/dataProvider";
 
 
 const cryptoData: Token[] = tokenList
@@ -105,7 +106,29 @@ export default function CryptoNav({
     const [canScrollLeft, setCanScrollLeft] = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
     const [marketChanges, setMarketChanges] = useState<MarketChanges>({});
-    const { poolData, volumeData } = useContext(ContractContext);
+    // Get data from backend API
+    const { poolMetrics, volumeMetrics } = useDataContext();
+    
+    // Convert to contract provider format for compatibility
+    const poolData = poolMetrics.length > 0 ? {
+        sol: {
+            tokenLocked: poolMetrics[0].totalValueLocked * 0.5, // Approximate split
+            tokenOwned: poolMetrics[0].totalValueLocked * 0.5,
+            utilizationPercent: poolMetrics[0].utilizationRate,
+            borrowRate: poolMetrics[0].interestRate
+        },
+        usdc: {
+            tokenLocked: poolMetrics[0].totalValueLocked * 0.5,
+            tokenOwned: poolMetrics[0].totalValueLocked * 0.5,
+            utilizationPercent: poolMetrics[0].utilizationRate,
+            borrowRate: poolMetrics[0].interestRate
+        }
+    } : null;
+    const volumeData = {
+        volume24h: volumeMetrics.volume24h || 0,
+        optionsCount24h: volumeMetrics.optionsCount24h || 0,
+        perpsCount24h: volumeMetrics.perpsCount24h || 0
+    };
 
     const handleMarketChange = React.useCallback((symbol: string, change: number | null) => {
         setMarketChanges(prev => ({

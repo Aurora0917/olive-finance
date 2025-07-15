@@ -89,6 +89,7 @@ interface ContractContextType {
   onRemoveCollateral: Function,
   onAddLiquidity: Function;
   onRemoveLiquidity: Function;
+  onSetTpSl: Function;
   getOptionDetailAccount: Function;
   getPoolFees: () => Promise<{
     ratioMultiplier: string;
@@ -127,6 +128,7 @@ export const ContractContext = createContext<ContractContextType>({
   onRemoveCollateral: async () => { },
   onAddLiquidity: () => { },
   onRemoveLiquidity: () => { },
+  onSetTpSl: async () => false,
   getOptionDetailAccount: () => { },
   getPoolFees: async () => null,
   positions: [],
@@ -491,7 +493,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log(`User has ${perpPositionCount} perp positions`);
 
       // Fetch all perp position accounts for this user
-      const userPerpAccounts = await program.account.perpPosition.all([
+      const userPerpAccounts = await program.account.position.all([
         {
           memcmp: {
             offset: 8, // Skip discriminator to get to owner field
@@ -513,19 +515,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             continue; // Skip liquidated positions
           }
 
-          // Calculate position size in SOL (convert from lamports)
-          const positionSizeSOL = position.positionSize.toNumber() / (10 ** WSOL_DECIMALS);
+          // Calculate position size in SOL (convert from USD using price)
+          const positionSizeUSD = position.sizeUsd.toNumber();
 
           const [solCustody] = PublicKey.findProgramAddressSync(
             [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
             program.programId
           );
 
-          // Calculate collateral in USD (convert from micro-USDC)
-          const collateralUSD = position.collateralAmount.toNumber() / (position.collateralAsset.toBase58() == solCustody.toBase58() ? 10 ** WSOL_DECIMALS : 10 ** USDC_DECIMALS);
+          // Get collateral value in USD (already stored as USD value)
+          const collateralUSD = position.collateralUsd.toNumber();
 
           // Calculate unrealized PnL
-          const entryPrice = position.entryPrice;
+          const entryPrice = position.price;
           const liquidationPrice = position.liquidationPrice;
 
           let unrealizedPnl = 0;
@@ -536,7 +538,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               : entryPrice - currentPrice; // Short: profit when price goes down
 
             const pnlRatio = priceDiff / entryPrice;
-            unrealizedPnl = pnlRatio * positionSizeSOL;
+            unrealizedPnl = pnlRatio * positionSizeUSD;
           }
 
           // Calculate TPSL (Take Profit / Stop Loss) - simplified version
@@ -564,15 +566,15 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             position: position.side.hasOwnProperty("long") ? "long" : "short",
             entryPrice: Number(entryPrice.toFixed(2)),
             LiqPrice: Number(liquidationPrice.toFixed(2)),
-            size: Number(positionSizeSOL.toFixed(6)),
+            size: Number(positionSizeUSD.toFixed(6)),
             collateral: Number(collateralUSD.toFixed(2)),
             TPSL: Number(tpsl.toFixed(2)),
             logo: '/images/solana.png',
-            leverage: Number(position.leverage.toFixed(2)),
+            leverage: Number((positionSizeUSD / collateralUSD).toFixed(2)),
             purchaseDate: formattedPurchaseDate,
             // Additional fields for debugging/tracking
             unrealizedPnl: Number(unrealizedPnl.toFixed(2)),
-            marginRatio: Number((position.marginRatio * 100).toFixed(2)),
+            marginRatio: Number((100 / (positionSizeUSD / collateralUSD)).toFixed(2)),
             accountAddress: perpAccount.publicKey.toBase58(),
           };
 
@@ -593,7 +595,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       // Fallback: try without memcmp filter
       try {
         console.log("Trying fallback method...");
-        const allPerpAccounts = await program.account.perpPosition.all();
+        const allPerpAccounts = await program.account.position.all();
         const userPerps = allPerpAccounts.filter(account =>
           account.account.owner.equals(publicKey)
         );
@@ -1328,8 +1330,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         })
         .accountsPartial({
           owner: publicKey,
-          userSolAccount: userSolAccount,      // Required: matches contract account name
-          userUsdcAccount: userUsdcAccount,    // Required: matches contract account name
+          receivingAccount: receiveAsset === "SOL" ? userSolAccount : userUsdcAccount,
           transferAuthority: transferAuthority, // Required: matches contract account name
           contract: contract,                  // Required: matches contract account name
           pool: pool,
@@ -1618,8 +1619,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         })
         .accountsPartial({
           owner: publicKey,
-          solFundingAccount: solFundingAccount,
-          usdcFundingAccount: usdcFundingAccount,
+          fundingAccount: paySol ? solFundingAccount : usdcFundingAccount,
           contract: contract,
           pool: pool,
           position: position,
@@ -1766,8 +1766,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         })
         .accountsPartial({
           owner: publicKey,
-          userSolAccount: userSolAccount,
-          userUsdcAccount: userUsdcAccount,
+          receivingAccount: receiveSol ? userSolAccount : userUsdcAccount,
           transferAuthority: transferAuthority,
           contract: contract,
           pool: pool,
@@ -2669,6 +2668,80 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
+  const onSetTpSl = async (
+    positionIndex: number,
+    poolName: string = "SOL/USDC",
+    takeProfitPrice?: number,
+    stopLossPrice?: number
+  ) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      console.log("Setting TP/SL with params:", {
+        positionIndex,
+        poolName,
+        takeProfitPrice,
+        stopLossPrice
+      });
+
+      // Find pool PDA
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from(poolName)],
+        program.programId
+      );
+
+      // Find position PDA
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("position"),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Convert prices to scaled values (multiply by 10^6 for precision)
+      const scaledTpPrice = takeProfitPrice ? new BN(Math.floor(takeProfitPrice * 1e6)) : null;
+      const scaledSlPrice = stopLossPrice ? new BN(Math.floor(stopLossPrice * 1e6)) : null;
+
+      const params = {
+        positionIndex: new BN(positionIndex),
+        poolName: poolName,
+        takeProfitPrice: scaledTpPrice,
+        stopLossPrice: scaledSlPrice
+      };
+
+      const transaction = await program.methods
+        .setTpSl(params)
+        .accountsPartial({
+          owner: publicKey,
+          pool: pool,
+          position: position
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      const signature = await sendTransaction(transaction, connection);
+      
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log("TP/SL set successfully, signature:", signature);
+      
+      // Refresh positions to get updated data
+      await refreshPerpPositions();
+      
+      return signature;
+    } catch (error) {
+      console.error("Error setting TP/SL:", error);
+      return false;
+    }
+  };
+
   const getPoolFees = async () => {
     try {
       if (!program || !publicKey) return null;
@@ -2756,6 +2829,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onRemoveCollateral,
         onAddLiquidity,
         onRemoveLiquidity,
+        onSetTpSl,
         getOptionDetailAccount,
         getPoolFees,
         positions,

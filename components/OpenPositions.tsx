@@ -11,6 +11,7 @@ import { Separator } from './ui/separator';
 import { motion, AnimatePresence } from "framer-motion";
 import { OptionDetailUtils } from "@/utils/optionsPricing";
 import { ContractContext } from "@/contexts/contractProvider";
+import { useDataContext } from "@/contexts/dataProvider";
 
 
 interface OpenPositionProps {
@@ -40,9 +41,20 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
     const [isOpen, setIsOpen] = useState<boolean>(false)
     const [activeTab, setActiveTab] = useState<string>('Overview')
 
-    const {
-        getPoolUtilization
-    } = useContext(ContractContext);
+    // Get pool utilization from backend API
+    const { poolMetrics } = useDataContext();
+    
+    const getPoolUtilization = (asset: "SOL" | "USDC") => {
+        if (poolMetrics.length > 0) {
+            // Convert backend format to match contract provider format
+            const pool = poolMetrics[0];
+            return {
+                utilizationPercent: pool.utilizationRate,
+                borrowRate: pool.interestRate
+            };
+        }
+        return null;
+    };
 
     const isCall = type === 'Call';
     const timeToExpiry = (new Date(expiry).getTime() - Date.now()) / (365.25 * 24 * 60 * 60 * 1000);
@@ -53,8 +65,8 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
         strikePrice,
         timeToExpiry,
         isCall,
-        utilization?.tokenLocked || 0,
-        utilization?.tokenOwned || 0,
+        utilization?.utilizationPercent || 0,
+        utilization?.borrowRate || 0,
         isCall,
     );
 

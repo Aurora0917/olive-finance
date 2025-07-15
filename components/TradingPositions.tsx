@@ -16,6 +16,9 @@ import {
   DropdownMenuTrigger,
 } from "./ui/dropdown-menu";
 import { ContractContext } from "@/contexts/contractProvider";
+import { useDataContext } from "@/contexts/dataProvider";
+import { tokenList } from "@/lib/data/tokenlist";
+import { coins } from "@/lib/data/coins";
 import Pagination from "./Pagination";
 import OpenOptionOrders from "./OpenOptionOrders";
 import { motion, AnimatePresence } from "framer-motion";
@@ -27,16 +30,80 @@ export default function TradingPositions() {
   const { priceData, loading: priceLoading } = usePythPrice('Crypto.SOL/USD');
   const itemsPerPage = 5;
 
+  // Get data from backend API
   const {
-    positions,
-    expiredPositions,
-    donePositions,
-    refreshPositions,
-    positionsLoading,
+    positions: backendPositions,
+    transactions: backendTransactions,
+    isLoadingPositions: positionsLoading,
+    refreshUserData: refreshPositions,
+  } = useDataContext();
+  
+  // Convert backend transactions to frontend Transaction format
+  const donePositions = backendTransactions.map(tx => {
+    const tokenSymbol = tx.poolName?.split('/')[0] || 'SOL';
+    const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0];
+    const coinToken = coins.find(c => c.symbol === tokenSymbol) || coins[0];
+    
+    return {
+      transactionID: tx.signature,
+      token: coinToken,
+      transactionType: tx.transactionType || 'unknown',
+      optionType: tx.transactionType === 'openOption' ? 'Call' : 'Put', // Approximate based on transaction type
+      expiry: tx.timestamp ? new Date(tx.timestamp).toISOString() : '',
+      strikePrice: tx.price || 0,
+      timestamp: tx.timestamp ? new Date(tx.timestamp).getTime() : Date.now()
+    };
+  });
+  
+  // Convert backend Position[] to frontend Position[] format for options
+  const positions = backendPositions
+    .filter(pos => pos.contractType === 'option')
+    .map(pos => ({
+      // Map backend position to frontend format
+      index: parseInt(pos.positionId) || 0,
+      optionType: pos.side ? 'Call' : 'Put',
+      size: pos.positionSize,
+      strikePrice: pos.entryPrice, // Approximate mapping
+      expiry: (new Date(pos.openedAt).getTime() + (7 * 24 * 60 * 60 * 1000)).toString(), // 7 days from open
+      premium: pos.fees,
+      profit: pos.unrealizedPnl,
+      expired: false, // Backend would need to indicate this
+      purchaseDate: new Date(pos.openedAt).toLocaleDateString(),
+      // Add other required fields with defaults
+      token: pos.poolName.split('/')[0] || 'SOL',
+      logo: '/images/solana.png',
+      greeks: { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 },
+      // Add missing properties for option filtering
+      limitPrice: pos.positionType === 'limit' ? pos.entryPrice : 0,
+      executed: pos.isActive, // If position is active, it means it was executed
+      quantity: pos.positionSize,
+      symbol: pos.poolName.split('/')[0] || 'SOL',
+      type: pos.side ? 'Call' : 'Put',
+      entryPrice: pos.entryPrice,
+      pnl: pos.unrealizedPnl
+    }));
+  
+  // Get transaction functions from contract provider
+  const {
     onClaimOption,
     onExerciseOption,
     onCloseLimitOption
   } = useContext(ContractContext);
+  
+  // Filter expired positions from positions data and map to ExpiredOption format
+  const expiredPositions = positions
+    .filter(pos => pos.expired === true)
+    .map(pos => ({
+      index: pos.index,
+      token: pos.token,
+      transaction: pos.optionType,
+      strikePrice: pos.strikePrice,
+      qty: pos.quantity,
+      expiryPrice: pos.strikePrice, // Using strike price as approximation
+      tokenAmount: pos.quantity,
+      dollarAmount: pos.profit,
+      iconPath: pos.logo
+    }));
 
   const handleClickTab = (state: string) => {
     if (activeTab !== state) {
