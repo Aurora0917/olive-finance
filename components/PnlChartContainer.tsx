@@ -12,11 +12,11 @@ interface PnlChartContainerProps{
     strikePrice:string
     currentPrice:number
     contractType:string
-    positionType:string
+    positionSide:string
 }
 
 
-export default function PnlChartContainer({investment, premium, strikePrice, currentPrice, contractType, positionType} : PnlChartContainerProps){
+export default function PnlChartContainer({investment, premium, strikePrice, currentPrice, contractType, positionSide} : PnlChartContainerProps){
     const invested = convertPrice(parseFloat(investment), currentPrice)
     return (
         <div className="flex flex-col h-full border border-t-0 rounded-b-sm">
@@ -44,7 +44,7 @@ export default function PnlChartContainer({investment, premium, strikePrice, cur
                 strikePrice={parseFloat(strikePrice)}
                 premium={parseFloat(premium)}
                 contractType={contractType.toLowerCase()}
-                positionType={positionType.toLowerCase()}
+                positionSide={positionSide.toLowerCase()}
                 currentPrice={parseFloat(formatPrice(currentPrice))}
                 invested={invested}
                 />

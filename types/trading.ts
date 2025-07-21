@@ -6,3 +6,8 @@ export interface Bar {
     close: number;
     volume: number;
 }
+
+export interface PerpTPSL {
+    price: number;
+    sizePercent: number; // 0-100
+}

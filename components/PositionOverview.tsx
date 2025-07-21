@@ -1,4 +1,4 @@
-import { ExpiryIcon, PositionTypeIcon, PurchasePriceIcon, RedArrowPnl, SizeIcon, StrikePriceIcon, ValueIcon } from "@/public/svgs/icons"
+import { ExpiryIcon, PositionSideIcon, PurchasePriceIcon, RedArrowPnl, SizeIcon, StrikePriceIcon, ValueIcon } from "@/public/svgs/icons"
 import { Calendar, ChevronDown, SquarePen } from "lucide-react"
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover"
 import { Label } from "./ui/label"

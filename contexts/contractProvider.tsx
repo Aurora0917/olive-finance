@@ -42,6 +42,7 @@ import {
 
 import { OptionDetailUtils } from "@/utils/optionsPricing";
 import { Token } from "@/lib/data/tokenlist";
+import { PerpTPSL } from "@/types/trading";
 
 interface PoolUtilization {
   tokenLocked: number;
@@ -85,6 +86,7 @@ interface ContractContextType {
   onExerciseOption: Function;
   onOpenPerp: Function;
   onClosePerp: Function,
+  onCancelLimitPerp: Function,
   onAddCollateral: Function,
   onRemoveCollateral: Function,
   onAddLiquidity: Function;
@@ -124,6 +126,7 @@ export const ContractContext = createContext<ContractContextType>({
   onExerciseOption: () => { },
   onOpenPerp: async () => { },
   onClosePerp: async () => { },
+  onCancelLimitPerp: async () => { },
   onAddCollateral: async () => { },
   onRemoveCollateral: async () => { },
   onAddLiquidity: () => { },
@@ -377,29 +380,29 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Update the refreshPositions function to also refresh volume data
   const refreshPositions = useCallback(async () => {
-    if (program && publicKey) {
-      setPositionsLoading(true);
-      try {
-        console.log("refresh position");
-        // Fetch both options and perp positions
-        const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
-        const perpPos = await getPerpPositions(program, publicKey);
+    // if (program && publicKey) {
+    //   setPositionsLoading(true);
+    //   try {
+    //     console.log("refresh position");
+    //     // Fetch both options and perp positions
+    //     const [pinfo, expiredpinfo, doneinfo] = await getDetailInfos(program, publicKey);
+    //     const perpPos = await getPerpPositions(program, publicKey);
 
-        setPositions(pinfo);
-        setExpiredPositions(expiredpinfo);
-        setDonePositions(doneinfo);
-        setPerpPositions(perpPos);
+    //     setPositions(pinfo);
+    //     setExpiredPositions(expiredpinfo);
+    //     setDonePositions(doneinfo);
+    //     setPerpPositions(perpPos);
 
-        console.log(`Loaded ${pinfo.length} options, ${perpPos.length} perp positions`);
+    //     console.log(`Loaded ${pinfo.length} options, ${perpPos.length} perp positions`);
 
-        // Calculate and update volume data after positions are updated
-        await refreshVolumeData();
-      } catch (error) {
-        console.error("Error refreshing positions:", error);
-      } finally {
-        setPositionsLoading(false);
-      }
-    }
+    //     // Calculate and update volume data after positions are updated
+    //     await refreshVolumeData();
+    //   } catch (error) {
+    //     console.error("Error refreshing positions:", error);
+    //   } finally {
+    //     setPositionsLoading(false);
+    //   }
+    // }
   }, [program, publicKey, priceData, refreshVolumeData]);
 
   // Auto-refresh volume data when price changes significantly
@@ -560,6 +563,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
           // Create the position object
           const futurePos: FuturePos = {
+            index: position.index,
             token: (tokenList.find(t => t.symbol === 'SOL') || tokenList[0]) as Token,
             symbol: 'SOL',
             futureType: 'perps', // All your positions are perpetuals
@@ -839,6 +843,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       [Buffer.from("pool"), Buffer.from("SOL/USDC")],
       program.programId
     );
+
+    console.log(pool.toBase58());
     const [custody] = PublicKey.findProgramAddressSync(
       [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
       program.programId
@@ -1211,7 +1217,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     for (let i = 1; i <= positionCount; i++) {
       const [derivedAddress] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("perp_position"),
+          Buffer.from("position"),
           owner.toBuffer(),
           new BN(i).toArrayLike(Buffer, "le", 8),
           pool.toBuffer()
@@ -1226,12 +1232,11 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     throw new Error("Position index not found");
   };
 
-  // Close perpetual position function
-  const onClosePerp = async (
-    accountAddress: string,
+  const onCancelLimitPerp = async (
     closePercentage: number = 100, // 1-100: 100 = full close, <100 = partial close
     receiveAsset: "SOL" | "USDC" = "USDC", // Which asset user wants to receive
     minPrice: number = 0, // Minimum acceptable price for slippage protection
+    positionIndex: number,
   ) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
@@ -1254,16 +1259,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      const positionIndex = await getPositionIndexFromAccount(
-        accountAddress,
-        publicKey,
-        pool
-      );
-
       // Find the perp position account
       const [position] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("perp_position"),
+          Buffer.from("position"),
           publicKey.toBuffer(),
           new BN(positionIndex).toArrayLike(Buffer, "le", 8),
           pool.toBuffer()
@@ -1311,6 +1310,151 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         USDC_MINT,
         wallet.publicKey
       );
+      console.log(position.toBase58());
+
+      console.log("Closing perp position with params:", {
+        positionIndex,
+        closePercentage,
+        minPrice,
+        receiveAsset,
+        poolName: "SOL/USDC"
+      });
+
+      const transaction = await program.methods
+        .cancelLimitOrder({
+          positionIndex: new BN(positionIndex),
+          poolName: "SOL/USDC",
+          closePercentage: closePercentage,
+          minPrice: minPrice,
+          receiveSol: receiveAsset === "SOL", // Convert to boolean for smart contract
+        })
+        .accountsPartial({
+          owner: publicKey,
+          receivingAccount: receiveAsset === "SOL" ? userSolAccount : userUsdcAccount,
+          transferAuthority: transferAuthority, // Required: matches contract account name
+          contract: contract,                  // Required: matches contract account name
+          pool: pool,
+          position: position,
+          solCustody: solCustody,
+          usdcCustody: usdcCustody,
+          solCustodyTokenAccount: solCustodyTokenAccount,   // Required: matches contract account name
+          usdcCustodyTokenAccount: usdcCustodyTokenAccount, // Required: matches contract account name
+          solMint: WSOL_MINT,                  // Required: matches contract account name
+          usdcMint: USDC_MINT,                 // Required: matches contract account name
+          tokenProgram: TOKEN_PROGRAM_ID,
+        })
+        .transaction();
+
+      const latestBlockHash = await connection.getLatestBlockhash();
+      transaction.feePayer = publicKey;
+
+      // Simulate transaction first
+      let result = await connection.simulateTransaction(transaction);
+      console.log("Close simulation result:", result);
+
+      if (result.value.err) {
+        console.error("Close transaction simulation failed:", result.value.err);
+        return false;
+      }
+
+      const signature = await sendTransaction(transaction, connection);
+      await connection.confirmTransaction({
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: signature,
+      });
+
+      console.log(`Perp position ${closePercentage === 100 ? 'fully' : 'partially'} closed successfully:`, signature);
+      console.log(`Settlement received as: ${receiveAsset}`);
+      await refreshPerpPositions(); // Refresh positions
+      return true;
+
+    } catch (e) {
+      console.error("Error closing perp position:", e);
+      return false;
+    }
+  };
+
+  // Close perpetual position function
+  const onClosePerp = async (
+    closePercentage: number = 100, // 1-100: 100 = full close, <100 = partial close
+    receiveAsset: "SOL" | "USDC" = "USDC", // Which asset user wants to receive
+    minPrice: number = 0, // Minimum acceptable price for slippage protection
+    positionIndex: number,
+  ) => {
+    try {
+      if (!program || !publicKey || !connected || !wallet) return false;
+
+      // Find contract account (required by smart contract)
+      const [contract] = PublicKey.findProgramAddressSync(
+        [Buffer.from("contract")],
+        program.programId
+      );
+
+      // Find pool account (same as open)
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program.programId
+      );
+
+      // Find transfer authority (required by smart contract)
+      const [transferAuthority] = PublicKey.findProgramAddressSync(
+        [Buffer.from("transfer_authority")],
+        program.programId
+      );
+
+      // Find the perp position account
+      const [position] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("position"),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          pool.toBuffer()
+        ],
+        program.programId
+      );
+
+      // Get custody accounts (same as open)
+      const [solCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), WSOL_MINT.toBuffer()],
+        program.programId
+      );
+
+      const [usdcCustody] = PublicKey.findProgramAddressSync(
+        [Buffer.from("custody"), pool.toBuffer(), USDC_MINT.toBuffer()],
+        program.programId
+      );
+
+      // Get custody token accounts (both required by smart contract)
+      const [solCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          WSOL_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      const [usdcCustodyTokenAccount] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("custody_token_account"),
+          pool.toBuffer(),
+          USDC_MINT.toBuffer()
+        ],
+        program.programId
+      );
+
+      // User's receiving accounts (both required by smart contract)
+      const userSolAccount = getAssociatedTokenAddressSync(
+        WSOL_MINT,
+        wallet.publicKey
+      );
+
+      const userUsdcAccount = getAssociatedTokenAddressSync(
+        USDC_MINT,
+        wallet.publicKey
+      );
+      console.log(position.toBase58());
 
       console.log("Closing perp position with params:", {
         positionIndex,
@@ -1380,11 +1524,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   // Updated onOpenPerp function to support multi-collateral
   const onOpenPerp = async (
     collateralAmount: number,
-    positionSize: number,
+    positionAmount: number,
     side: "long" | "short",
+    type: "limit" | "market",
+    triggerPrice: number = 0,
     maxSlippage: number = 100,
+    triggerAboveThreshold: boolean = false,
     paySol: boolean = false,
-    payAmount: number,
   ) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
@@ -1409,7 +1555,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const [position] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("perp_position"),
+          Buffer.from("position"),
           publicKey.toBuffer(),
           new BN(perpPositionCount + 1).toArrayLike(Buffer, "le", 8),
           pool.toBuffer()
@@ -1455,26 +1601,32 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Convert side to enum format
       const perpSide = side === "long" ? { long: {} } : { short: {} };
+      const orderType = type === "market" ? { market: {} } : { limit: {} };
 
       console.log("Opening perp position with params:", {
         collateralAmount,
-        positionSize,
+        sizeAmount: positionAmount,
         side: perpSide,
         maxSlippage,
         paySol,
         paymentAsset: paySol ? "SOL" : "USDC",
-        payAmount,
+        orderType: "Market",
+        triggerPrice: triggerPrice,
       });
 
       const transaction = await program.methods
         .openPerpPosition({
+          sizeAmount: new BN(positionAmount),
           collateralAmount: new BN(collateralAmount),
-          positionSize: new BN(positionSize),
           side: perpSide,
+          orderType: orderType,
+          triggerPrice: triggerPrice === 0 ? null : new BN(triggerPrice),
+          triggerAboveThreshold: triggerAboveThreshold,
           maxSlippage: new BN(maxSlippage),
           poolName: "SOL/USDC",
           paySol: paySol,
-          payAmount: new BN(payAmount),
+          takeProfitPrice: null,
+          stopLossPrice: null,
         })
         .accountsPartial({
           owner: publicKey,
@@ -1525,19 +1677,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Add collateral to existing perpetual position
   const onAddCollateral = async (
-    accountAddress: string,  // The position account address
+    positionIndex: number,  // The position account address
     collateralAmount: number,
     paySol: boolean,         // true = add SOL, false = add USDC
   ) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
-
-      console.log("Adding collateral with params:", {
-        accountAddress,
-        collateralAmount,
-        paySol,
-        paymentAsset: paySol ? "SOL" : "USDC"
-      });
 
       // Find contract account
       const [contract] = PublicKey.findProgramAddressSync(
@@ -1552,16 +1697,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       // Get position index from account address
-      const positionIndex = await getPositionIndexFromAccount(
-        accountAddress,
-        publicKey,
-        pool
-      );
+      // const positionIndex = await getPositionIndexFromAccount(
+      //   accountAddress,
+      //   publicKey,
+      //   pool
+      // );
 
       // Find the perp position account
       const [position] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("perp_position"),
+          Buffer.from("position"),
           publicKey.toBuffer(),
           new BN(positionIndex).toArrayLike(Buffer, "le", 8),
           pool.toBuffer()
@@ -1655,7 +1800,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Collateral added successfully:", signature);
-      await refreshPerpPositions(); // Refresh positions
+      // await refreshPerpPositions(); // Refresh positions
       return true;
 
     } catch (e) {
@@ -1666,19 +1811,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
   // Remove collateral from existing perpetual position
   const onRemoveCollateral = async (
-    accountAddress: string,   // The position account address
+    positionIndex: number,   // The position account address
     collateralAmount: number,
     receiveSol: boolean,      // true = receive SOL, false = receive USDC
   ) => {
     try {
       if (!program || !publicKey || !connected || !wallet) return false;
-
-      console.log("Removing collateral with params:", {
-        accountAddress,
-        collateralAmount,
-        receiveSol,
-        receiveAsset: receiveSol ? "SOL" : "USDC"
-      });
 
       // Find contract account
       const [contract] = PublicKey.findProgramAddressSync(
@@ -1698,17 +1836,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      // Get position index from account address
-      const positionIndex = await getPositionIndexFromAccount(
-        accountAddress,
-        publicKey,
-        pool
-      );
-
       // Find the perp position account
       const [position] = PublicKey.findProgramAddressSync(
         [
-          Buffer.from("perp_position"),
+          Buffer.from("position"),
           publicKey.toBuffer(),
           new BN(positionIndex).toArrayLike(Buffer, "le", 8),
           pool.toBuffer()
@@ -2668,79 +2799,330 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   };
 
-  const onSetTpSl = async (
-    positionIndex: number,
-    poolName: string = "SOL/USDC",
-    takeProfitPrice?: number,
-    stopLossPrice?: number
-  ) => {
+  const checkOrderbookExists = async (owner: PublicKey, positionIndex: number): Promise<boolean> => {
+    const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("tp_sl_orderbook"),
+        owner.toBuffer(),
+        new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+        Buffer.from("SOL/USDC"),
+        Buffer.from([0]),
+      ],
+      program!.programId
+    );
+
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      await program!.account.tpSlOrderbook.fetch(tpSlOrderbook);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
-      console.log("Setting TP/SL with params:", {
-        positionIndex,
-        poolName,
-        takeProfitPrice,
-        stopLossPrice
-      });
-
-      // Find pool PDA
-      const [pool] = PublicKey.findProgramAddressSync(
-        [Buffer.from("pool"), Buffer.from(poolName)],
-        program.programId
+  const updateTPSL = async (
+      owner: PublicKey,
+      positionIndex: number,
+      updates: {
+        updateTPs?: Array<{index: number; price?: number; sizePercent?: number}>;
+        updateSLs?: Array<{index: number; price?: number; sizePercent?: number}>;
+        removeTPs?: number[];
+        removeSLs?: number[];
+      }
+    ) => {
+      const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("tp_sl_orderbook"),
+          owner.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, "le", 8),
+          Buffer.from("SOL/USDC"),
+          Buffer.from([0]),
+        ],
+        program!.programId
       );
 
-      // Find position PDA
+      const [pool] = PublicKey.findProgramAddressSync(
+        [Buffer.from("pool"), Buffer.from("SOL/USDC")],
+        program!.programId
+      );
+
       const [position] = PublicKey.findProgramAddressSync(
         [
           Buffer.from("position"),
-          publicKey.toBuffer(),
+          owner.toBuffer(),
           new BN(positionIndex).toArrayLike(Buffer, "le", 8),
-          pool.toBuffer()
+          Buffer.from("SOL/USDC"),
         ],
-        program.programId
+        program!.programId
       );
 
-      // Convert prices to scaled values (multiply by 10^6 for precision)
-      const scaledTpPrice = takeProfitPrice ? new BN(Math.floor(takeProfitPrice * 1e6)) : null;
-      const scaledSlPrice = stopLossPrice ? new BN(Math.floor(stopLossPrice * 1e6)) : null;
+      const tx = new anchor.web3.Transaction();
 
-      const params = {
-        positionIndex: new BN(positionIndex),
-        poolName: poolName,
-        takeProfitPrice: scaledTpPrice,
-        stopLossPrice: scaledSlPrice
-      };
+      // Update TPs
+      if (updates.updateTPs) {
+        for (const update of updates.updateTPs) {
+          const ix = await program!.methods
+            .manageTpSlOrders({
+              contractType: 0,
+              positionIndex: new BN(positionIndex),
+              poolName: "SOL/USDC",
+              action: {
+                updateTakeProfit: {
+                  index: update.index,
+                  newPrice: update.price ? new BN(Math.floor(update.price * 1e6)) : null,
+                  newSizePercent: update.sizePercent ? Math.floor(update.sizePercent * 100) : null,
+                },
+              },
+            })
+            .accounts({
+              owner,
+              tpSlOrderbook,
+              pool,
+              position,
+              optionDetail: null,
+            })
+            .instruction();
+          tx.add(ix);
+        }
+      }
 
-      const transaction = await program.methods
-        .setTpSl(params)
-        .accountsPartial({
-          owner: publicKey,
-          pool: pool,
-          position: position
-        })
-        .transaction();
+      // Remove TPs
+      if (updates.removeTPs) {
+        for (const index of updates.removeTPs) {
+          const ix = await program!.methods
+            .manageTpSlOrders({
+              contractType: 0,
+              positionIndex: new BN(positionIndex),
+              poolName: "SOL/USDC",
+              action: { removeTakeProfit: { index } },
+            })
+            .accounts({
+              owner,
+              tpSlOrderbook,
+              pool,
+              position,
+              optionDetail: null,
+            })
+            .instruction();
+          tx.add(ix);
+        }
+      }
 
-      const latestBlockHash = await connection.getLatestBlockhash();
-      const signature = await sendTransaction(transaction, connection);
-      
-      await connection.confirmTransaction({
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-        signature: signature,
-      });
+      // Similar for SLs...
 
-      console.log("TP/SL set successfully, signature:", signature);
-      
-      // Refresh positions to get updated data
-      await refreshPerpPositions();
-      
-      return signature;
-    } catch (error) {
-      console.error("Error setting TP/SL:", error);
-      return false;
+      return await this.program.provider.sendAndConfirm(tx);
     }
-  };
+
+  const addTPSLOrders = async (
+    owner: PublicKey,
+    positionIndex: number,
+    takeProfits: PerpTPSL[],
+    stopLosses: PerpTPSL[]
+  ) {
+    const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("tp_sl_orderbook"),
+        owner.toBuffer(),
+        new anchor.BN(positionIndex).toArrayLike(Buffer, "le", 8),
+        Buffer.from(this.poolName),
+        Buffer.from([0]),
+      ],
+      this.program.programId
+    );
+
+    const [pool] = PublicKey.findProgramAddressSync(
+      [Buffer.from("pool"), Buffer.from(this.poolName)],
+      this.program.programId
+    );
+
+    const [position] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("position"),
+        owner.toBuffer(),
+        new anchor.BN(positionIndex).toArrayLike(Buffer, "le", 8),
+        Buffer.from(this.poolName),
+      ],
+      this.program.programId
+    );
+
+    const tx = new anchor.web3.Transaction();
+
+    // Add TP orders
+    for (const tp of takeProfits) {
+      const ix = await this.program.methods
+        .manageTpSlOrders({
+          contractType: 0,
+          positionIndex: new anchor.BN(positionIndex),
+          poolName: this.poolName,
+          action: {
+            addTakeProfit: {
+              price: new anchor.BN(Math.floor(tp.price * 1e6)),
+              sizePercent: Math.floor(tp.sizePercent * 100),
+            },
+          },
+        })
+        .accounts({
+          owner,
+          tpSlOrderbook,
+          pool,
+          position,
+          optionDetail: null,
+        })
+        .instruction();
+      tx.add(ix);
+    }
+
+    // Add SL orders
+    for (const sl of stopLosses) {
+      const ix = await this.program.methods
+        .manageTpSlOrders({
+          contractType: 0,
+          positionIndex: new anchor.BN(positionIndex),
+          poolName: this.poolName,
+          action: {
+            addStopLoss: {
+              price: new anchor.BN(Math.floor(sl.price * 1e6)),
+              sizePercent: Math.floor(sl.sizePercent * 100),
+            },
+          },
+        })
+        .accounts({
+          owner,
+          tpSlOrderbook,
+          pool,
+          position,
+          optionDetail: null,
+        })
+        .instruction();
+      tx.add(ix);
+    }
+
+    return await this.program.provider.sendAndConfirm(tx);
+  }
+
+  const initAndSetupTPSL = async (
+    owner: PublicKey,
+    positionIndex: number,
+    takeProfits: PerpTPSL[],
+    stopLosses: PerpTPSL[]
+  ) {
+    const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("tp_sl_orderbook"),
+        owner.toBuffer(),
+        new anchor.BN(positionIndex).toArrayLike(Buffer, "le", 8),
+        Buffer.from(this.poolName),
+        Buffer.from([0]), // 0 for perp
+      ],
+      this.program.programId
+    );
+
+    const [pool] = PublicKey.findProgramAddressSync(
+      [Buffer.from("pool"), Buffer.from(this.poolName)],
+      this.program.programId
+    );
+
+    const [position] = PublicKey.findProgramAddressSync(
+      [
+        Buffer.from("position"),
+        owner.toBuffer(),
+        new anchor.BN(positionIndex).toArrayLike(Buffer, "le", 8),
+        Buffer.from(this.poolName),
+      ],
+      this.program.programId
+    );
+
+    const tx = new anchor.web3.Transaction();
+
+    // Initialize orderbook
+    const initIx = await this.program.methods
+      .initTpSlOrderbook({
+        orderType: 0, // perp
+        positionIndex: new anchor.BN(positionIndex),
+        poolName: this.poolName,
+      })
+      .accounts({
+        owner,
+        tpSlOrderbook,
+        pool,
+        position,
+        optionDetail: null,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+
+    tx.add(initIx);
+
+    // Add all TP orders
+    for (const tp of takeProfits) {
+      const tpIx = await this.program.methods
+        .manageTpSlOrders({
+          contractType: 0,
+          positionIndex: new anchor.BN(positionIndex),
+          poolName: this.poolName,
+          action: {
+            addTakeProfit: {
+              price: new anchor.BN(Math.floor(tp.price * 1e6)),
+              sizePercent: Math.floor(tp.sizePercent * 100),
+            },
+          },
+        })
+        .accounts({
+          owner,
+          tpSlOrderbook,
+          pool,
+          position,
+          optionDetail: null,
+        })
+        .instruction();
+
+      tx.add(tpIx);
+    }
+
+    // Add all SL orders
+    for (const sl of stopLosses) {
+      const slIx = await this.program.methods
+        .manageTpSlOrders({
+          contractType: 0,
+          positionIndex: new anchor.BN(positionIndex),
+          poolName: this.poolName,
+          action: {
+            addStopLoss: {
+              price: new anchor.BN(Math.floor(sl.price * 1e6)),
+              sizePercent: Math.floor(sl.sizePercent * 100),
+            },
+          },
+        })
+        .accounts({
+          owner,
+          tpSlOrderbook,
+          pool,
+          position,
+          optionDetail: null,
+        })
+        .instruction();
+
+      tx.add(slIx);
+    }
+
+    return await this.program.provider.sendAndConfirm(tx);
+  }
+
+  const onSetTPSL = async (
+    owner: PublicKey,
+    positionIndex: number,
+    takeProfits: PerpTPSL[],
+    stopLosses: PerpTPSL[]
+  ) {
+    const hasOrderbook = await this.checkOrderbookExists(owner, positionIndex);
+
+    if (!hasOrderbook) {
+      // First time - initialize and add orders
+      return await this.initAndSetupTPSL(owner, positionIndex, takeProfits, stopLosses);
+    } else {
+      // Orderbook exists - just add orders
+      return await this.addTPSLOrders(owner, positionIndex, takeProfits, stopLosses);
+    }
+  }
 
   const getPoolFees = async () => {
     try {
@@ -2776,7 +3158,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     (async () => {
       let provider: Provider;
-      console.log(wallet, publicKey);
       if (wallet && publicKey) {
         try {
           provider = getProvider();
@@ -2825,6 +3206,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onExerciseOption,
         onOpenPerp,
         onClosePerp,
+        onCancelLimitPerp,
         onAddCollateral,
         onRemoveCollateral,
         onAddLiquidity,

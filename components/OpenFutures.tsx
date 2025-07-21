@@ -11,9 +11,12 @@ import SettledTpSls from "./SettledTpSls";
 import { usePythPrice } from "@/hooks/usePythPrice";
 import { Button } from "./ui/button";
 import { ChevronDown } from "lucide-react";
-import { tpSlApiService, TpSlOrderResponse } from "@/services/tpSlApiService";
+import { TpSlOrderResponse } from "@/services/tpSlApiService";
 import { toast } from "sonner";
 import { Switch } from './ui/switch'
+import apiService from "@/services/apiService";
+import { EXIT_FEE } from "@/utils/const";
+import PositionSize from "./PositionSize";
 
 interface TpSlOrder {
     id: string;
@@ -109,9 +112,9 @@ export default function OpenFutures({
 
     // Calculate PnL if not provided
     const calculatePnl = () => {
-        if (unrealizedPnl !== undefined) {
-            return unrealizedPnl;
-        }
+        // if (unrealizedPnl !== undefined) {
+        //     return unrealizedPnl;
+        // }
 
         // Fallback calculation
         const priceDiff = position === "long"
@@ -120,10 +123,19 @@ export default function OpenFutures({
         return (priceDiff / entry) * size;
     };
 
-    const pnl = calculatePnl();
+    const calculateFee = () => {
+        return size * EXIT_FEE;
+    }
 
 
-    const netValue = useMemo(() => collateral + pnl, [collateral, pnl])
+    const fee = calculateFee();
+    const pnl = calculatePnl() - (withFees ? fee : 0);
+    const breakEvenPrice = entry + (position === 'long' ? 1 : -1) * fee / (size / entry);
+
+
+    const netValue = useMemo(() => collateral + calculatePnl() - fee, [collateral, pnl]);
+
+    const currentLeverage = (size / netValue).toFixed(2);
 
     // Load existing orders when component mounts or position changes
     useEffect(() => {
@@ -137,7 +149,7 @@ export default function OpenFutures({
 
         setIsLoadingOrders(true);
         try {
-            const response = await tpSlApiService.getUserTpSlOrders(userId);
+            const response = await apiService.getTpSlOrders(userId);
             // Filter orders for this specific position
             const positionOrders = response.orders.filter(order =>
                 order.positionId === effectivePositionId ||
@@ -243,6 +255,7 @@ export default function OpenFutures({
 
     const getTimePeriodFromNow = (date: string) => {
         const openTime = new Date(date);
+
         const diffMs = currentTime.getTime() - openTime.getTime();
 
         // Convert to different units
@@ -282,7 +295,6 @@ export default function OpenFutures({
         <div className="w-full flex flex-col bg-accent rounded-sm">
             <div
                 className="flex-col md:flex-row w-full px-4 py-3 flex justify-between items-center cursor-pointer"
-                onClick={() => setIsOpen(!isOpen)}
             >
                 <div className="flex space-x-[6px] items-center h-10">
                     <img src={logo} alt={token} width={40} height={40} className="w-8 h-8 rounded-full" />
@@ -330,12 +342,14 @@ export default function OpenFutures({
                     <span className="font-semibold underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>${netValue.toFixed(2)}</span>
                 </div>
                 {isOpen ? (
-                    <span className='text-secondary-foreground'>
+                    <span className='text-secondary-foreground'
+                        onClick={() => setIsOpen(!isOpen)}>
                         <ArrowUp />
                     </span>
 
                 ) : (
-                    <span className='text-secondary-foreground'>
+                    <span className='text-secondary-foreground'
+                        onClick={() => setIsOpen(!isOpen)}>
                         <ArrowDown />
                     </span>
                 )}
@@ -361,8 +375,10 @@ export default function OpenFutures({
                             <TableBody>
                                 <TableRow className="w-full grid grid-cols-11 min-w-[900px]">
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">{getTimePeriodFromNow(purchaseDate)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">{leverage}x</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>${size.toFixed(2)}</TableCell>
+                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">{currentLeverage}x</TableCell>
+                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
+                                        ${size.toFixed(2)}
+                                    </TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
                                         <span>
                                             ${collateral.toFixed(2)}
@@ -388,7 +404,7 @@ export default function OpenFutures({
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">${entry.toFixed(2)}</TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">${markPrice.toFixed(2)}</TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-[#f77f00]">${liquidation.toFixed(2)}</TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-[#9333ea]">${liquidation.toFixed(2)}</TableCell>
+                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-[#9333ea]">${breakEvenPrice.toFixed(2)}</TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs col-span-2 py-0 text-white">
                                         {hasOrders ? (
                                             <div className="flex items-center space-x-2">
@@ -406,7 +422,7 @@ export default function OpenFutures({
                                                     onCreateOrder={handleCreateTpSlOrder}
                                                     userId={userId}
                                                     positionId={effectivePositionId}
-                                                    positionType={position}
+                                                    positionSide={position}
                                                     positionDirection={position}
                                                     contractType={contractType}
                                                     currentPrice={markPrice}
@@ -424,7 +440,7 @@ export default function OpenFutures({
                                                     onCreateOrder={handleCreateTpSlOrder}
                                                     userId={userId}
                                                     positionId={effectivePositionId}
-                                                    positionType={position}
+                                                    positionSide={position}
                                                     positionDirection={position}
                                                     contractType={contractType}
                                                     currentPrice={markPrice}
@@ -442,6 +458,7 @@ export default function OpenFutures({
                                             entryPrice={entry}
                                             collateral={collateral}
                                             position={position}
+                                            orderType="market"
                                             onClose={(closePercent, receiveToken, exitPrice) => {
                                                 // Handle the close operation
                                                 onClose(closePercent, receiveToken, exitPrice)
@@ -463,7 +480,7 @@ export default function OpenFutures({
                             onToggleVisibility={handleToggleTpSlOrders}
                             userId={userId}
                             positionId={effectivePositionId}
-                            positionType={position}
+                            positionSide={position}
                             contractType={contractType}
                             currentPrice={markPrice}
                             onOrdersUpdated={handleOrdersUpdated}

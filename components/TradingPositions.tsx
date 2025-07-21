@@ -33,13 +33,15 @@ export default function TradingPositions() {
   // Get data from backend API
   const {
     positions: backendPositions,
+    options: backendOptions,
     transactions: backendTransactions,
     isLoadingPositions: positionsLoading,
+    isLoadingOptions: optionsLoading,
     refreshUserData: refreshPositions,
   } = useDataContext();
   
   // Convert backend transactions to frontend Transaction format
-  const donePositions = backendTransactions.map(tx => {
+  const donePositions = (backendOptions || []).map(tx => {
     const tokenSymbol = tx.poolName?.split('/')[0] || 'SOL';
     const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0];
     const coinToken = coins.find(c => c.symbol === tokenSymbol) || coins[0];
@@ -55,8 +57,34 @@ export default function TradingPositions() {
     };
   });
   
-  // Convert backend Position[] to frontend Position[] format for options
-  const positions = backendPositions
+  // Convert backend Options[] to frontend Position[] format for options
+  const optionsAsPositions = (backendOptions || []).map(option => ({
+    // Map backend option to frontend position format
+    index: option.index,
+    optionType: option.optionType === 'call' ? 'Call' : 'Put',
+    size: option.quantity,
+    strikePrice: option.strikePrice,
+    expiry: option.expiredDate.toString(),
+    premium: option.premium,
+    profit: option.profit,
+    expired: option.expiredDate < Date.now(), // Check if expired
+    purchaseDate: new Date(option.timestamp).toLocaleDateString(),
+    // Add other required fields
+    token: option.pool.split('/')[0] || 'SOL',
+    logo: '/images/solana.png',
+    greeks: { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 },
+    // Add missing properties for option filtering
+    limitPrice: 0, // Options don't have limit prices in this context
+    executed: option.executed,
+    quantity: option.quantity,
+    symbol: option.pool.split('/')[0] || 'SOL',
+    type: option.optionType === 'call' ? 'Call' : 'Put',
+    entryPrice: option.entryPrice,
+    pnl: option.profit
+  }));
+
+  // Convert backend Position[] to frontend Position[] format for options (fallback)
+  const positionsAsOptions = (backendPositions || [])
     .filter(pos => pos.contractType === 'option')
     .map(pos => ({
       // Map backend position to frontend format
@@ -74,7 +102,7 @@ export default function TradingPositions() {
       logo: '/images/solana.png',
       greeks: { delta: 0, gamma: 0, theta: 0, vega: 0, rho: 0 },
       // Add missing properties for option filtering
-      limitPrice: pos.positionType === 'limit' ? pos.entryPrice : 0,
+      limitPrice: pos.entryPrice,
       executed: pos.isActive, // If position is active, it means it was executed
       quantity: pos.positionSize,
       symbol: pos.poolName.split('/')[0] || 'SOL',
@@ -82,6 +110,9 @@ export default function TradingPositions() {
       entryPrice: pos.entryPrice,
       pnl: pos.unrealizedPnl
     }));
+
+  // Combine options and positions data, prioritizing options data
+  const positions = [...optionsAsPositions, ...positionsAsOptions];
   
   // Get transaction functions from contract provider
   const {
@@ -189,9 +220,9 @@ export default function TradingPositions() {
           <Button
             className="bg-secondary p-2 w-full h-auto rounded-sm"
             onClick={() => refreshPositions()}
-            disabled={positionsLoading}
+            disabled={positionsLoading || optionsLoading}
           >
-            <RotateCw className={`text-secondary-foreground ${positionsLoading ? 'animate-spin' : ''}`} />
+            <RotateCw className={`text-secondary-foreground ${(positionsLoading || optionsLoading) ? 'animate-spin' : ''}`} />
           </Button>
           {activeTab !== 'History' && (
             <Button className="bg-secondary w-full h-auto py-[6px] px-[10px] rounded-sm">
@@ -218,7 +249,7 @@ export default function TradingPositions() {
               className="space-x-[6px] gap-0 w-fit"
               onClick={() => refreshPositions()}
             >
-              <RotateCw className={`w-fit text-secondary-foreground ${positionsLoading ? 'animate-spin' : ''}`} />
+              <RotateCw className={`w-fit text-secondary-foreground ${(positionsLoading || optionsLoading) ? 'animate-spin' : ''}`} />
               <span>Reload</span>
             </DropdownMenuItem>
             {activeTab !== 'History' && (
@@ -267,7 +298,7 @@ export default function TradingPositions() {
                   exit={{ opacity: 0 }}
                   className="text-sm text-muted-foreground text-center flex flex-grow justify-center items-center"
                 >
-                  {positionsLoading ? "Loading positions..." : "No Positions Open \n Start Trading Now"}
+                  {(positionsLoading || optionsLoading) ? "Loading positions..." : "No Positions Open \n Start Trading Now"}
                 </motion.div>
               )}
             </AnimatePresence>
@@ -309,7 +340,7 @@ export default function TradingPositions() {
               </>
             ) : (
               <div className="text-sm text-muted-foreground text-center flex flex-grow justify-center items-center">
-                {positionsLoading ? "Loading orders..." : "No Orders Open \n Start Trading Now"}
+                {(positionsLoading || optionsLoading) ? "Loading orders..." : "No Orders Open \n Start Trading Now"}
               </div>
             )}
           </div>
@@ -332,7 +363,7 @@ export default function TradingPositions() {
             <ExpiredOptions infos={expiredPositions} onClaim={onClaim} />
           ) : (
             <div className="text-sm text-muted-foreground text-center flex flex-grow justify-center items-center">
-              {positionsLoading ? "Loading expired positions..." : "No Expired Positions \n Start Trading Now"}
+              {(positionsLoading || optionsLoading) ? "Loading expired positions..." : "No Expired Positions \n Start Trading Now"}
             </div>
           )}
         </div>
@@ -345,7 +376,7 @@ export default function TradingPositions() {
               <OrderHistory doneOptioninfos={donePositions} />
             ) : (
               <div className="text-sm text-muted-foreground text-center flex flex-grow justify-center items-center">
-                {positionsLoading ? "Loading history..." : "No History Available\n Start Trading Now"}
+                {(positionsLoading || optionsLoading) ? "Loading history..." : "No History Available\n Start Trading Now"}
               </div>
             )}
           </div>

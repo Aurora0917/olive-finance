@@ -1,5 +1,5 @@
 {
-  "address": "Gz4U6LcbehnjbuhVXEFEAAomXHuQPU4TrwYyR56NPGnc",
+  "address": "FFu3iJVJabfX4MuUmeyFpqk9YghMpqLKmKdoNRsVmuW",
   "metadata": {
     "name": "option_contract",
     "version": "0.1.0",
@@ -1369,27 +1369,6 @@
               {
                 "kind": "arg",
                 "path": "params.pool_name"
-              }
-            ]
-          }
-        },
-        {
-          "name": "user",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
               }
             ]
           }
@@ -3376,7 +3355,7 @@
       ],
       "accounts": [
         {
-          "name": "owner",
+          "name": "executor",
           "writable": true,
           "signer": true
         },
@@ -3422,27 +3401,6 @@
           }
         },
         {
-          "name": "user",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  117,
-                  115,
-                  101,
-                  114
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              }
-            ]
-          }
-        },
-        {
           "name": "position",
           "writable": true,
           "pda": {
@@ -3462,7 +3420,8 @@
               },
               {
                 "kind": "account",
-                "path": "owner"
+                "path": "position.owner",
+                "account": "Position"
               },
               {
                 "kind": "arg",
@@ -3843,6 +3802,113 @@
           "type": {
             "defined": {
               "name": "ExerciseOptionParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "init_tp_sl_orderbook",
+      "discriminator": [
+        70,
+        38,
+        232,
+        154,
+        97,
+        219,
+        99,
+        9
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "tp_sl_orderbook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  112,
+                  95,
+                  115,
+                  108,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              },
+              {
+                "kind": "arg",
+                "path": "params.order_type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "optional": true
+        },
+        {
+          "name": "option_detail",
+          "optional": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "InitTpSlOrderbookParams"
             }
           }
         }
@@ -4248,6 +4314,108 @@
           "type": {
             "defined": {
               "name": "LiquidateParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "manage_tp_sl_orders",
+      "discriminator": [
+        132,
+        143,
+        139,
+        238,
+        114,
+        115,
+        241,
+        246
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "tp_sl_orderbook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  112,
+                  95,
+                  115,
+                  108,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              },
+              {
+                "kind": "arg",
+                "path": "params.contract_type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "optional": true
+        },
+        {
+          "name": "option_detail",
+          "optional": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "ManageTpSlOrdersParams"
             }
           }
         }
@@ -6307,6 +6475,484 @@
           }
         }
       ]
+    },
+    {
+      "name": "update_borrow_fees",
+      "discriminator": [
+        206,
+        101,
+        78,
+        27,
+        163,
+        68,
+        207,
+        23
+      ],
+      "accounts": [
+        {
+          "name": "keeper",
+          "signer": true
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.owner",
+                "account": "Position"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_mint",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "writable": true
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdateBorrowFeesParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "update_position_size",
+      "discriminator": [
+        110,
+        13,
+        87,
+        199,
+        243,
+        188,
+        145,
+        213
+      ],
+      "accounts": [
+        {
+          "name": "owner",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "funding_account",
+            "receiving_account"
+          ]
+        },
+        {
+          "name": "funding_account",
+          "writable": true
+        },
+        {
+          "name": "receiving_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "owner"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_oracle_account"
+        },
+        {
+          "name": "usdc_oracle_account"
+        },
+        {
+          "name": "sol_mint",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "UpdatePositionSizeParams"
+            }
+          }
+        }
+      ]
     }
   ],
   "accounts": [
@@ -6389,6 +7035,19 @@
       ]
     },
     {
+      "name": "TpSlOrderbook",
+      "discriminator": [
+        130,
+        67,
+        195,
+        182,
+        123,
+        26,
+        94,
+        153
+      ]
+    },
+    {
       "name": "User",
       "discriminator": [
         159,
@@ -6402,201 +7061,385 @@
       ]
     }
   ],
+  "events": [
+    {
+      "name": "BorrowFeesUpdated",
+      "discriminator": [
+        87,
+        20,
+        205,
+        168,
+        241,
+        165,
+        66,
+        41
+      ]
+    },
+    {
+      "name": "CollateralAdded",
+      "discriminator": [
+        172,
+        68,
+        58,
+        249,
+        157,
+        64,
+        74,
+        141
+      ]
+    },
+    {
+      "name": "CollateralRemoved",
+      "discriminator": [
+        38,
+        57,
+        214,
+        30,
+        121,
+        178,
+        129,
+        4
+      ]
+    },
+    {
+      "name": "LimitOptionClosed",
+      "discriminator": [
+        112,
+        198,
+        14,
+        212,
+        27,
+        7,
+        201,
+        95
+      ]
+    },
+    {
+      "name": "LimitOptionOpened",
+      "discriminator": [
+        234,
+        186,
+        4,
+        55,
+        5,
+        154,
+        80,
+        130
+      ]
+    },
+    {
+      "name": "LimitOrderCanceled",
+      "discriminator": [
+        17,
+        78,
+        31,
+        66,
+        209,
+        14,
+        103,
+        227
+      ]
+    },
+    {
+      "name": "LimitOrderExecuted",
+      "discriminator": [
+        230,
+        96,
+        79,
+        110,
+        208,
+        225,
+        214,
+        243
+      ]
+    },
+    {
+      "name": "LiquidityAdded",
+      "discriminator": [
+        154,
+        26,
+        221,
+        108,
+        238,
+        64,
+        217,
+        161
+      ]
+    },
+    {
+      "name": "LiquidityRemoved",
+      "discriminator": [
+        225,
+        105,
+        216,
+        39,
+        124,
+        116,
+        169,
+        189
+      ]
+    },
+    {
+      "name": "OptionClosed",
+      "discriminator": [
+        210,
+        216,
+        82,
+        50,
+        75,
+        194,
+        238,
+        237
+      ]
+    },
+    {
+      "name": "OptionExercised",
+      "discriminator": [
+        34,
+        100,
+        89,
+        14,
+        247,
+        159,
+        22,
+        97
+      ]
+    },
+    {
+      "name": "OptionOpened",
+      "discriminator": [
+        187,
+        106,
+        225,
+        172,
+        101,
+        191,
+        38,
+        193
+      ]
+    },
+    {
+      "name": "OptionTpSlSet",
+      "discriminator": [
+        241,
+        151,
+        226,
+        131,
+        100,
+        228,
+        35,
+        254
+      ]
+    },
+    {
+      "name": "PerpPositionClosed",
+      "discriminator": [
+        39,
+        255,
+        107,
+        30,
+        11,
+        255,
+        185,
+        94
+      ]
+    },
+    {
+      "name": "PerpPositionOpened",
+      "discriminator": [
+        181,
+        0,
+        246,
+        154,
+        111,
+        252,
+        41,
+        214
+      ]
+    },
+    {
+      "name": "PerpTpSlSet",
+      "discriminator": [
+        3,
+        41,
+        41,
+        31,
+        233,
+        57,
+        120,
+        249
+      ]
+    },
+    {
+      "name": "PoolAdded",
+      "discriminator": [
+        38,
+        229,
+        6,
+        208,
+        172,
+        23,
+        178,
+        179
+      ]
+    },
+    {
+      "name": "PositionLiquidated",
+      "discriminator": [
+        40,
+        107,
+        90,
+        214,
+        96,
+        30,
+        61,
+        128
+      ]
+    },
+    {
+      "name": "PositionSizeUpdated",
+      "discriminator": [
+        106,
+        28,
+        222,
+        42,
+        218,
+        40,
+        238,
+        116
+      ]
+    },
+    {
+      "name": "TpSlOrderAdded",
+      "discriminator": [
+        187,
+        237,
+        174,
+        41,
+        196,
+        203,
+        142,
+        120
+      ]
+    },
+    {
+      "name": "TpSlOrderExecuted",
+      "discriminator": [
+        202,
+        47,
+        135,
+        125,
+        175,
+        228,
+        126,
+        77
+      ]
+    },
+    {
+      "name": "TpSlOrderRemoved",
+      "discriminator": [
+        67,
+        131,
+        190,
+        201,
+        32,
+        242,
+        71,
+        140
+      ]
+    },
+    {
+      "name": "TpSlOrderUpdated",
+      "discriminator": [
+        157,
+        2,
+        60,
+        208,
+        11,
+        218,
+        210,
+        51
+      ]
+    },
+    {
+      "name": "TpSlOrderbookInitialized",
+      "discriminator": [
+        246,
+        27,
+        116,
+        116,
+        99,
+        72,
+        237,
+        77
+      ]
+    }
+  ],
   "errors": [
     {
       "code": 6000,
-      "name": "PositionLiquidated",
-      "msg": "Position has been liquidated"
+      "name": "InvalidWithdrawError",
+      "msg": "Invalid withdrawal amount or conditions"
     },
     {
       "code": 6001,
-      "name": "PositionNotLiquidatable",
-      "msg": "Position cannot be liquidated"
+      "name": "InvalidPoolBalanceError",
+      "msg": "Pool balance is invalid or insufficient"
     },
     {
       "code": 6002,
-      "name": "InvalidLiquidationPrice",
-      "msg": "Invalid liquidation price"
+      "name": "InvalidSignerBalanceError",
+      "msg": "Signer balance insufficient for pool operation"
     },
     {
       "code": 6003,
-      "name": "InvalidLeverage",
-      "msg": "Invalid leverage specified"
+      "name": "InvalidCustodyTokenError",
+      "msg": "Invalid custody token specified"
     },
     {
       "code": 6004,
-      "name": "InsufficientCollateral",
-      "msg": "Insufficient collateral"
+      "name": "InvalidPoolState",
+      "msg": "Pool is in invalid state"
     },
     {
       "code": 6005,
-      "name": "InvalidCollateralAsset",
-      "msg": "Invalid collateral asset"
+      "name": "InvalidCustodyState",
+      "msg": "Custody is in invalid state"
     },
     {
       "code": 6006,
-      "name": "WouldCauseLiquidation",
-      "msg": "Would cause liquidation"
+      "name": "InvalidPoolName",
+      "msg": "Invalid pool name"
     },
     {
       "code": 6007,
-      "name": "InsufficientMargin",
-      "msg": "Insufficient margin"
+      "name": "InvalidPoolIndex",
+      "msg": "Invalid pool index"
     },
     {
       "code": 6008,
-      "name": "InvalidPositionType",
-      "msg": "Invalid position type"
+      "name": "InvalidPoolConfig",
+      "msg": "Invalid pool config"
     },
     {
       "code": 6009,
-      "name": "NotLimitOrder",
-      "msg": "Position is not a limit order"
+      "name": "InvalidCustodyConfig",
+      "msg": "Invalid custody config"
     },
     {
       "code": 6010,
-      "name": "NotMarketOrder",
-      "msg": "Position is not a market order"
+      "name": "InvalidCollateralCustody",
+      "msg": "Invalid collateral custody"
     },
     {
       "code": 6011,
-      "name": "LimitOrderNotTriggered",
-      "msg": "Limit order cannot be executed at current price"
+      "name": "TokenRatioOutOfRange",
+      "msg": "Token ratio out of range"
     },
     {
       "code": 6012,
-      "name": "PositionAlreadyExecuted",
-      "msg": "Position already executed"
-    },
-    {
-      "code": 6013,
-      "name": "InvalidTriggerPrice",
-      "msg": "Invalid trigger price"
-    },
-    {
-      "code": 6014,
-      "name": "InvalidPositionSize",
-      "msg": "Invalid position size"
-    },
-    {
-      "code": 6015,
-      "name": "PositionSizeTooSmall",
-      "msg": "Position size too small"
-    },
-    {
-      "code": 6016,
-      "name": "PositionSizeTooLarge",
-      "msg": "Position size too large"
-    },
-    {
-      "code": 6017,
-      "name": "MaxLeverageExceeded",
-      "msg": "Maximum leverage exceeded"
-    },
-    {
-      "code": 6018,
-      "name": "MinMarginNotMet",
-      "msg": "Minimum margin requirement not met"
-    },
-    {
-      "code": 6019,
-      "name": "FundingPaymentFailed",
-      "msg": "Position funding payment failed"
-    },
-    {
-      "code": 6020,
-      "name": "InterestPaymentFailed",
-      "msg": "Position interest payment failed"
-    },
-    {
-      "code": 6021,
-      "name": "InvalidFundingRate",
-      "msg": "Invalid funding rate"
-    },
-    {
-      "code": 6022,
-      "name": "InvalidInterestRate",
-      "msg": "Invalid interest rate"
-    },
-    {
-      "code": 6023,
-      "name": "PnLCalculationFailed",
-      "msg": "Position PnL calculation failed"
-    },
-    {
-      "code": 6024,
-      "name": "PositionUpdateFailed",
-      "msg": "Position update failed"
-    },
-    {
-      "code": 6025,
-      "name": "InvalidPositionState",
-      "msg": "Invalid position state"
-    },
-    {
-      "code": 6026,
-      "name": "PositionNotFound",
-      "msg": "Position not found"
-    },
-    {
-      "code": 6027,
-      "name": "CannotModifyExecutedPosition",
-      "msg": "Cannot modify executed position"
-    },
-    {
-      "code": 6028,
-      "name": "InvalidExecutionPrice",
-      "msg": "Invalid execution price"
-    },
-    {
-      "code": 6029,
-      "name": "PositionCannotBeCanceled",
-      "msg": "Position cannot be canceled"
-    },
-    {
-      "code": 6030,
-      "name": "UtilizationTooHigh",
-      "msg": "Utilization rate too high"
-    },
-    {
-      "code": 6031,
-      "name": "InvalidUtilizationRate",
-      "msg": "Invalid utilization rate"
-    },
-    {
-      "code": 6032,
-      "name": "InvalidBorrowRateCurvePoint",
-      "msg": "Invalid borrow rate curve point"
-    },
-    {
-      "code": 6033,
-      "name": "BorrowRateNotInitialized",
-      "msg": "Borrow rate not initialized"
-    },
-    {
-      "code": 6034,
-      "name": "AssetTypeNotSet",
-      "msg": "Asset type not set"
-    },
-    {
-      "code": 6035,
-      "name": "InvalidPerpetualsConfig",
-      "msg": "Invalid perpetuals config"
-    },
-    {
-      "code": 6036,
-      "name": "CustodyAmountLimit",
-      "msg": "Custody amount limit exceeded"
-    },
-    {
-      "code": 6037,
-      "name": "PositionAmountLimit",
-      "msg": "Position amount limit exceeded"
-    },
-    {
-      "code": 6038,
-      "name": "MaxUtilization",
-      "msg": "Maximum utilization exceeded"
+      "name": "UnsupportedToken",
+      "msg": "Token is not supported"
     }
   ],
   "types": [
@@ -6693,6 +7536,74 @@
       }
     },
     {
+      "name": "BorrowFeesUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "position_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fee_payment",
+            "type": "u64"
+          },
+          {
+            "name": "new_accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "previous_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "new_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
       "name": "BorrowRateCurve",
       "type": {
         "kind": "struct",
@@ -6725,6 +7636,10 @@
           {
             "name": "pool_name",
             "type": "string"
+          },
+          {
+            "name": "close_percentage",
+            "type": "u8"
           },
           {
             "name": "receive_sol",
@@ -6813,6 +7728,158 @@
           {
             "name": "receive_sol",
             "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "collateral_amount_added",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd_added",
+            "type": "u64"
+          },
+          {
+            "name": "new_collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "new_leverage",
+            "type": "u64"
+          },
+          {
+            "name": "new_liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "new_borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CollateralRemoved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "collateral_amount_removed",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd_removed",
+            "type": "u64"
+          },
+          {
+            "name": "new_collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "new_collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "new_leverage",
+            "type": "u64"
+          },
+          {
+            "name": "new_liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "new_borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawal_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawal_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
           }
         ]
       }
@@ -7002,6 +8069,474 @@
       }
     },
     {
+      "name": "InitTpSlOrderbookParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LimitOptionClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "close_quantity",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LimitOptionOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "LimitOrderCanceled",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "opening_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "close_percentage",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_collateral",
+            "type": "u64"
+          },
+          {
+            "name": "refunded_collateral_usd",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LimitOrderExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "opening_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "execution_price",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "LiquidateParams",
       "type": {
         "kind": "struct",
@@ -7022,6 +8557,90 @@
       }
     },
     {
+      "name": "LiquidityAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount_in",
+            "type": "u64"
+          },
+          {
+            "name": "deposit_amount",
+            "type": "u64"
+          },
+          {
+            "name": "lp_amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee_amount",
+            "type": "u64"
+          },
+          {
+            "name": "token_amount_usd",
+            "type": "u64"
+          },
+          {
+            "name": "pool_aum_usd",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
+      "name": "LiquidityRemoved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "lp_amount_in",
+            "type": "u64"
+          },
+          {
+            "name": "transfer_amount",
+            "type": "u64"
+          },
+          {
+            "name": "fee_amount",
+            "type": "u64"
+          },
+          {
+            "name": "withdrawal_amount",
+            "type": "u64"
+          },
+          {
+            "name": "pool_aum_usd",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
       "name": "LpTokenMintData",
       "type": {
         "kind": "struct",
@@ -7037,6 +8656,34 @@
           {
             "name": "uri",
             "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ManageTpSlOrdersParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "action",
+            "type": {
+              "defined": {
+                "name": "OrderAction"
+              }
+            }
           }
         ]
       }
@@ -7166,7 +8813,7 @@
         "kind": "struct",
         "fields": [
           {
-            "name": "size_usd",
+            "name": "size_amount",
             "type": "u64"
           },
           {
@@ -7182,10 +8829,10 @@
             }
           },
           {
-            "name": "position_type",
+            "name": "order_type",
             "type": {
               "defined": {
-                "name": "PositionType"
+                "name": "OrderType"
               }
             }
           },
@@ -7222,6 +8869,106 @@
             "type": {
               "option": "u64"
             }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OptionClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "close_quantity",
+            "type": "u64"
           }
         ]
       }
@@ -7338,6 +9085,799 @@
             "type": {
               "option": "u64"
             }
+          },
+          {
+            "name": "tp_sl_orderbook",
+            "type": {
+              "option": "pubkey"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OptionExercised",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "exercised",
+            "type": "u64"
+          },
+          {
+            "name": "profit",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OptionOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OptionTpSlSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "quantity",
+            "type": "u64"
+          },
+          {
+            "name": "period",
+            "type": "u64"
+          },
+          {
+            "name": "expired_date",
+            "type": "i64"
+          },
+          {
+            "name": "purchase_date",
+            "type": "u64"
+          },
+          {
+            "name": "option_type",
+            "type": "u8"
+          },
+          {
+            "name": "strike_price",
+            "type": "u64"
+          },
+          {
+            "name": "valid",
+            "type": "bool"
+          },
+          {
+            "name": "locked_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "premium",
+            "type": "u64"
+          },
+          {
+            "name": "premium_asset",
+            "type": "pubkey"
+          },
+          {
+            "name": "limit_price",
+            "type": "u64"
+          },
+          {
+            "name": "executed",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "last_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderAction",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "AddTakeProfit",
+            "fields": [
+              {
+                "name": "price",
+                "type": "u64"
+              },
+              {
+                "name": "size_percent",
+                "type": "u16"
+              }
+            ]
+          },
+          {
+            "name": "AddStopLoss",
+            "fields": [
+              {
+                "name": "price",
+                "type": "u64"
+              },
+              {
+                "name": "size_percent",
+                "type": "u16"
+              }
+            ]
+          },
+          {
+            "name": "UpdateTakeProfit",
+            "fields": [
+              {
+                "name": "index",
+                "type": "u8"
+              },
+              {
+                "name": "new_price",
+                "type": {
+                  "option": "u64"
+                }
+              },
+              {
+                "name": "new_size_percent",
+                "type": {
+                  "option": "u16"
+                }
+              }
+            ]
+          },
+          {
+            "name": "UpdateStopLoss",
+            "fields": [
+              {
+                "name": "index",
+                "type": "u8"
+              },
+              {
+                "name": "new_price",
+                "type": {
+                  "option": "u64"
+                }
+              },
+              {
+                "name": "new_size_percent",
+                "type": {
+                  "option": "u16"
+                }
+              }
+            ]
+          },
+          {
+            "name": "RemoveTakeProfit",
+            "fields": [
+              {
+                "name": "index",
+                "type": "u8"
+              }
+            ]
+          },
+          {
+            "name": "RemoveStopLoss",
+            "fields": [
+              {
+                "name": "index",
+                "type": "u8"
+              }
+            ]
+          },
+          {
+            "name": "ClearAll"
+          }
+        ]
+      }
+    },
+    {
+      "name": "OrderType",
+      "type": {
+        "kind": "enum",
+        "variants": [
+          {
+            "name": "Market"
+          },
+          {
+            "name": "Limit"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerpPositionClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "closing_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "close_percentage",
+            "type": "u64"
+          },
+          {
+            "name": "realized_pnl",
+            "type": "i64"
+          },
+          {
+            "name": "unrealized_pnl",
+            "type": "i64"
+          },
+          {
+            "name": "settlement_tokens",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerpPositionOpened",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "execution_time",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "opening_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PerpTpSlSet",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "opening_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
           }
         ]
       }
@@ -7388,15 +9928,11 @@
             }
           },
           {
-            "name": "cumulative_funding_rate_long",
-            "type": "i128"
+            "name": "cumulative_interest_rate_long",
+            "type": "u128"
           },
           {
-            "name": "cumulative_funding_rate_short",
-            "type": "i128"
-          },
-          {
-            "name": "cumulative_interest_rate",
+            "name": "cumulative_interest_rate_short",
             "type": "u128"
           },
           {
@@ -7423,10 +9959,62 @@
       }
     },
     {
+      "name": "PoolAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "lp_token_mint",
+            "type": "pubkey"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "lp_token_bump",
+            "type": "u8"
+          },
+          {
+            "name": "cumulative_interest_rate_long",
+            "type": "u128"
+          },
+          {
+            "name": "cumulative_interest_rate_short",
+            "type": "u128"
+          },
+          {
+            "name": "long_open_interest_usd",
+            "type": "u128"
+          },
+          {
+            "name": "short_open_interest_usd",
+            "type": "u128"
+          },
+          {
+            "name": "total_borrowed_usd",
+            "type": "u128"
+          }
+        ]
+      }
+    },
+    {
       "name": "Position",
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
           {
             "name": "owner",
             "type": "pubkey"
@@ -7444,10 +10032,10 @@
             "type": "pubkey"
           },
           {
-            "name": "position_type",
+            "name": "order_type",
             "type": {
               "defined": {
-                "name": "PositionType"
+                "name": "OrderType"
               }
             }
           },
@@ -7488,15 +10076,13 @@
             "type": "i64"
           },
           {
+            "name": "execution_time",
+            "type": {
+              "option": "i64"
+            }
+          },
+          {
             "name": "liquidation_price",
-            "type": "u64"
-          },
-          {
-            "name": "initial_margin_bps",
-            "type": "u64"
-          },
-          {
-            "name": "maintenance_margin_bps",
             "type": "u64"
           },
           {
@@ -7504,8 +10090,8 @@
             "type": "u128"
           },
           {
-            "name": "cumulative_funding_snapshot",
-            "type": "u128"
+            "name": "accrued_borrow_fees",
+            "type": "u64"
           },
           {
             "name": "total_fees_paid",
@@ -7513,6 +10099,130 @@
           },
           {
             "name": "opening_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "take_profit_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "stop_loss_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "tp_sl_orderbook",
+            "type": {
+              "option": "pubkey"
+            }
+          },
+          {
+            "name": "trigger_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "trigger_above_threshold",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "PositionLiquidated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "index",
+            "type": "u64"
+          },
+          {
+            "name": "pub_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "closing_fee_paid",
+            "type": "u64"
+          },
+          {
+            "name": "total_fees_paid",
             "type": "u64"
           },
           {
@@ -7546,22 +10256,112 @@
             "type": "bool"
           },
           {
+            "name": "pnl",
+            "type": "i64"
+          },
+          {
             "name": "bump",
             "type": "u8"
+          },
+          {
+            "name": "settlement_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "liquidator_reward_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "liquidator",
+            "type": "pubkey"
           }
         ]
       }
     },
     {
-      "name": "PositionType",
+      "name": "PositionSizeUpdated",
       "type": {
-        "kind": "enum",
-        "variants": [
+        "kind": "struct",
+        "fields": [
           {
-            "name": "Market"
+            "name": "owner",
+            "type": "pubkey"
           },
           {
-            "name": "Limit"
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_increase",
+            "type": "bool"
+          },
+          {
+            "name": "size_delta_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_delta",
+            "type": "u64"
+          },
+          {
+            "name": "previous_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "new_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "previous_collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "new_collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "new_leverage",
+            "type": "u64"
+          },
+          {
+            "name": "new_liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "new_borrow_size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount_delta",
+            "type": "u64"
+          },
+          {
+            "name": "new_locked_amount",
+            "type": "u64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
           }
         ]
       }
@@ -7768,6 +10568,328 @@
           {
             "name": "max",
             "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrder",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_percent",
+            "type": "u16"
+          },
+          {
+            "name": "is_active",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderAdded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_percent",
+            "type": "u16"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderExecuted",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "price",
+            "type": "u64"
+          },
+          {
+            "name": "size_percent",
+            "type": "u16"
+          },
+          {
+            "name": "execution_time",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderRemoved",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderUpdated",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "index",
+            "type": "u8"
+          },
+          {
+            "name": "new_price",
+            "type": {
+              "option": "u64"
+            }
+          },
+          {
+            "name": "new_size_percent",
+            "type": {
+              "option": "u16"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderbook",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "take_profit_orders",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "TpSlOrder"
+                  }
+                },
+                10
+              ]
+            }
+          },
+          {
+            "name": "stop_loss_orders",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "TpSlOrder"
+                  }
+                },
+                10
+              ]
+            }
+          },
+          {
+            "name": "active_tp_count",
+            "type": "u8"
+          },
+          {
+            "name": "active_sl_count",
+            "type": "u8"
+          },
+          {
+            "name": "total_tp_percent",
+            "type": "u16"
+          },
+          {
+            "name": "total_sl_percent",
+            "type": "u16"
+          },
+          {
+            "name": "last_executed_tp_index",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "last_executed_sl_index",
+            "type": {
+              "option": "u8"
+            }
+          },
+          {
+            "name": "last_execution_time",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderbookInitialized",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdateBorrowFeesParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          }
+        ]
+      }
+    },
+    {
+      "name": "UpdatePositionSizeParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "is_increase",
+            "type": "bool"
+          },
+          {
+            "name": "size_delta_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_delta",
+            "type": "u64"
+          },
+          {
+            "name": "pay_sol",
+            "type": "bool"
+          },
+          {
+            "name": "receive_sol",
+            "type": "bool"
           }
         ]
       }

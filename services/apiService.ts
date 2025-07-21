@@ -9,21 +9,26 @@ export interface ApiResponse<T = any> {
 }
 
 export interface Position {
+  index: number,
   positionId: string;
   user: string;
   contractType: 'perp' | 'option';
-  positionType: 'market' | 'limit';
+  orderType: 'market' | 'limit';
+  positionSide: 'long' | 'short';
   poolName: string;
   custody: string;
   entryPrice: number;
   currentPrice: number;
   positionSize: number;
+  collateralUSD: number;
   collateralAmount: number;
   leverage: number;
   liquidationPrice: number;
   unrealizedPnl: number;
   realizedPnl: number;
+  triggerPrice?: number;
   fees: number;
+  executionTime: Date;
   openedAt: Date;
   isActive: boolean;
   side: boolean; // true = long, false = short
@@ -38,6 +43,7 @@ export interface Option {
   pool: string;
   amount: number;
   quantity: number;
+  entryPrice: number;
   strikePrice: number;
   period: number;
   expiredDate: number;
@@ -99,6 +105,31 @@ export interface PriceData {
   timestamp: Date;
 }
 
+export interface TpSlOrderResponse {
+    _id: string;
+    user: string;
+    positionId: string;
+    contractType: 'perp' | 'option';
+    positionSide: 'long' | 'short';
+    takeProfit?: {
+        price: number;
+        enabled: boolean;
+        triggerCondition: 'above' | 'below';
+    };
+    stopLoss?: {
+        price: number;
+        enabled: boolean;
+        triggerCondition: 'above' | 'below';
+    };
+    closePercent: number;
+    poolName: string;
+    custody: string;
+    receiveAsset: 'SOL' | 'USDC';
+    isActive: boolean;
+    createdAt: string;
+    updatedAt: string;
+}
+
 class ApiService {
   private api: AxiosInstance;
 
@@ -127,7 +158,7 @@ class ApiService {
   async getUserPositions(userPublicKey: string): Promise<Position[]> {
     try {
       const response = await this.api.get(`/positions/${userPublicKey}`);
-      return response.data.data || [];
+      return response.data.data.positions || [];
     } catch (error) {
       console.error('Failed to fetch user positions:', error);
       return [];
@@ -147,7 +178,7 @@ class ApiService {
   async getUserOptions(userPublicKey: string): Promise<Option[]> {
     try {
       const response = await this.api.get(`/options/${userPublicKey}`);
-      return response.data.data || [];
+      return response.data.data.options || [];
     } catch (error) {
       console.error('Failed to fetch user options:', error);
       return [];
@@ -156,13 +187,13 @@ class ApiService {
 
   // ===== TP/SL MANAGEMENT =====
 
-  async getTpSlOrders(userPublicKey: string): Promise<any[]> {
+  async getTpSlOrders(userPublicKey: string): Promise<{ orders: TpSlOrderResponse[] }> {
     try {
       const response = await this.api.get(`/trading/tpsl/${userPublicKey}`);
       return response.data.data || [];
     } catch (error) {
       console.error('Failed to fetch TP/SL orders:', error);
-      return [];
+      return { orders: [] };
     }
   }
 
@@ -228,8 +259,8 @@ class ApiService {
       if (options?.transactionType) params.append('type', options.transactionType);
       if (options?.poolName) params.append('pool', options.poolName);
 
-      const response = await this.api.get(`/transactions/${userPublicKey}?${params}`);
-      return response.data.data || [];
+      const response = await this.api.get(`/users/${userPublicKey}/transactions?${params}`);
+      return response.data.data.transactions || [];
     } catch (error) {
       console.error('Failed to fetch user transactions:', error);
       return [];

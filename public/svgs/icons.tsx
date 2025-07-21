@@ -54,7 +54,7 @@ export function AvatarIcon(){
   </svg>
 }
 
-export function PositionTypeIcon(){
+export function PositionSideIcon(){
   return <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 14 14" fill="none">
   <path d="M1.74545 9.33301L4.07879 11.6663L6.41212 9.33301" stroke="#808693" strokeLinecap="round" strokeLinejoin="round"/>
   <path d="M4.08334 11.6663V2.33301" stroke="#808693" strokeLinecap="round" strokeLinejoin="round"/>

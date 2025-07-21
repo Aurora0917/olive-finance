@@ -1,4 +1,4 @@
-import { PositionTypeIcon, PriceIcon, PurchaseDateIcon, PurchasePriceIcon } from "@/public/svgs/icons";
+import { PositionSideIcon, PriceIcon, PurchaseDateIcon, PurchasePriceIcon } from "@/public/svgs/icons";
 import Tpsl from "./Tpsl";
 
 interface PositionDetailsProps{
@@ -10,7 +10,7 @@ export default function PositionDetails({type} : PositionDetailsProps){
             <div className='w-full flex flex-col space-y-1'>
                 <div className='w-full flex justify-between text-sm text-secondary-foreground font-normal'>
                     <div className='flex space-x-2 items-center'>
-                        <PositionTypeIcon />
+                        <PositionSideIcon />
                         <span>Option Type:</span>
                     </div>
                     <span>{type}</span>

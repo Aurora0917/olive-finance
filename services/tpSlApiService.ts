@@ -4,7 +4,7 @@ export interface TpSlOrderRequest {
     user: string;
     positionId: string;
     contractType: 'perp' | 'option';
-    positionType: 'long' | 'short';
+    positionSide: 'long' | 'short';
     takeProfit?: {
         price: number;
         enabled: boolean;
@@ -27,7 +27,7 @@ export interface TpSlOrderResponse {
     user: string;
     positionId: string;
     contractType: 'perp' | 'option';
-    positionType: 'long' | 'short';
+    positionSide: 'long' | 'short';
     takeProfit?: {
         price: number;
         enabled: boolean;
@@ -178,14 +178,14 @@ class TpSlApiService {
     }
 
     // Convert frontend position type to backend position type
-    convertToBackendPositionType(frontendPosition: 'long' | 'short'): 'perp' | 'option' {
+    convertToBackendPositionSide(frontendPosition: 'long' | 'short'): 'perp' | 'option' {
         // For now, mapping all positions to 'perp' (perpetual futures)
         // You can modify this logic based on your actual business requirements
         return 'perp';
     }
 
     // Convert backend position type to frontend position type (for display)
-    convertToFrontendPositionType(backendPosition: 'perp' | 'option'): 'long' | 'short' {
+    convertToFrontendPositionSide(backendPosition: 'perp' | 'option'): 'long' | 'short' {
         // This is a simplified mapping - you'll need to store the actual direction separately
         // or determine it from other position data
         return 'long'; // Default - you'll need proper logic here
@@ -193,10 +193,10 @@ class TpSlApiService {
 
     // Helper to determine trigger condition based on position and order type
     getTriggerCondition(
-        positionType: 'long' | 'short',
+        positionSide: 'long' | 'short',
         orderType: 'takeProfit' | 'stopLoss'
     ): 'above' | 'below' {
-        if (positionType === 'long') {
+        if (positionSide === 'long') {
             return orderType === 'takeProfit' ? 'above' : 'below';
         } else {
             return orderType === 'takeProfit' ? 'below' : 'above';
@@ -208,12 +208,12 @@ class TpSlApiService {
         currentPrice: number, 
         takeProfit?: number, 
         stopLoss?: number, 
-        positionType: 'long' | 'short' = 'long'
+        positionSide: 'long' | 'short' = 'long'
     ): { isValid: boolean; errors: string[] } {
         const errors: string[] = [];
 
         if (takeProfit !== undefined) {
-            if (positionType === 'long') {
+            if (positionSide === 'long') {
                 // For long positions, TP should be higher than current price
                 if (takeProfit <= currentPrice + 2) {
                     errors.push('Take Profit must be at least $2.00 higher than current price');
@@ -227,7 +227,7 @@ class TpSlApiService {
         }
 
         if (stopLoss !== undefined) {
-            if (positionType === 'long') {
+            if (positionSide === 'long') {
                 // For long positions, SL should be lower than current price
                 if (stopLoss >= currentPrice - 2) {
                     errors.push('Stop Loss must be at least $2.00 lower than current price');

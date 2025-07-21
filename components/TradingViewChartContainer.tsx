@@ -12,11 +12,11 @@ interface TradingViewChartContainerProps{
     strikePrice: string
     currentPrice: number
     contractType: 'Call' | 'Put'
-    positionType: string
+    positionSide: string
     expiry: Date
 }
 
-export default function TradingViewChartContainer({symbol, logo, investment, premium, strikePrice, currentPrice, contractType, positionType, expiry} : TradingViewChartContainerProps){
+export default function TradingViewChartContainer({symbol, logo, investment, premium, strikePrice, currentPrice, contractType, positionSide, expiry} : TradingViewChartContainerProps){
     const [activeTab, setActiveTab] = useState<string>("chart")
     
     const handleClick = (state: string) => {
@@ -68,7 +68,7 @@ export default function TradingViewChartContainer({symbol, logo, investment, pre
                             strikePrice={strikePrice}
                             currentPrice={currentPrice}
                             contractType={contractType}
-                            positionType={positionType}
+                            positionSide={positionSide}
                         />
                     )}
                     {activeTab === 'price' && (

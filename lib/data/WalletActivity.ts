@@ -23,6 +23,7 @@ export interface FuturesTransaction{
 }
 
 export interface FuturePos{
+    index: number,
     token: Token;
     symbol: string;
     futureType: 'perps' | 'dated';
@@ -30,6 +31,7 @@ export interface FuturePos{
     entryPrice: number;
     LiqPrice: number;
     size: number;
+    triggerPrice?: number;
     collateral: number;
     TPSL: number;
     logo: string;
@@ -125,6 +127,7 @@ export const futurePos : FuturePos[] = tokenList.map((token) => {
     const formattedPurchase = format(new Date(purchaseDate), 'dd MMM, yyyy')
 
     return {
+        index: Math.floor(Math.random() * 10),
         token: token,
         symbol: token.symbol,
         futureType,

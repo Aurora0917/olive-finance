@@ -14,6 +14,7 @@ interface CloseFuturesProps {
     entryPrice: number;
     collateral: number;
     position: string;
+    orderType: string;
     onClose?: (closeSize: number, receiveToken: string, exitPrice: number) => void;
 }
 
@@ -23,6 +24,7 @@ export default function CloseFutures({
     entryPrice,
     collateral,
     position,
+    orderType,
     onClose 
 }: CloseFuturesProps) {
     const tokens = tokenList;
@@ -53,7 +55,7 @@ export default function CloseFutures({
     const receiveAmount = calculateReceiveAmount();
 
     const handlePercentageClick = (percentage: number) => {
-        const newCloseSize = (size * percentage) / 100;
+        const newCloseSize = percentage === 100 ? size : (size * percentage) / 100;
         setCloseSize(Number(newCloseSize));
     };
 
@@ -200,14 +202,14 @@ export default function CloseFutures({
                         {collateral.toFixed(2)} → {(collateral * Math.max(size - closeSize, 0) / size).toFixed(2)}
                     </span>
                 </div>
-                <div className="w-full flex justify-between text-sm">
+                {orderType === "market" && <div className="w-full flex justify-between text-sm">
                     <span>
                         Close Fee (0.1%)
                     </span>
                     <span>
                         ${(closeSize * 0.001).toFixed(2)} {/* 0.1% fee example */}
                     </span>
-                </div>
+                </div>}
                 <div className="w-full flex justify-between text-sm">
                     <span>
                         Transaction Fee

@@ -22,7 +22,7 @@ export default function Homepage(){
     const [active ,setActive] = useState('chart')
     const [tokenIdx, setTokenIdx] = useState(0)
     const [selectedSymbol, setSelectedSymbol] = useState<string>('Crypto.SOL/USD')
-    const [positionType, setPositionType] = useState<string>('Long')
+    const [positionSide, setPositionSide] = useState<string>('Long')
     const [contractType, setContractType] = useState<'Call' | 'Put'>('Call')
     const [currency, setCurrency] = useState(selectedSymbol)
     const [selectedLogo, setSelectedLogo] = useState<string>('/images/solana.png')
@@ -89,7 +89,7 @@ export default function Homepage(){
                         investment={payAmount}
                         strikePrice={strikePrice}
                         currentPrice={priceData.price!}
-                        positionType={positionType}
+                        positionSide={positionSide}
                         contractType={contractType}
                         expiry={expiry}
                       />

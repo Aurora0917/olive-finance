@@ -29,7 +29,7 @@ interface TpslProps {
     // Onchain integration props
     positionIndex?: number; // Required for onchain TP/SL
     poolName?: string;
-    positionType?: 'long' | 'short'; // Frontend still uses long/short for UI
+    positionSide?: 'long' | 'short'; // Frontend still uses long/short for UI
     positionDirection?: 'long' | 'short'; // Keep for internal logic
     currentPrice: number;
     onOrderCreated?: () => void; // Callback to refresh orders
@@ -44,7 +44,7 @@ export default function Tpsl({
     onCreateOrder, 
     positionIndex,
     poolName = "SOL/USDC",
-    positionType = 'long',
+    positionSide = 'long',
     positionDirection,
     currentPrice,
     onOrderCreated,
@@ -69,8 +69,8 @@ export default function Tpsl({
     const tokens = tokenList;
     const sizePercentages = [25, 50, 75, 100];
 
-    // Use positionDirection if provided, otherwise fall back to positionType
-    const effectivePositionDirection = positionDirection || positionType;
+    // Use positionDirection if provided, otherwise fall back to positionSide
+    const effectivePositionDirection = positionDirection || positionSide;
 
     // Mock calculation for demonstration
     const calculateTokenAmount = () => {

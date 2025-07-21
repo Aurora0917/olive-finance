@@ -6,6 +6,7 @@ import { Input } from "./ui/input";
 import { Info, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { tpSlApiService, TpSlOrderResponse } from "@/services/tpSlApiService";
 import { toast } from "sonner";
+import apiService from "@/services/apiService";
 
 interface TpSlOrder {
     id: string;
@@ -27,7 +28,7 @@ interface SettledTpSlsProps {
     // Backend integration props
     userId?: string;
     positionId?: string;
-    positionType?: 'long' | 'short'; // Frontend position type for display
+    positionSide?: 'long' | 'short'; // Frontend position type for display
     contractType?: 'perp' | 'option'; // Backend position type
     currentPrice: number;
     onOrdersUpdated?: () => void; // Callback when orders are updated
@@ -41,7 +42,7 @@ export default function SettledTpSls({
     onToggleVisibility,
     userId,
     positionId,
-    positionType = 'long',
+    positionSide = 'long',
     contractType = 'perp',
     currentPrice,
     onOrdersUpdated
@@ -64,7 +65,7 @@ export default function SettledTpSls({
         
         setLoadingOrders(true);
         try {
-            const response = await tpSlApiService.getUserTpSlOrders(userId);
+            const response = await apiService.getTpSlOrders(userId);
             // Filter orders by positionId if provided
             const filteredOrders = positionId 
                 ? response.orders.filter(order => 
@@ -147,7 +148,7 @@ export default function SettledTpSls({
                 currentPrice, 
                 order.type === 'take-profit' ? tempPrice : undefined,
                 order.type === 'stop-loss' ? tempPrice : undefined,
-                positionType
+                positionSide
             );
 
             if (!validation.isValid) {
@@ -387,7 +388,7 @@ export default function SettledTpSls({
                         <div className="text-xs text-secondary-foreground bg-backgroundSecondary/20 p-2 rounded">
                             <div className="flex justify-between">
                                 <span>Current Price: ${currentPrice.toFixed(2)}</span>
-                                <span>Position: {positionType.toUpperCase()}</span>
+                                <span>Position: {positionSide.toUpperCase()}</span>
                                 {contractType && (
                                     <span>Type: {contractType.toUpperCase()}</span>
                                 )}

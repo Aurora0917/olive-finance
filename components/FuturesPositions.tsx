@@ -15,6 +15,7 @@ import { FuturePos, FuturesTransaction } from "@/lib/data/WalletActivity";
 import { tokenList } from "@/lib/data/tokenlist";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { RefreshCw } from "lucide-react";
+import LimitOrders from "./LimitOrders";
 
 const Fallback = () => {
     const [isWalletModalOpen, setIsWalletModalOpen] = useState(false)
@@ -78,39 +79,67 @@ export default function FuturesPositions() {
         isLoadingPositions: positionsLoading,
         refreshUserData: refreshPerpPositions,
     } = useDataContext();
-    
+
     // Convert backend Position[] to FuturePos[]
-    const perpPositions: FuturePos[] = backendPositions
-        .filter(pos => pos.contractType === 'perp')
+    const perpPositions: FuturePos[] = (backendPositions || [])
+        .filter(pos => pos.contractType === 'perp' && pos.orderType === 'market' && pos.isActive === true)
         .map(pos => {
             // Find the token from tokenList based on pool name
             const tokenSymbol = pos.poolName.split('/')[0] || 'SOL';
             const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0]; // Default to SOL
-            
             return {
+                index: pos.index,
                 token: foundToken,
                 symbol: pos.poolName,
                 futureType: 'perps' as const,
-                position: pos.side ? 'long' : 'short' as 'long' | 'short',
+                position: pos.positionSide,
                 entryPrice: pos.entryPrice,
                 LiqPrice: pos.liquidationPrice,
                 size: pos.positionSize,
-                collateral: pos.collateralAmount,
+                collateral: pos.collateralUSD,
                 TPSL: pos.takeProfitPrice || pos.stopLossPrice || 0,
                 logo: foundToken.iconPath,
                 leverage: pos.leverage,
-                purchaseDate: new Date(pos.openedAt).toLocaleDateString(),
+                purchaseDate: (pos.executionTime || 0).toString(),
                 unrealizedPnl: pos.unrealizedPnl,
-                marginRatio: (pos.collateralAmount / pos.positionSize) * 100,
+                marginRatio: (pos.collateralUSD / pos.positionSize) * 100,
                 accountAddress: pos.positionId
             };
         });
-    
+
+    const limitOrders: FuturePos[] = (backendPositions || [])
+        .filter(pos => pos.contractType === 'perp' && pos.orderType === 'limit' && pos.isActive === true)
+        .map(pos => {
+            // Find the token from tokenList based on pool name
+            const tokenSymbol = pos.poolName.split('/')[0] || 'SOL';
+            const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0]; // Default to SOL
+            return {
+                index: pos.index,
+                token: foundToken,
+                symbol: pos.poolName,
+                futureType: 'perps' as const,
+                position: pos.positionSide,
+                entryPrice: pos.entryPrice,
+                LiqPrice: pos.liquidationPrice,
+                size: pos.positionSize,
+                triggerPrice: pos.triggerPrice,
+                collateral: pos.collateralUSD,
+                TPSL: pos.takeProfitPrice || pos.stopLossPrice || 0,
+                logo: foundToken.iconPath,
+                leverage: pos.leverage,
+                purchaseDate: pos.openedAt.toString(),
+                unrealizedPnl: pos.unrealizedPnl,
+                marginRatio: (pos.collateralUSD / pos.positionSize) * 100,
+                accountAddress: pos.positionId
+            };
+        });
+
     // Get transaction functions from contract provider
     const {
         onClosePerp,
         onAddCollateral,
         onRemoveCollateral,
+        onCancelLimitPerp,
         program,
     } = useContext(ContractContext);
 
@@ -158,21 +187,21 @@ export default function FuturesPositions() {
             const transactions = convertPerpPositionsToTransactions(perpPositions);
             setFuturesTransactions(transactions);
         }
-    }, [perpPositions]);
+    }, [perpPositions.length == 0]);
 
     // Filter expired positions (for perps, these would be liquidated positions)
-    useEffect(() => {
-        // For perpetual positions, "expired" could mean liquidated positions
-        // Since perpPositions only contains active positions, expired would be empty
-        // unless you fetch liquidated positions separately from your smart contract
-        setExpiredPositions([]);
-    }, [perpPositions]);
+    // useEffect(() => {
+    // For perpetual positions, "expired" could mean liquidated positions
+    // Since perpPositions only contains active positions, expired would be empty
+    // unless you fetch liquidated positions separately from your smart contract
+    // setExpiredPositions([]);
+    // }, [perpPositions]);
 
     // Pagination calculations
     const indexOfLastItem = currentPage * itemsPerPage;
     const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
-    const currentPositions = perpPositions.slice(indexOfFirstItem, indexOfLastItem);
+    const currentPositions = perpPositions;
     const currentExpiredPositions = expiredPositions.slice(indexOfFirstItem, indexOfLastItem);
     const currentTransactions = futuresTransactions.slice(indexOfFirstItem, indexOfLastItem);
 
@@ -183,11 +212,35 @@ export default function FuturesPositions() {
 
     const handleCollateral = async (position: FuturePos, amount: number, isSol: boolean, isDeposit: boolean) => {
         if (isDeposit) {
-            onAddCollateral(position.accountAddress, amount, isSol);
+            onAddCollateral(position.index, amount, isSol);
         } else {
-            onRemoveCollateral(position.accountAddress, amount, isSol);
+            onRemoveCollateral(position.index, amount, isSol);
         }
     }
+
+    const handleCancleLimit = async (position: FuturePos, percent: number, receiveToken: string, exitPrice: number) => {
+        if (!position.accountAddress) {
+            console.error("Invalid position - no account address");
+            return;
+        }
+
+        // For closing, we need to find the position index from the smart contract
+
+        setIsClosing(position.index);
+        try {
+            const success = await onCancelLimitPerp(percent, receiveToken, exitPrice, position.index);
+            if (success) {
+                console.log("Position closed successfully!");
+                // Position will be automatically removed from the list via refresh
+            } else {
+                console.error("Failed to close position");
+            }
+        } catch (error) {
+            console.error("Error closing position:", error);
+        } finally {
+            setIsClosing(null);
+        }
+    };
 
     const handleClosePosition = async (position: FuturePos, percent: number, receiveToken: string, exitPrice: number) => {
         if (!position.accountAddress) {
@@ -195,14 +248,9 @@ export default function FuturesPositions() {
             return;
         }
 
-        // For closing, we need to find the position index from the smart contract
-        const positionIndex = perpPositions.findIndex(p =>
-            p.accountAddress === position.accountAddress
-        ); // +1 because smart contract might use 1-based indexing
-
-        setIsClosing(positionIndex);
+        setIsClosing(position.index);
         try {
-            const success = await onClosePerp(position.accountAddress, percent, receiveToken, exitPrice);
+            const success = await onClosePerp(percent, receiveToken, exitPrice, position.index);
             if (success) {
                 console.log("Position closed successfully!");
                 // Position will be automatically removed from the list via refresh
@@ -263,7 +311,7 @@ export default function FuturesPositions() {
                                 Positions
                             </TabsTrigger>
                             <TabsTrigger
-                                value="Orders"
+                                value="orders"
                                 className="text-[11px] md:text-sm px-2 py-[2px] border-b rounded-none border-transparent data-[state=active]:border-primary"
                             >
                                 Orders
@@ -356,9 +404,7 @@ export default function FuturesPositions() {
             <ProtectedRoute fallback={<Fallback />}>
                 {activeTab === 'positions' && (
                     <>
-                        {positionsLoading ? (
-                            <LoadingSection />
-                        ) : currentPositions.length > 0 ? (
+                        {currentPositions.length > 0 ? (
                             <section className="px-6 py-3 space-y-[10px]">
                                 {currentPositions.map((pos, idx) => {
                                     const positionIndex = perpPositions.findIndex(p =>
@@ -386,6 +432,76 @@ export default function FuturesPositions() {
                                                 // Callbacks
                                                 onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
                                                 onClose={(percent, receiveToken, exitPrice) => handleClosePosition(pos, percent, receiveToken, exitPrice)}
+                                                isClosing={isClosing === positionIndex}
+
+                                                // Backend integration props
+                                                userId={walletAddress} // User's wallet address
+                                                positionId={pos.accountAddress || `${pos.symbol}_${pos.leverage}x_${pos.entryPrice}_${idx}`} // Position identifier
+                                                custody={getCustodyToken(pos)} // Custody token
+                                                poolName="SOL/USDC" // Pool name
+                                            />
+
+                                            {/* Loading overlay for closing position */}
+                                            {isClosing === positionIndex && (
+                                                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center rounded z-10">
+                                                    <div className="bg-white px-4 py-2 rounded shadow-lg">
+                                                        <span className="text-sm">Closing position...</span>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </section>
+                        ) : (
+                            <EmptySection message="No open perpetual positions" />
+                        )}
+
+                        {/* Pagination for positions */}
+                        {perpPositions.length > itemsPerPage && (
+                            <div className="px-3 md:px-6 pb-4 w-full">
+                                <Pagination
+                                    currentPage={currentPage}
+                                    totalItems={perpPositions.length}
+                                    itemsPerPage={itemsPerPage}
+                                    onPageChange={setCurrentPage}
+                                />
+                            </div>
+                        )}
+                    </>
+                )}
+
+                {activeTab === 'orders' && (
+                    <>
+                        {limitOrders.length > 0 ? (
+                            <section className="px-6 py-3 space-y-[10px]">
+                                {limitOrders.map((pos, idx) => {
+                                    const positionIndex = perpPositions.findIndex(p =>
+                                        p.accountAddress === pos.accountAddress
+                                    ) + 1;
+
+                                    return (
+                                        <div key={pos.accountAddress || `pos-${idx}`} className="relative">
+                                            <LimitOrders
+                                                // Basic position props
+                                                token={pos.token.name}
+                                                logo={pos.logo}
+                                                symbol={pos.symbol}
+                                                type={pos.futureType}
+                                                position={pos.position}
+                                                leverage={pos.leverage}
+                                                entry={pos.entryPrice}
+                                                liquidation={pos.LiqPrice}
+                                                size={pos.size}
+                                                collateral={pos.collateral}
+                                                triggerPrice={pos.triggerPrice || 0}
+                                                tpsl={pos.TPSL}
+                                                purchaseDate={pos.purchaseDate}
+                                                unrealizedPnl={pos.unrealizedPnl}
+
+                                                // Callbacks
+                                                onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
+                                                onClose={(percent, receiveToken, exitPrice) => handleCancleLimit(pos, percent, receiveToken, exitPrice)}
                                                 isClosing={isClosing === positionIndex}
 
                                                 // Backend integration props

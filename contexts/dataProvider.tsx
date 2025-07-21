@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import apiService, { Position, Option, Transaction, UserStats, PoolMetrics, PriceData } from '@/services/apiService';
+import apiService, { Position, Option, Transaction, UserStats, PoolMetrics, PriceData, TpSlOrderResponse } from '@/services/apiService';
 import { usePythPrice } from '@/hooks/usePythPrice';
 
 interface DataContextType {
@@ -11,7 +11,7 @@ interface DataContextType {
   options: Option[];
   transactions: Transaction[];
   userStats: UserStats | null;
-  tpSlOrders: any[];
+  tpSlOrders: { orders: TpSlOrderResponse[] };
   
   // Market Data
   poolMetrics: PoolMetrics[];
@@ -61,7 +61,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [options, setOptions] = useState<Option[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [tpSlOrders, setTpSlOrders] = useState<any[]>([]);
+  const [tpSlOrders, setTpSlOrders] = useState<{ orders: TpSlOrderResponse[] }>({ orders: [] });
   
   const [poolMetrics, setPoolMetrics] = useState<PoolMetrics[]>([]);
   const [priceData, setPriceData] = useState<PriceData[]>([]);
@@ -93,11 +93,17 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       setOptions([]);
       setTransactions([]);
       setUserStats(null);
-      setTpSlOrders([]);
+      setTpSlOrders({ orders: [] });
       return;
     }
 
     const userKey = publicKey.toString();
+    
+    // Set loading states
+    setIsLoadingPositions(true);
+    setIsLoadingOptions(true);
+    setIsLoadingTransactions(true);
+    setIsLoadingUserStats(true);
     
     try {
       // Fetch all user data in parallel
@@ -115,10 +121,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         apiService.getTpSlOrders(userKey)
       ]);
 
+
       if (userPositions.status === 'fulfilled') {
         setPositions(userPositions.value);
       }
       if (userOptions.status === 'fulfilled') {
+        console.log(userOptions.value);
         setOptions(userOptions.value);
       }
       if (userTransactions.status === 'fulfilled') {
@@ -134,6 +142,12 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       console.log('User data refreshed successfully');
     } catch (error) {
       console.error('Failed to refresh user data:', error);
+    } finally {
+      // Clear loading states
+      setIsLoadingPositions(false);
+      setIsLoadingOptions(false);
+      setIsLoadingTransactions(false);
+      setIsLoadingUserStats(false);
     }
   }, [publicKey, connected]);
 
@@ -287,7 +301,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   useEffect(() => {
     if (connected && publicKey) {
       refreshUserData();
-      subscribeToRealTimeUpdates();
+      // subscribeToRealTimeUpdates();
     } else {
       unsubscribeFromRealTimeUpdates();
       // Clear user data when wallet disconnected
@@ -295,7 +309,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       setOptions([]);
       setTransactions([]);
       setUserStats(null);
-      setTpSlOrders([]);
+      setTpSlOrders({ orders: [] });
     }
   }, [connected, publicKey, refreshUserData, subscribeToRealTimeUpdates, unsubscribeFromRealTimeUpdates]);
 
