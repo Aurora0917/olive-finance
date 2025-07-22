@@ -75,7 +75,7 @@ export default function FuturesPositions() {
     // Get data from backend API
     const {
         positions: backendPositions,
-        transactions: donePositions,
+        transactions,
         isLoadingPositions: positionsLoading,
         refreshUserData: refreshPerpPositions,
     } = useDataContext();
@@ -109,6 +109,33 @@ export default function FuturesPositions() {
 
     const limitOrders: FuturePos[] = (backendPositions || [])
         .filter(pos => pos.contractType === 'perp' && pos.orderType === 'limit' && pos.isActive === true)
+        .map(pos => {
+            // Find the token from tokenList based on pool name
+            const tokenSymbol = pos.poolName.split('/')[0] || 'SOL';
+            const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0]; // Default to SOL
+            return {
+                index: pos.index,
+                token: foundToken,
+                symbol: pos.poolName,
+                futureType: 'perps' as const,
+                position: pos.positionSide,
+                entryPrice: pos.entryPrice,
+                LiqPrice: pos.liquidationPrice,
+                size: pos.positionSize,
+                triggerPrice: pos.triggerPrice,
+                collateral: pos.collateralUSD,
+                TPSL: pos.takeProfitPrice || pos.stopLossPrice || 0,
+                logo: foundToken.iconPath,
+                leverage: pos.leverage,
+                purchaseDate: pos.openedAt.toString(),
+                unrealizedPnl: pos.unrealizedPnl,
+                marginRatio: (pos.collateralUSD / pos.positionSize) * 100,
+                accountAddress: pos.positionId
+            };
+        });
+
+    const donePositions: FuturePos[] = (backendPositions || [])
+        .filter(pos => pos.orderType === 'market' && pos.isActive === false)
         .map(pos => {
             // Find the token from tokenList based on pool name
             const tokenSymbol = pos.poolName.split('/')[0] || 'SOL';
@@ -420,6 +447,7 @@ export default function FuturesPositions() {
                                                 symbol={pos.symbol}
                                                 type={pos.futureType}
                                                 position={pos.position}
+                                                positionIndex={pos.index}
                                                 leverage={pos.leverage}
                                                 entry={pos.entryPrice}
                                                 liquidation={pos.LiqPrice}
@@ -573,53 +601,18 @@ export default function FuturesPositions() {
 
                 {activeTab === 'history' && (
                     <>
-                        {positionsLoading ? (
-                            <LoadingSection />
-                        ) : currentPositions.length > 0 ? (
+                        {donePositions.length > 0 ? (
                             <section className="px-6 py-3 space-y-[10px]">
-                                {currentPositions.map((pos, idx) => {
-                                    const positionIndex = perpPositions.findIndex(p =>
-                                        p.accountAddress === pos.accountAddress
-                                    ) + 1;
-
+                                {donePositions.map((pos, idx) => {
                                     return (
                                         <div key={pos.accountAddress || `pos-${idx}`} className="relative">
                                             <FuturesOrderHistory
-                                                // Basic position props
+                                                transactions={transactions.filter(transaction => transaction.positionId === pos.accountAddress)}
                                                 token={pos.token.name}
                                                 logo={pos.logo}
+                                                side={pos.position}
                                                 symbol={pos.symbol}
-                                                type={pos.futureType}
-                                                position={pos.position}
-                                                leverage={pos.leverage}
-                                                entry={pos.entryPrice}
-                                                liquidation={pos.LiqPrice}
-                                                size={pos.size}
-                                                collateral={pos.collateral}
-                                                tpsl={pos.TPSL}
-                                                purchaseDate={pos.purchaseDate}
-                                                unrealizedPnl={pos.unrealizedPnl}
-
-                                                // Callbacks
-                                                onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
-                                                onClose={(percent, receiveToken, exitPrice) => handleClosePosition(pos, percent, receiveToken, exitPrice)}
-                                                isClosing={isClosing === positionIndex}
-
-                                                // Backend integration props
-                                                userId={walletAddress} // User's wallet address
-                                                positionId={pos.accountAddress || `${pos.symbol}_${pos.leverage}x_${pos.entryPrice}_${idx}`} // Position identifier
-                                                custody={getCustodyToken(pos)} // Custody token
-                                                poolName="SOL/USDC" // Pool name
                                             />
-
-                                            {/* Loading overlay for closing position */}
-                                            {isClosing === positionIndex && (
-                                                <div className="absolute inset-0 bg-black bg-opacity-20 flex items-center justify-center rounded z-10">
-                                                    <div className="bg-white px-4 py-2 rounded shadow-lg">
-                                                        <span className="text-sm">Closing position...</span>
-                                                    </div>
-                                                </div>
-                                            )}
                                         </div>
                                     );
                                 })}
@@ -629,11 +622,11 @@ export default function FuturesPositions() {
                         )}
 
                         {/* Pagination for positions */}
-                        {futuresTransactions.length > itemsPerPage && (
+                        {donePositions.length > itemsPerPage && (
                             <div className="px-3 md:px-6 pb-4 w-full">
                                 <Pagination
                                     currentPage={currentPage}
-                                    totalItems={futuresTransactions.length}
+                                    totalItems={donePositions.length}
                                     itemsPerPage={itemsPerPage}
                                     onPageChange={setCurrentPage}
                                 />

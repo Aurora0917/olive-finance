@@ -1,8 +1,8 @@
 'use client'
 
-import { ChevronDown, CirclePlus, SquarePen, Loader2, Pencil } from "lucide-react";
+import { ChevronDown, Loader2, Pencil, AlertTriangle } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "./ui/popover";
-import { useState } from "react";
+import { useState, useContext } from "react";
 import { Switch } from "./ui/switch";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
@@ -10,30 +10,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger } from "./ui/select";
 import Image from "next/image";
 import { tokenList } from "@/lib/data/tokenlist";
 import { Input } from "./ui/input";
-import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
-import { tpSlApiService, TpSlOrderRequest } from "@/services/tpSlApiService";
 import { toast } from "sonner";
 import { ContractContext } from "@/contexts/contractProvider";
-import { useContext } from "react";
-
-interface TpSlFormData {
-    type: 'take-profit' | 'stop-loss';
-    price: number;
-    token: string;
-    percentage: number;
-    isPartial: boolean;
-}
+import { PerpTPSL } from "@/types/trading";
 
 interface TpslProps {
-    onCreateOrder?: (orderData: TpSlFormData) => void;
-    // Onchain integration props
-    positionIndex?: number; // Required for onchain TP/SL
+    // Onchain integration props (required)
+    positionIndex?: number;
     poolName?: string;
-    positionSide?: 'long' | 'short'; // Frontend still uses long/short for UI
-    positionDirection?: 'long' | 'short'; // Keep for internal logic
+    positionSide?: 'long' | 'short';
     currentPrice: number;
     onOrderCreated?: () => void; // Callback to refresh orders
-    // Legacy backend props (deprecated)
+    // Context props (not used for operations, just for display/validation)
     userId?: string;
     positionId?: string;
     contractType?: 'perp' | 'option';
@@ -41,14 +29,11 @@ interface TpslProps {
 }
 
 export default function Tpsl({ 
-    onCreateOrder, 
     positionIndex,
     poolName = "SOL/USDC",
     positionSide = 'long',
-    positionDirection,
     currentPrice,
     onOrderCreated,
-    // Legacy props
     userId,
     positionId,
     contractType = 'perp',
@@ -57,7 +42,6 @@ export default function Tpsl({
     const { onSetTpSl } = useContext(ContractContext);
     const [isPartial, setIsPartial] = useState(false);
     const [isOpen, setIsOpen] = useState(false);
-    const [active, setActive] = useState('tp')
     const [selectedToken, setSelectedToken] = useState("SOL");
     const [activeTab, setActiveTab] = useState("TP"); // TP or SL
     const [selectedSizePercentage, setSelectedSizePercentage] = useState(25);
@@ -68,9 +52,6 @@ export default function Tpsl({
 
     const tokens = tokenList;
     const sizePercentages = [25, 50, 75, 100];
-
-    // Use positionDirection if provided, otherwise fall back to positionSide
-    const effectivePositionDirection = positionDirection || positionSide;
 
     // Mock calculation for demonstration
     const calculateTokenAmount = () => {
@@ -91,8 +72,36 @@ export default function Tpsl({
         const tp = tpPrice ? parseFloat(tpPrice) : undefined;
         const sl = slPrice ? parseFloat(slPrice) : undefined;
 
-        const validation = tpSlApiService.validateTpSlPrices(currentPrice, tp, sl, effectivePositionDirection);
-        return validation;
+        // Basic validation for long positions
+        if (positionSide === 'long') {
+            if (tp && tp <= currentPrice) {
+                errors.push('Take profit price must be above current price for long positions');
+            }
+            if (sl && sl >= currentPrice) {
+                errors.push('Stop loss price must be below current price for long positions');
+            }
+        } else {
+            // Validation for short positions
+            if (tp && tp >= currentPrice) {
+                errors.push('Take profit price must be below current price for short positions');
+            }
+            if (sl && sl <= currentPrice) {
+                errors.push('Stop loss price must be above current price for short positions');
+            }
+        }
+
+        // Additional validations
+        if (tp && tp <= 0) {
+            errors.push('Take profit price must be greater than 0');
+        }
+        if (sl && sl <= 0) {
+            errors.push('Stop loss price must be greater than 0');
+        }
+
+        return {
+            isValid: errors.length === 0,
+            errors
+        };
     };
 
     // Handle price input changes with validation
@@ -116,6 +125,12 @@ export default function Tpsl({
             const tp = takeProfitPrice ? parseFloat(takeProfitPrice) : undefined;
             const sl = stopLossPrice ? parseFloat(stopLossPrice) : undefined;
             
+            console.log("Debug - positionIndex:", positionIndex);
+            console.log("Debug - onSetTpSl function exists:", !!onSetTpSl);
+            console.log("Debug - tp:", tp, "sl:", sl);
+            console.log("Debug - isPartial:", isPartial);
+            console.log("Debug - selectedSizePercentage:", selectedSizePercentage);
+            
             const validation = validatePrices(takeProfitPrice, stopLossPrice);
             if (!validation.isValid) {
                 setValidationErrors(validation.errors);
@@ -124,106 +139,76 @@ export default function Tpsl({
                 return;
             }
 
-            // Use onchain transaction for TP/SL (preferred method)
-            if (positionIndex !== undefined && onSetTpSl) {
-                try {
-                    // Validate that at least one price is provided
-                    if ((!tp || tp <= 0) && (!sl || sl <= 0)) {
-                        toast.error('Please enter at least one TP or SL price');
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    console.log("Setting TP/SL onchain for position:", positionIndex);
-                    
-                    // Call the onchain set_tp_sl instruction
-                    const result = await onSetTpSl(
-                        positionIndex,
-                        poolName,
-                        tp && tp > 0 ? tp : undefined,
-                        sl && sl > 0 ? sl : undefined
-                    );
-
-                    if (result) {
-                        const orderTypes = [];
-                        if (tp && tp > 0) orderTypes.push('Take Profit');
-                        if (sl && sl > 0) orderTypes.push('Stop Loss');
-                        
-                        toast.success(`${orderTypes.join(' and ')} set successfully onchain`);
-                        
-                        // Callback to refresh data in parent component
-                        onOrderCreated?.();
-                    } else {
-                        toast.error('Failed to set TP/SL onchain');
-                        setIsLoading(false);
-                        return;
-                    }
-                } catch (error: any) {
-                    console.error('Error setting TP/SL onchain:', error);
-                    toast.error(error.message || 'Failed to set TP/SL onchain');
-                    setIsLoading(false);
-                    return;
-                }
-            } else {
-                // Fallback to local state management
-                if (!onCreateOrder) {
-                    toast.error('Missing configuration for TP/SL creation');
-                    setIsLoading(false);
-                    return;
-                }
-
-                if (isPartial) {
-                    const price = activeTab === "TP" ? tp : sl;
-                    if (!price || price <= 0) {
-                        toast.error('Please enter a valid price');
-                        setIsLoading(false);
-                        return;
-                    }
-
-                    const orderData: TpSlFormData = {
-                        type: activeTab === "TP" ? 'take-profit' : 'stop-loss',
-                        price,
-                        token: selectedToken,
-                        percentage: selectedSizePercentage,
-                        isPartial: true
-                    };
-
-                    onCreateOrder(orderData);
-                } else {
-                    if (tp && tp > 0) {
-                        const tpOrder: TpSlFormData = {
-                            type: 'take-profit',
-                            price: tp,
-                            token: selectedToken,
-                            percentage: 100,
-                            isPartial: false
-                        };
-                        onCreateOrder(tpOrder);
-                    }
-
-                    if (sl && sl > 0) {
-                        const slOrder: TpSlFormData = {
-                            type: 'stop-loss',
-                            price: sl,
-                            token: selectedToken,
-                            percentage: 100,
-                            isPartial: false
-                        };
-                        onCreateOrder(slOrder);
-                    }
-                }
+            // Require onchain transaction for TP/SL
+            if (positionIndex === undefined || !onSetTpSl) {
+                toast.error('Onchain TP/SL setting is required but not available');
+                setIsLoading(false);
+                return;
             }
 
-            // Reset form
-            setTakeProfitPrice("");
-            setStopLossPrice("");
-            setSelectedSizePercentage(25);
-            setValidationErrors([]);
-            setIsOpen(false);
+            // Validate that at least one price is provided
+            if ((!tp || tp <= 0) && (!sl || sl <= 0)) {
+                toast.error('Please enter at least one TP or SL price');
+                setIsLoading(false);
+                return;
+            }
+
+            console.log("Setting TP/SL onchain for position:", positionIndex);
             
-        } catch (error) {
-            console.error('Unexpected error:', error);
-            toast.error('An unexpected error occurred');
+            // Prepare TP/SL arrays according to PerpTPSL interface
+            const takeProfits: PerpTPSL[] = [];
+            const stopLosses: PerpTPSL[] = [];
+            
+            if (tp && tp > 0) {
+                takeProfits.push({
+                    price: tp,
+                    sizePercent: isPartial ? selectedSizePercentage : 100,
+                    receiveSol: selectedToken === 'SOL'
+                });
+            }
+            
+            if (sl && sl > 0) {
+                stopLosses.push({
+                    price: sl,
+                    sizePercent: isPartial ? selectedSizePercentage : 100,
+                    receiveSol: selectedToken === 'SOL'
+                });
+            }
+            
+            console.log("Debug - Prepared arrays:");
+            console.log("takeProfits:", takeProfits);
+            console.log("stopLosses:", stopLosses);
+            
+            // Call the onchain set_tp_sl instruction
+            const result = await onSetTpSl(
+                positionIndex,
+                takeProfits,
+                stopLosses
+            );
+
+            if (result) {
+                const orderTypes = [];
+                if (tp && tp > 0) orderTypes.push('Take Profit');
+                if (sl && sl > 0) orderTypes.push('Stop Loss');
+                
+                toast.success(`${orderTypes.join(' and ')} set successfully onchain`);
+                
+                // Callback to refresh data in parent component
+                onOrderCreated?.();
+                
+                // Reset form
+                setTakeProfitPrice("");
+                setStopLossPrice("");
+                setSelectedSizePercentage(25);
+                setValidationErrors([]);
+                setIsOpen(false);
+            } else {
+                toast.error('Failed to set TP/SL onchain');
+            }
+            
+        } catch (error: any) {
+            console.error('Error setting TP/SL onchain:', error);
+            toast.error(error.message || 'Failed to set TP/SL onchain');
         } finally {
             setIsLoading(false);
         }
@@ -231,7 +216,7 @@ export default function Tpsl({
 
     // Calculate suggested prices based on current price and position type
     const getSuggestedTpPrice = () => {
-        if (effectivePositionDirection === 'long') {
+        if (positionSide === 'long') {
             return (currentPrice + 5).toFixed(2); // Suggest $5 above current price
         } else {
             return (currentPrice - 5).toFixed(2); // Suggest $5 below current price
@@ -239,7 +224,7 @@ export default function Tpsl({
     };
 
     const getSuggestedSlPrice = () => {
-        if (effectivePositionDirection === 'long') {
+        if (positionSide === 'long') {
             return (currentPrice - 5).toFixed(2); // Suggest $5 below current price
         } else {
             return (currentPrice + 5).toFixed(2); // Suggest $5 above current price
@@ -251,21 +236,16 @@ export default function Tpsl({
             <PopoverTrigger disabled={isLoading}>
                 <Pencil 
                     size={13} 
-                    className={`hover:text-primary ${isOpen ? 'text-primary' : 'text-foreground'} ${isLoading ? 'opacity-50' : ''}`} 
+                    className={`hover:text-primary transition-colors ${isOpen ? 'text-primary' : 'text-foreground'} ${isLoading ? 'opacity-50' : ''}`} 
                 />
             </PopoverTrigger>
             <PopoverContent align="end" className="flex flex-col space-y-3 w-80">
                 <div className="w-full flex justify-between gap-5">
                     <div className="w-full flex flex-col justify-center">
-                        <h1 className="text-sm">{isPartial ? 'Partial' : 'Full'} TPSL</h1>
+                        <h1 className="text-sm font-medium">{isPartial ? 'Partial' : 'Full'} TPSL</h1>
                         <p className="text-xs text-secondary-foreground">
-                            Current price: ${currentPrice.toFixed(2)} | Position: {effectivePositionDirection.toUpperCase()}
+                            Current price: ${currentPrice.toFixed(2)} | Position: {positionSide.toUpperCase()}
                         </p>
-                        {positionIndex !== undefined && (
-                            <p className="text-xs text-green-400">
-                                Onchain Mode: Position {positionIndex}
-                            </p>
-                        )}
                         {isPartial && (
                             <p className="text-xs text-secondary-foreground mt-1">
                                 Closes only the specified size at the target price, based on the size set when the TP/SL is created.
@@ -287,7 +267,10 @@ export default function Tpsl({
                 {validationErrors.length > 0 && (
                     <div className="bg-red-500/10 border border-red-500/20 rounded p-2">
                         {validationErrors.map((error, index) => (
-                            <p key={index} className="text-xs text-red-400">{error}</p>
+                            <div key={index} className="flex items-center gap-2">
+                                <AlertTriangle size={12} className="text-red-400 flex-shrink-0" />
+                                <p className="text-xs text-red-400">{error}</p>
+                            </div>
                         ))}
                     </div>
                 )}
@@ -326,8 +309,8 @@ export default function Tpsl({
                                     </span>
                                 </Label>
                                 <div className="relative w-full">
-                                    <Select defaultValue="SOL" onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
-                                        <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                                    <Select value={selectedToken} onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
+                                        <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 z-10">
                                             {tokens.map((token, idx) =>
                                                 token.symbol === selectedToken && (
                                                     <div
@@ -343,7 +326,6 @@ export default function Tpsl({
                                                         />
                                                         <span className="text-secondary-foreground text-sm">{token.symbol}</span>
                                                     </div>
-
                                                 ))}
                                             <ChevronDown size={14} className="text-secondary-foreground" />
                                         </SelectTrigger>
@@ -360,17 +342,15 @@ export default function Tpsl({
                                                         />
                                                         <p>{token.symbol}</p>
                                                     </div>
-
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                     <Input
                                         type="number"
-                                        // placeholder={getSuggestedTpPrice()}
                                         value={takeProfitPrice}
                                         onChange={(e) => handleTakeProfitChange(e.target.value)}
-                                        className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
+                                        className="pl-20 pr-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
                                         step="0.01"
                                         min="0.01"
                                         disabled={isLoading}
@@ -386,8 +366,8 @@ export default function Tpsl({
                                     </span>
                                 </Label>
                                 <div className="relative w-full">
-                                    <Select defaultValue="SOL" onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
-                                        <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                                    <Select value={selectedToken} onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
+                                        <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 z-10">
                                             {tokens.map((token, idx) =>
                                                 token.symbol === selectedToken && (
                                                     <div
@@ -403,7 +383,6 @@ export default function Tpsl({
                                                         />
                                                         <span className="text-secondary-foreground text-sm">{token.symbol}</span>
                                                     </div>
-
                                                 ))}
                                             <ChevronDown size={14} className="text-secondary-foreground" />
                                         </SelectTrigger>
@@ -420,17 +399,15 @@ export default function Tpsl({
                                                         />
                                                         <p>{token.symbol}</p>
                                                     </div>
-
                                                 </SelectItem>
                                             ))}
                                         </SelectContent>
                                     </Select>
                                     <Input
                                         type="number"
-                                        // placeholder={getSuggestedSlPrice()}
                                         value={stopLossPrice}
                                         onChange={(e) => handleStopLossChange(e.target.value)}
-                                        className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
+                                        className="pl-20 pr-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
                                         step="0.01"
                                         min="0.01"
                                         disabled={isLoading}
@@ -459,7 +436,7 @@ export default function Tpsl({
                         </div>
 
                         {/* Size Display */}
-                        <div className="flex justify-between items-center text-sm">
+                        <div className="flex justify-between items-center text-sm bg-backgroundSecondary/50 rounded p-2">
                             <div className="flex items-center space-x-1">
                                 <span className="text-green-400">+{calculateTokenAmount()}</span>
                                 <span className="text-green-400 text-xs">(+{((calculateTokenAmount() / 4562.74) * 100).toFixed(2)}%)</span>
@@ -470,7 +447,7 @@ export default function Tpsl({
                         </div>
                     </div>
                 ) : (
-                    <div className="flex flex-col space-y-2">
+                    <div className="flex flex-col space-y-3">
                         <div className="flex flex-col space-y-2">
                             <Label className="font-normal flex items-center justify-between">
                                 Take Profit Price
@@ -479,8 +456,8 @@ export default function Tpsl({
                                 </span>
                             </Label>
                             <div className="relative w-full">
-                                <Select defaultValue="SOL" onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
-                                    <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                                <Select value={selectedToken} onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
+                                    <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 z-10">
                                         {tokens.map((token, idx) =>
                                             token.symbol === selectedToken && (
                                                 <div
@@ -496,7 +473,6 @@ export default function Tpsl({
                                                     />
                                                     <span className="text-secondary-foreground text-sm">{token.symbol}</span>
                                                 </div>
-
                                             ))}
                                         <ChevronDown size={14} className="text-secondary-foreground" />
                                     </SelectTrigger>
@@ -513,17 +489,15 @@ export default function Tpsl({
                                                     />
                                                     <p>{token.symbol}</p>
                                                 </div>
-
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                                 <Input
                                     type="number"
-                                    // placeholder={getSuggestedTpPrice()}
                                     value={takeProfitPrice}
                                     onChange={(e) => handleTakeProfitChange(e.target.value)}
-                                    className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
+                                    className="pl-20 pr-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
                                     step="0.01"
                                     min="0.01"
                                     disabled={isLoading}
@@ -538,8 +512,8 @@ export default function Tpsl({
                                 </span>
                             </Label>
                             <div className="relative w-full">
-                                <Select defaultValue="SOL" onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
-                                    <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1">
+                                <Select value={selectedToken} onValueChange={(value) => setSelectedToken(value)} disabled={isLoading}>
+                                    <SelectTrigger className="w-fit p-1 bg-backgroundSecondary absolute left-3 top-1/2 -translate-y-1/2 flex items-center space-x-1 z-10">
                                         {tokens.map((token, idx) =>
                                             token.symbol === selectedToken && (
                                                 <div
@@ -555,7 +529,6 @@ export default function Tpsl({
                                                     />
                                                     <span className="text-secondary-foreground text-sm">{token.symbol}</span>
                                                 </div>
-
                                             ))}
                                         <ChevronDown size={14} className="text-secondary-foreground" />
                                     </SelectTrigger>
@@ -572,17 +545,15 @@ export default function Tpsl({
                                                     />
                                                     <p>{token.symbol}</p>
                                                 </div>
-
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                                 <Input
                                     type="number"
-                                    // placeholder={getSuggestedSlPrice()}
                                     value={stopLossPrice}
                                     onChange={(e) => handleStopLossChange(e.target.value)}
-                                    className="px-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
+                                    className="pl-20 pr-2 text-right py-2 rounded-sm h-auto w-full bg-transparent border-border shadow-none"
                                     step="0.01"
                                     min="0.01"
                                     disabled={isLoading}
@@ -592,24 +563,29 @@ export default function Tpsl({
                     </div>
                 )}
 
-                <div className="w-full flex justify-between text-sm gap-2">
+                <div className="w-full flex justify-between text-sm gap-2 pt-2">
                     <Button
                         variant={'outline'}
                         className="w-full"
-                        onClick={() => setIsOpen(false)}
+                        onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsOpen(false);
+                        }}
                         disabled={isLoading}
+                        type="button"
                     >
                         Dismiss
                     </Button>
                     <Button
                         className="w-full bg-primary/70 hover:bg-primary text-black disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={handleConfirm}
-                        disabled={isLoading || validationErrors.length > 0}
+                        disabled={isLoading || validationErrors.length > 0 || positionIndex === undefined || !onSetTpSl}
                     >
                         {isLoading ? (
                             <>
                                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                                Creating...
+                                Setting...
                             </>
                         ) : (
                             'Confirm'
@@ -617,7 +593,6 @@ export default function Tpsl({
                     </Button>
                 </div>
             </PopoverContent>
-
         </Popover>
     )
 }

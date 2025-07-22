@@ -41,7 +41,7 @@ export default function TradingPositions() {
   } = useDataContext();
   
   // Convert backend transactions to frontend Transaction format
-  const donePositions = (backendOptions || []).map(tx => {
+  const donePositions = (backendTransactions || []).map(tx => {
     const tokenSymbol = tx.poolName?.split('/')[0] || 'SOL';
     const foundToken = tokenList.find(t => t.symbol === tokenSymbol) || tokenList[0];
     const coinToken = coins.find(c => c.symbol === tokenSymbol) || coins[0];
@@ -372,13 +372,13 @@ export default function TradingPositions() {
       {activeTab === "History" && (
         <div className="px-3 md:px-6 py-4 pb-[20px] md:pb-[10px] space-y-[10px] min-h-[300px] flex flex-col justify-between">
           <div className="flex-grow">
-            {donePositions && donePositions.length > 0 ? (
+            {/* {donePositions && donePositions.length > 0 ? (
               <OrderHistory doneOptioninfos={donePositions} />
             ) : (
               <div className="text-sm text-muted-foreground text-center flex flex-grow justify-center items-center">
                 {(positionsLoading || optionsLoading) ? "Loading history..." : "No History Available\n Start Trading Now"}
               </div>
-            )}
+            )} */}
           </div>
         </div>
       )}

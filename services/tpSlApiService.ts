@@ -1,51 +1,5 @@
+import { BackendTpSlOrder } from '@/types/trading';
 import axiosInstance from './axiosInstance';
-
-export interface TpSlOrderRequest {
-    user: string;
-    positionId: string;
-    contractType: 'perp' | 'option';
-    positionSide: 'long' | 'short';
-    takeProfit?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    stopLoss?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    closePercent: number,
-    poolName?: string;
-    custody: string;
-    receiveAsset: 'SOL' | 'USDC';
-    isActive?: boolean;
-}
-
-export interface TpSlOrderResponse {
-    _id: string;
-    user: string;
-    positionId: string;
-    contractType: 'perp' | 'option';
-    positionSide: 'long' | 'short';
-    takeProfit?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    stopLoss?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    closePercent: number;
-    poolName: string;
-    custody: string;
-    receiveAsset: 'SOL' | 'USDC';
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
-}
 
 export interface TpSlStats {
     total: number;
@@ -57,65 +11,10 @@ export interface TpSlStats {
 }
 
 class TpSlApiService {
-    private baseUrl = '/tpsl'; // Keep original endpoint structure
+    private baseUrl = '/tpsl';
 
-    // Create new TP/SL order
-    async createTpSlOrder(orderData: TpSlOrderRequest): Promise<{ success: boolean; orderId: string }> {
-        try {
-            console.log('🚀 API Call: Creating TP/SL order', orderData);
-            
-            // Validate that at least one of TP or SL is provided and enabled
-            const hasTP = orderData.takeProfit?.enabled;
-            const hasSL = orderData.stopLoss?.enabled;
-            
-            if (!hasTP && !hasSL) {
-                throw new Error('At least one of Take Profit or Stop Loss must be enabled');
-            }
-            
-            const response = await axiosInstance.post(this.baseUrl, orderData);
-            console.log('✅ API Response: Order created', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ API Error: Creating TP/SL order failed', error);
-            console.error('Error response:', error.response?.data);
-            throw new Error(error.response?.data?.error || error.message || 'Failed to create TP/SL order');
-        }
-    }
-
-    // Update existing TP/SL order
-    async updateTpSlOrder(
-        user: string, 
-        positionId: string, 
-        updates: Partial<TpSlOrderRequest>
-    ): Promise<{ success: boolean; message: string }> {
-        try {
-            console.log('🚀 API Call: Updating TP/SL order', { user, positionId, updates });
-            const response = await axiosInstance.put(`${this.baseUrl}/${user}/${positionId}`, updates);
-            console.log('✅ API Response: Order updated', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ API Error: Updating TP/SL order failed', error);
-            console.error('Error response:', error.response?.data);
-            throw new Error(error.response?.data?.error || 'Failed to update TP/SL order');
-        }
-    }
-
-    // Delete TP/SL order
-    async deleteTpSlOrder(user: string, positionId: string): Promise<{ success: boolean; message: string }> {
-        try {
-            console.log('🚀 API Call: Deleting TP/SL order', { user, positionId });
-            const response = await axiosInstance.delete(`${this.baseUrl}/${user}/${positionId}`);
-            console.log('✅ API Response: Order deleted', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ API Error: Deleting TP/SL order failed', error);
-            console.error('Error response:', error.response?.data);
-            throw new Error(error.response?.data?.error || 'Failed to delete TP/SL order');
-        }
-    }
-
-    // Get user's TP/SL orders
-    async getUserTpSlOrders(user: string): Promise<{ orders: TpSlOrderResponse[] }> {
+    // Get user's TP/SL orders (READ ONLY)
+    async getUserTpSlOrders(user: string): Promise<{ orders: BackendTpSlOrder[] }> {
         try {
             console.log('🚀 API Call: Getting user TP/SL orders', { user });
             const response = await axiosInstance.get(`${this.baseUrl}/${user}`);
@@ -135,8 +34,8 @@ class TpSlApiService {
         }
     }
 
-    // Get specific TP/SL order
-    async getTpSlOrder(user: string, positionId: string): Promise<{ order: TpSlOrderResponse }> {
+    // Get specific TP/SL order (READ ONLY)
+    async getTpSlOrder(user: string, positionId: string): Promise<{ order: BackendTpSlOrder }> {
         try {
             console.log('🚀 API Call: Getting specific TP/SL order', { user, positionId });
             const response = await axiosInstance.get(`${this.baseUrl}/${user}/${positionId}`);
@@ -149,7 +48,7 @@ class TpSlApiService {
         }
     }
 
-    // Get database stats
+    // Get database stats (READ ONLY)
     async getDatabaseStats(): Promise<TpSlStats> {
         try {
             console.log('🚀 API Call: Getting database stats');
@@ -161,34 +60,6 @@ class TpSlApiService {
             console.error('Error response:', error.response?.data);
             throw new Error(error.response?.data?.error || 'Failed to fetch database stats');
         }
-    }
-
-    // Cleanup inactive orders
-    async cleanupInactiveOrders(olderThanDays: number = 7): Promise<{ message: string; deletedCount: number }> {
-        try {
-            console.log('🚀 API Call: Cleaning up inactive orders', { olderThanDays });
-            const response = await axiosInstance.post('/database/cleanup', { olderThanDays });
-            console.log('✅ API Response: Cleanup completed', response.data);
-            return response.data;
-        } catch (error: any) {
-            console.error('❌ API Error: Cleanup failed', error);
-            console.error('Error response:', error.response?.data);
-            throw new Error(error.response?.data?.error || 'Failed to cleanup orders');
-        }
-    }
-
-    // Convert frontend position type to backend position type
-    convertToBackendPositionSide(frontendPosition: 'long' | 'short'): 'perp' | 'option' {
-        // For now, mapping all positions to 'perp' (perpetual futures)
-        // You can modify this logic based on your actual business requirements
-        return 'perp';
-    }
-
-    // Convert backend position type to frontend position type (for display)
-    convertToFrontendPositionSide(backendPosition: 'perp' | 'option'): 'long' | 'short' {
-        // This is a simplified mapping - you'll need to store the actual direction separately
-        // or determine it from other position data
-        return 'long'; // Default - you'll need proper logic here
     }
 
     // Helper to determine trigger condition based on position and order type
@@ -203,7 +74,7 @@ class TpSlApiService {
         }
     }
 
-    // Validation helpers
+    // Validation helpers for UI
     validateTpSlPrices(
         currentPrice: number, 
         takeProfit?: number, 
@@ -243,6 +114,100 @@ class TpSlApiService {
         return {
             isValid: errors.length === 0,
             errors
+        };
+    }
+
+    // Helper method to filter active orders
+    filterActiveOrders(orders: BackendTpSlOrder[]): BackendTpSlOrder[] {
+        return orders.filter(order => order.isActive && !order.isExecuted);
+    }
+
+    // Helper method to filter orders by position
+    filterOrdersByPosition(orders: BackendTpSlOrder[], positionId: string): BackendTpSlOrder[] {
+        return orders.filter(order => 
+            order.positionId === positionId || 
+            order.positionId.startsWith(`${positionId}_`)
+        );
+    }
+
+    // Helper method to filter orders by contract type
+    filterOrdersByContractType(orders: BackendTpSlOrder[], contractType: 'perp' | 'option'): BackendTpSlOrder[] {
+        // Assuming contractType: 0 = perp, 1 = option
+        const typeNumber = contractType === 'perp' ? 0 : 1;
+        return orders.filter(order => order.contractType === typeNumber);
+    }
+
+    // Helper method to filter orders by trigger type
+    filterOrdersByTriggerType(orders: BackendTpSlOrder[], triggerType: 'take-profit' | 'stop-loss'): BackendTpSlOrder[] {
+        // triggerOrderType: 0 = take profit, 1 = stop loss
+        const typeNumber = triggerType === 'take-profit' ? 0 : 1;
+        return orders.filter(order => order.triggerOrderType === typeNumber);
+    }
+
+    // Helper method to get order statistics
+    getOrderStatistics(orders: BackendTpSlOrder[]): {
+        total: number;
+        active: number;
+        executed: number;
+        withTP: number;
+        withSL: number;
+        perp: number;
+        option: number;
+        pendingTrigger: number;
+        triggered: number;
+    } {
+        const active = orders.filter(order => order.isActive && !order.isExecuted);
+        const executed = orders.filter(order => order.isExecuted);
+        const withTP = orders.filter(order => order.triggerOrderType === 0); // take profit
+        const withSL = orders.filter(order => order.triggerOrderType === 1); // stop loss
+        const perp = orders.filter(order => order.contractType === 0);
+        const option = orders.filter(order => order.contractType === 1);
+        const pendingTrigger = orders.filter(order => order.triggerStatus === 'pending');
+        const triggered = orders.filter(order => order.triggerStatus === 'triggered');
+
+        return {
+            total: orders.length,
+            active: active.length,
+            executed: executed.length,
+            withTP: withTP.length,
+            withSL: withSL.length,
+            perp: perp.length,
+            option: option.length,
+            pendingTrigger: pendingTrigger.length,
+            triggered: triggered.length
+        };
+    }
+
+    // Helper method to get order type string
+    getOrderTypeString(triggerOrderType: number): 'take-profit' | 'stop-loss' {
+        return triggerOrderType === 0 ? 'take-profit' : 'stop-loss';
+    }
+
+    // Helper method to get contract type string
+    getContractTypeString(contractType: number): 'perp' | 'option' {
+        return contractType === 0 ? 'perp' : 'option';
+    }
+
+    // Helper method to format order for display
+    formatOrderForDisplay(order: BackendTpSlOrder) {
+        return {
+            id: order._id,
+            user: order.user,
+            positionId: order.positionId,
+            contractType: this.getContractTypeString(order.contractType),
+            orderType: this.getOrderTypeString(order.triggerOrderType),
+            index: order.index,
+            price: order.price,
+            sizePercent: order.sizePercent,
+            receiveSol: order.receiveSol,
+            poolName: order.poolName,
+            isExecuted: order.isExecuted,
+            isActive: order.isActive,
+            addedAt: order.addedAt,
+            addTransaction: order.addTransaction,
+            triggerStatus: order.triggerStatus,
+            distanceToTrigger: order.distanceToTrigger,
+            currentPrice: order.currentPrice
         };
     }
 }

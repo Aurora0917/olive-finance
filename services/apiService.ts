@@ -1,3 +1,4 @@
+import { BackendTpSlOrder } from '@/types/trading';
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 
 // API Response interfaces
@@ -59,15 +60,34 @@ export interface Transaction {
   signature: string;
   user: string;
   transactionType: string;
+  
   poolName: string;
-  amount?: number;
+
+  collateral?: number;
+  addedCollateral?: number;
+  removedCollateral?: number;
   positionSize?: number;
   price: number;
-  fees: number;
+  fees?: number;
+  exitFees?: number;
+  borrowFees?: number;
+  leverage?: number;
+  percent?: number;
+  pnl?: number;
+  lpTokens?: number;
   profit?: number;
+  
+  positionId: string;
+  
   blockHeight: number;
   timestamp: Date;
-  status: 'pending' | 'confirmed' | 'failed';
+  status: string;
+  
+  priorityFee?: number;
+  slippageTolerance?: number;
+  
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface UserStats {
@@ -103,31 +123,6 @@ export interface PriceData {
   high24h: number;
   low24h: number;
   timestamp: Date;
-}
-
-export interface TpSlOrderResponse {
-    _id: string;
-    user: string;
-    positionId: string;
-    contractType: 'perp' | 'option';
-    positionSide: 'long' | 'short';
-    takeProfit?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    stopLoss?: {
-        price: number;
-        enabled: boolean;
-        triggerCondition: 'above' | 'below';
-    };
-    closePercent: number;
-    poolName: string;
-    custody: string;
-    receiveAsset: 'SOL' | 'USDC';
-    isActive: boolean;
-    createdAt: string;
-    updatedAt: string;
 }
 
 class ApiService {
@@ -187,7 +182,7 @@ class ApiService {
 
   // ===== TP/SL MANAGEMENT =====
 
-  async getTpSlOrders(userPublicKey: string): Promise<{ orders: TpSlOrderResponse[] }> {
+  async getTpSlOrders(userPublicKey: string): Promise<{ orders: BackendTpSlOrder[] }> {
     try {
       const response = await this.api.get(`/trading/tpsl/${userPublicKey}`);
       return response.data.data || [];

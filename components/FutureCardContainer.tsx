@@ -20,7 +20,7 @@ interface FutureCardContainerProps{
 }
 
 export default function FutureCardContainer({onSymbolChange, onIdxChange, active, selectedSymbol, priceData, marketData, priceLoading, marketLoading} : FutureCardContainerProps) {
-  const [selectedTrade, setSelectedTrade] = useState<'perps'|'expiry'>('perps');
+  const [selectedTrade, setSelectedTrade] = useState<'open'|'close'>('open');
   const [orderType, setOrderType] = useState<'market'|'limit'>('market');
   
   return (
@@ -29,15 +29,15 @@ export default function FutureCardContainer({onSymbolChange, onIdxChange, active
         <div className="flex space-x-2 h-full">
           <Button 
             
-            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'perps' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
-            onClick={() => setSelectedTrade('perps')}
+            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'open' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
+            onClick={() => setSelectedTrade('open')}
           >
             Open
           </Button>
           <Button 
             
-            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'expiry' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
-            onClick={() => setSelectedTrade('expiry')}
+            className={`bg-inherit h-full shadow-none rounded-none border-b ${selectedTrade === 'close' ? 'border-primary text-primary' : 'border-transparent text-secondary-foreground hover:text-primary'}`}
+            onClick={() => setSelectedTrade('close')}
           >
             Close
           </Button>

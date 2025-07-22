@@ -7,6 +7,7 @@ export interface Transaction{
     token: Coin
     transactionType: string
     optionType: string
+    qty: any
     expiry: string
     strikePrice: number
     timestamp?: number
@@ -75,6 +76,7 @@ export const transactions: Transaction[] = coins.map((coin) => {
     return {
         transactionID: `${coin.symbol}-${formatDate(purchaseDate)}-${strikePrice}-${transactionType[0]}`,
         token: coin,
+        qty: Math.floor(Math.random() * 1000) + 1,
         transactionType: transactionType,
         optionType: optionType,
         strikePrice: strikePrice,

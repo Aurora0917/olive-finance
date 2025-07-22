@@ -1,43 +1,47 @@
 'use client'
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import { Info, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
-import { tpSlApiService, TpSlOrderResponse } from "@/services/tpSlApiService";
 import { toast } from "sonner";
 import apiService from "@/services/apiService";
-
-interface TpSlOrder {
-    id: string;
-    type: 'take-profit' | 'stop-loss';
-    price: number;
-    token: string;
-    percentage: number;
-    isPartial?: boolean;
-    triggerCondition?: 'above' | 'below';
-    enabled?: boolean;
-}
+import { ContractContext } from "@/contexts/contractProvider";
+import { BackendTpSlOrder } from "@/types/trading";
 
 interface SettledTpSlsProps {
-    orders?: TpSlOrder[]; // Local orders (fallback)
-    onCancel?: (orderId: string) => void; // Local callback
-    onUpdatePrice?: (orderId: string, newPrice: number) => void; // Local callback
     isVisible: boolean;
     onToggleVisibility: () => void;
     // Backend integration props
     userId?: string;
     positionId?: string;
-    positionSide?: 'long' | 'short'; // Frontend position type for display
-    contractType?: 'perp' | 'option'; // Backend position type
+    positionSide?: 'long' | 'short';
+    contractType?: 'perp' | 'option';
     currentPrice: number;
     onOrdersUpdated?: () => void; // Callback when orders are updated
+    // Onchain integration props
+    positionIndex?: number; // Required for onchain operations
+    poolName?: string;
+    // Backend orders passed from parent
+    backendOrders?: BackendTpSlOrder[];
+}
+
+interface DisplayOrder {
+    id: string;
+    type: 'take-profit' | 'stop-loss';
+    price: number;
+    token: string;
+    percentage: number;
+    isPartial: boolean;
+    triggerCondition?: 'above' | 'below';
+    enabled: boolean;
+    onchainIndex: number;
+    backendOrderId: string;
+    triggerStatus: string;
+    distanceToTrigger: number | null;
 }
 
 export default function SettledTpSls({
-    orders: localOrders = [],
-    onCancel: localOnCancel,
-    onUpdatePrice: localOnUpdatePrice,
     isVisible,
     onToggleVisibility,
     userId,
@@ -45,20 +49,27 @@ export default function SettledTpSls({
     positionSide = 'long',
     contractType = 'perp',
     currentPrice,
-    onOrdersUpdated
+    onOrdersUpdated,
+    positionIndex,
+    poolName = "SOL/USDC",
+    backendOrders = []
 }: SettledTpSlsProps) {
+    const { onRemoveTpSl, onUpdateTpSl } = useContext(ContractContext);
     const [editingOrder, setEditingOrder] = useState<string | null>(null);
     const [tempPrice, setTempPrice] = useState<number>(0);
     const [isLoading, setIsLoading] = useState(false);
-    const [backendOrders, setBackendOrders] = useState<TpSlOrderResponse[]>([]);
+    const [localBackendOrders, setLocalBackendOrders] = useState<BackendTpSlOrder[]>([]);
     const [loadingOrders, setLoadingOrders] = useState(false);
 
-    // Load orders from backend if userId is provided
+    // Use provided backend orders or load them locally
+    const effectiveBackendOrders = backendOrders.length > 0 ? backendOrders : localBackendOrders;
+
+    // Load orders from backend if not provided and userId exists
     useEffect(() => {
-        if (userId && isVisible) {
+        if (userId && isVisible && backendOrders.length === 0) {
             loadBackendOrders();
         }
-    }, [userId, isVisible]);
+    }, [userId, isVisible, backendOrders.length]);
 
     const loadBackendOrders = async () => {
         if (!userId) return;
@@ -68,12 +79,16 @@ export default function SettledTpSls({
             const response = await apiService.getTpSlOrders(userId);
             // Filter orders by positionId if provided
             const filteredOrders = positionId 
-                ? response.orders.filter(order => 
-                    order.positionId === positionId || 
-                    order.positionId.startsWith(`${positionId}_`)
+                ? response.orders.filter((order: BackendTpSlOrder) => 
+                    order.positionId === positionId && 
+                    order.isActive && 
+                    !order.isExecuted
                   )
-                : response.orders;
-            setBackendOrders(filteredOrders);
+                : response.orders.filter((order: BackendTpSlOrder) => 
+                    order.isActive && 
+                    !order.isExecuted
+                  );
+            setLocalBackendOrders(filteredOrders);
         } catch (error: any) {
             console.error('Error loading TP/SL orders:', error);
             toast.error('Failed to load TP/SL orders');
@@ -82,45 +97,36 @@ export default function SettledTpSls({
         }
     };
 
-    // Convert backend orders to local format for display
-    const convertBackendToLocal = (backendOrder: TpSlOrderResponse): TpSlOrder[] => {
-        const orders: TpSlOrder[] = [];
+    // Convert backend orders to display format
+    const convertBackendToDisplay = (backendOrder: BackendTpSlOrder): DisplayOrder => {
+        const orderType = backendOrder.triggerOrderType === 0 ? 'take-profit' : 'stop-loss';
         
-        // Convert takeProfit if it exists and is enabled
-        if (backendOrder.takeProfit?.enabled) {
-            orders.push({
-                id: `${backendOrder._id}_tp`,
-                type: 'take-profit',
-                price: backendOrder.takeProfit.price,
-                token: backendOrder.receiveAsset,
-                percentage: backendOrder.closePercent, // Default for backend orders
-                isPartial: backendOrder.closePercent != 100, // Default for backend orders
-                triggerCondition: backendOrder.takeProfit.triggerCondition,
-                enabled: backendOrder.takeProfit.enabled
-            });
+        // Determine trigger condition based on position side and order type
+        let triggerCondition: 'above' | 'below';
+        if (positionSide === 'long') {
+            triggerCondition = orderType === 'take-profit' ? 'above' : 'below';
+        } else {
+            triggerCondition = orderType === 'take-profit' ? 'below' : 'above';
         }
         
-        // Convert stopLoss if it exists and is enabled
-        if (backendOrder.stopLoss?.enabled) {
-            orders.push({
-                id: `${backendOrder._id}_sl`,
-                type: 'stop-loss',
-                price: backendOrder.stopLoss.price,
-                token: backendOrder.receiveAsset,
-                percentage: backendOrder.closePercent, // Default for backend orders
-                isPartial: backendOrder.closePercent != 100, // Default for backend orders
-                triggerCondition: backendOrder.stopLoss.triggerCondition,
-                enabled: backendOrder.stopLoss.enabled
-            });
-        }
-        
-        return orders;
+        return {
+            id: backendOrder._id,
+            type: orderType,
+            price: backendOrder.price,
+            token: backendOrder.receiveSol ? 'SOL' : 'USDC',
+            percentage: backendOrder.sizePercent,
+            isPartial: backendOrder.sizePercent !== 100,
+            triggerCondition,
+            enabled: backendOrder.isActive && !backendOrder.isExecuted,
+            onchainIndex: backendOrder.index,
+            backendOrderId: backendOrder._id,
+            triggerStatus: backendOrder.triggerStatus,
+            distanceToTrigger: backendOrder.distanceToTrigger
+        };
     };
 
-    // Use backend orders if available, otherwise use local orders
-    const displayOrders = userId && backendOrders.length > 0 
-        ? backendOrders.flatMap(convertBackendToLocal)
-        : localOrders;
+    // Get all display orders
+    const displayOrders = effectiveBackendOrders.map(convertBackendToDisplay);
 
     // Don't render anything if no orders
     if (displayOrders.length === 0) {
@@ -143,52 +149,64 @@ export default function SettledTpSls({
 
         // Validate price based on current market price and position type
         const order = displayOrders.find(o => o.id === orderId);
-        if (order) {
-            const validation = tpSlApiService.validateTpSlPrices(
-                currentPrice, 
-                order.type === 'take-profit' ? tempPrice : undefined,
-                order.type === 'stop-loss' ? tempPrice : undefined,
-                positionSide
-            );
+        if (!order) return;
 
-            if (!validation.isValid) {
-                toast.error(validation.errors[0]);
+        // Basic price validation
+        if (positionSide === 'long') {
+            if (order.type === 'take-profit' && tempPrice <= currentPrice) {
+                toast.error('Take profit price must be above current price for long positions');
+                return;
+            }
+            if (order.type === 'stop-loss' && tempPrice >= currentPrice) {
+                toast.error('Stop loss price must be below current price for long positions');
+                return;
+            }
+        } else {
+            if (order.type === 'take-profit' && tempPrice >= currentPrice) {
+                toast.error('Take profit price must be below current price for short positions');
+                return;
+            }
+            if (order.type === 'stop-loss' && tempPrice <= currentPrice) {
+                toast.error('Stop loss price must be above current price for short positions');
                 return;
             }
         }
 
         setIsLoading(true);
         try {
-            if (userId && positionId) {
-                // Update via backend
-                const backendOrderId = orderId.includes('_tp') ? orderId.replace('_tp', '') : orderId.replace('_sl', '');
-                const backendOrder = backendOrders.find(o => o._id === backendOrderId);
+            // Use onchain update
+            if (positionIndex !== undefined && onUpdateTpSl) {
+                console.log("Updating TP/SL onchain for position:", positionIndex);
                 
-                if (backendOrder && order) {
-                    const updates: Partial<TpSlOrderResponse> = {};
-                    
-                    if (order.type === 'take-profit') {
-                        updates.takeProfit = {
-                            ...backendOrder.takeProfit!,
-                            price: tempPrice
-                        };
-                    } else {
-                        updates.stopLoss = {
-                            ...backendOrder.stopLoss!,
-                            price: tempPrice
-                        };
-                    }
-                    
-                    await tpSlApiService.updateTpSlOrder(userId, backendOrder.positionId, updates);
-                    toast.success('TP/SL order updated successfully');
-                    
-                    // Reload orders
-                    await loadBackendOrders();
-                    onOrdersUpdated?.();
+                const updates: {
+                    updateTPs?: Array<{index: number; price?: number; sizePercent?: number}>;
+                    updateSLs?: Array<{index: number; price?: number; sizePercent?: number}>;
+                } = {};
+                
+                if (order.type === 'take-profit') {
+                    updates.updateTPs = [{
+                        index: order.onchainIndex,
+                        price: tempPrice,
+                        sizePercent: order.percentage
+                    }];
+                } else {
+                    updates.updateSLs = [{
+                        index: order.onchainIndex,
+                        price: tempPrice,
+                        sizePercent: order.percentage
+                    }];
                 }
-            } else if (localOnUpdatePrice) {
-                // Update locally
-                localOnUpdatePrice(orderId, tempPrice);
+                
+                const result = await onUpdateTpSl(positionIndex, updates);
+                
+                if (result) {
+                    toast.success('TP/SL order updated successfully onchain');
+                    onOrdersUpdated?.();
+                } else {
+                    throw new Error('Onchain update failed');
+                }
+            } else {
+                toast.error('Onchain update not available');
             }
             
             setEditingOrder(null);
@@ -206,50 +224,36 @@ export default function SettledTpSls({
     };
 
     const handleCancelOrder = async (orderId: string) => {
+        const order = displayOrders.find(o => o.id === orderId);
+        if (!order) return;
+
         setIsLoading(true);
         try {
-            if (userId && positionId) {
-                // Cancel via backend
-                const backendOrderId = orderId.includes('_tp') ? orderId.replace('_tp', '') : orderId.replace('_sl', '');
-                const backendOrder = backendOrders.find(o => o._id === backendOrderId);
-                const order = displayOrders.find(o => o.id === orderId);
+            // Use onchain removal
+            if (positionIndex !== undefined && onRemoveTpSl) {
+                console.log("Removing TP/SL onchain for position:", positionIndex);
                 
-                if (backendOrder && order) {
-                    // If this is a combined order (both TP and SL), we need to disable only the specific one
-                    const hasTP = backendOrder.takeProfit?.enabled;
-                    const hasSL = backendOrder.stopLoss?.enabled;
-                    
-                    if (hasTP && hasSL) {
-                        // Update to disable only the specific order type
-                        const updates: Partial<TpSlOrderResponse> = {};
-                        
-                        if (order.type === 'take-profit') {
-                            updates.takeProfit = {
-                                ...backendOrder.takeProfit!,
-                                enabled: false
-                            };
-                        } else {
-                            updates.stopLoss = {
-                                ...backendOrder.stopLoss!,
-                                enabled: false
-                            };
-                        }
-                        
-                        await tpSlApiService.updateTpSlOrder(userId, backendOrder.positionId, updates);
-                    } else {
-                        // Delete the entire order if it only has one type
-                        await tpSlApiService.deleteTpSlOrder(userId, backendOrder.positionId);
-                    }
-                    
-                    toast.success('TP/SL order cancelled successfully');
-                    
-                    // Reload orders
-                    await loadBackendOrders();
-                    onOrdersUpdated?.();
+                const removals: {
+                    removeTPs?: number[];
+                    removeSLs?: number[];
+                } = {};
+                
+                if (order.type === 'take-profit') {
+                    removals.removeTPs = [order.onchainIndex];
+                } else {
+                    removals.removeSLs = [order.onchainIndex];
                 }
-            } else if (localOnCancel) {
-                // Cancel locally
-                localOnCancel(orderId);
+                
+                const result = await onRemoveTpSl(positionIndex, removals);
+                
+                if (result) {
+                    toast.success('TP/SL order cancelled successfully onchain');
+                    onOrdersUpdated?.();
+                } else {
+                    throw new Error('Onchain removal failed');
+                }
+            } else {
+                toast.error('Onchain removal not available');
             }
         } catch (error: any) {
             console.error('Error cancelling order:', error);
@@ -259,17 +263,11 @@ export default function SettledTpSls({
         }
     };
 
-    const renderOrder = (order: TpSlOrder) => {
-        const isBackendOrder = userId && backendOrders.some(bo => 
-            (order.id.includes('_tp') && bo._id === order.id.replace('_tp', '')) ||
-            (order.id.includes('_sl') && bo._id === order.id.replace('_sl', ''))
-        );
-        
+    const renderOrder = (order: DisplayOrder) => {        
         return (
             <div key={order.id} className="flex items-center justify-between py-2 px-3 bg-backgroundSecondary/30 rounded-sm">
                 <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${order.type === 'take-profit' ? 'bg-blue-500' : 'bg-red-500'
-                        }`} />
+                    <div className={`w-2 h-2 rounded-full ${order.type === 'take-profit' ? 'bg-blue-500' : 'bg-red-500'}`} />
                     <span className="text-sm text-foreground">
                         {order.type === 'take-profit' ? 'Take Profit' : 'Stop Loss'}
                     </span>
@@ -281,14 +279,24 @@ export default function SettledTpSls({
                             {order.triggerCondition}
                         </span>
                     )}
-                    {isBackendOrder && (
-                        <span className="text-xs text-green-400 px-1 py-0.5 bg-green-500/10 rounded">
-                            Active
+                    {order.triggerStatus && (
+                        <span className={`text-xs px-1 py-0.5 rounded ${
+                            order.triggerStatus === 'pending' ? 'text-blue-400 bg-blue-500/10' :
+                            order.triggerStatus === 'triggered' ? 'text-green-400 bg-green-500/10' :
+                            order.triggerStatus === 'cancelled' ? 'text-red-400 bg-red-500/10' :
+                            'text-gray-400 bg-gray-500/10'
+                        }`}>
+                            {order.triggerStatus}
                         </span>
                     )}
-                    {order.enabled === false && (
+                    {!order.enabled && (
                         <span className="text-xs text-gray-400 px-1 py-0.5 bg-gray-500/10 rounded">
                             Disabled
+                        </span>
+                    )}
+                    {order.distanceToTrigger !== null && (
+                        <span className="text-xs text-purple-400 px-1 py-0.5 bg-purple-500/10 rounded">
+                            ${Math.abs(order.distanceToTrigger).toFixed(2)} away
                         </span>
                     )}
                 </div>
@@ -328,7 +336,7 @@ export default function SettledTpSls({
                             <button
                                 className="text-sm text-foreground hover:text-primary cursor-pointer disabled:opacity-50"
                                 onClick={() => handlePriceEdit(order.id, order.price)}
-                                disabled={isLoading || order.enabled === false}
+                                disabled={isLoading || !order.enabled || positionIndex === undefined}
                             >
                                 {order.price.toFixed(2)}
                             </button>
@@ -343,7 +351,7 @@ export default function SettledTpSls({
                         size="sm"
                         className="h-6 px-2 text-xs bg-red-600 hover:bg-red-700 text-white disabled:opacity-50"
                         onClick={() => handleCancelOrder(order.id)}
-                        disabled={isLoading || order.enabled === false}
+                        disabled={isLoading || !order.enabled || positionIndex === undefined}
                     >
                         {isLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Cancel'}
                     </Button>
@@ -365,16 +373,6 @@ export default function SettledTpSls({
                         <span className="text-xs text-secondary-foreground bg-backgroundSecondary px-2 py-1 rounded">
                             {displayOrders.length}
                         </span>
-                        {/* {userId && (
-                            <span className="text-xs text-blue-400 px-1 py-0.5 bg-blue-500/10 rounded">
-                                Live
-                            </span>
-                        )}
-                        {contractType && (
-                            <span className="text-xs text-purple-400 px-1 py-0.5 bg-purple-500/10 rounded">
-                                {contractType.toUpperCase()}
-                            </span>
-                        )} */}
                         {loadingOrders && (
                             <Loader2 className="w-3 h-3 animate-spin text-secondary-foreground" />
                         )}
@@ -391,6 +389,9 @@ export default function SettledTpSls({
                                 <span>Position: {positionSide.toUpperCase()}</span>
                                 {contractType && (
                                     <span>Type: {contractType.toUpperCase()}</span>
+                                )}
+                                {positionIndex !== undefined && (
+                                    <span>Index: #{positionIndex}</span>
                                 )}
                             </div>
                         </div>
@@ -426,25 +427,12 @@ export default function SettledTpSls({
                                     </div>
                                 )}
 
-                                {/* Refresh button for backend orders */}
-                                {userId && (
-                                    <div className="flex justify-center pt-2">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="text-xs"
-                                            onClick={loadBackendOrders}
-                                            disabled={loadingOrders}
-                                        >
-                                            {loadingOrders ? (
-                                                <>
-                                                    <Loader2 className="w-3 h-3 mr-1 animate-spin" />
-                                                    Refreshing...
-                                                </>
-                                            ) : (
-                                                'Refresh Orders'
-                                            )}
-                                        </Button>
+                                {/* Show message if onchain operations not available */}
+                                {positionIndex === undefined && displayOrders.length > 0 && (
+                                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded p-2">
+                                        <p className="text-xs text-yellow-400">
+                                            Onchain operations not available. Position index required for editing/cancelling orders.
+                                        </p>
                                     </div>
                                 )}
                             </>

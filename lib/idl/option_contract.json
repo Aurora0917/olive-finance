@@ -1463,6 +1463,12 @@
           }
         },
         {
+          "name": "sol_oracle_account"
+        },
+        {
+          "name": "usdc_oracle_account"
+        },
+        {
           "name": "sol_custody_token_account",
           "writable": true,
           "pda": {
@@ -7378,68 +7384,138 @@
   "errors": [
     {
       "code": 6000,
-      "name": "InvalidWithdrawError",
-      "msg": "Invalid withdrawal amount or conditions"
+      "name": "InvalidAmount",
+      "msg": "Invalid amount specified"
     },
     {
       "code": 6001,
-      "name": "InvalidPoolBalanceError",
-      "msg": "Pool balance is invalid or insufficient"
+      "name": "InvalidOrderType",
+      "msg": "Invalid position type"
     },
     {
       "code": 6002,
-      "name": "InvalidSignerBalanceError",
-      "msg": "Signer balance insufficient for pool operation"
+      "name": "InvalidSlippage",
+      "msg": "Invalid slippage tolerance"
     },
     {
       "code": 6003,
-      "name": "InvalidCustodyTokenError",
-      "msg": "Invalid custody token specified"
+      "name": "PriceSlippage",
+      "msg": "Price slippage exceeded limits"
     },
     {
       "code": 6004,
-      "name": "InvalidPoolState",
-      "msg": "Pool is in invalid state"
+      "name": "SlippageExceededError",
+      "msg": "Slippage exceeded on trade"
     },
     {
       "code": 6005,
-      "name": "InvalidCustodyState",
-      "msg": "Custody is in invalid state"
+      "name": "InvalidParameterError",
+      "msg": "Invalid parameter provided"
     },
     {
       "code": 6006,
-      "name": "InvalidPoolName",
-      "msg": "Invalid pool name"
+      "name": "InsufficientBalance",
+      "msg": "Insufficient balance for operation"
     },
     {
       "code": 6007,
-      "name": "InvalidPoolIndex",
-      "msg": "Invalid pool index"
+      "name": "InsufficientFundsError",
+      "msg": "Insufficient funds for transaction"
     },
     {
       "code": 6008,
-      "name": "InvalidPoolConfig",
-      "msg": "Invalid pool config"
+      "name": "InsufficientPoolLiquidity",
+      "msg": "Insufficient pool liquidity"
     },
     {
       "code": 6009,
-      "name": "InvalidCustodyConfig",
-      "msg": "Invalid custody config"
+      "name": "Unauthorized",
+      "msg": "Unauthorized access"
     },
     {
       "code": 6010,
-      "name": "InvalidCollateralCustody",
-      "msg": "Invalid collateral custody"
+      "name": "InvalidOwner",
+      "msg": "Invalid owner"
     },
     {
       "code": 6011,
-      "name": "TokenRatioOutOfRange",
-      "msg": "Token ratio out of range"
+      "name": "InvalidMintError",
+      "msg": "Invalid mint specified"
     },
     {
       "code": 6012,
-      "name": "UnsupportedToken",
-      "msg": "Token is not supported"
+      "name": "InvalidPrice",
+      "msg": "Invalid price specified"
+    },
+    {
+      "code": 6013,
+      "name": "InvalidPriceRange",
+      "msg": "Invalid price range for TP/SL"
+    },
+    {
+      "code": 6014,
+      "name": "InvalidTakeProfitPrice",
+      "msg": "Invalid take profit price"
+    },
+    {
+      "code": 6015,
+      "name": "InvalidStopLossPrice",
+      "msg": "Invalid stop loss price"
+    },
+    {
+      "code": 6016,
+      "name": "PositionTooSmall",
+      "msg": "Position size too small"
+    },
+    {
+      "code": 6017,
+      "name": "InvalidSignerBalanceError",
+      "msg": "Insufficient balance to cover premium/collateral"
+    },
+    {
+      "code": 6018,
+      "name": "InvalidLockedBalanceError",
+      "msg": "Invalid locked balance in custody"
+    },
+    {
+      "code": 6019,
+      "name": "PriceConfidenceError",
+      "msg": "Price confidence interval too wide - oracle data unreliable"
+    },
+    {
+      "code": 6020,
+      "name": "PrecisionLossError",
+      "msg": "Precision loss detected in calculations - values too small"
+    },
+    {
+      "code": 6021,
+      "name": "StalePriceError",
+      "msg": "Stale price data"
+    },
+    {
+      "code": 6022,
+      "name": "OrderbookAlreadyExists",
+      "msg": "Orderbook already exists for this position"
+    },
+    {
+      "code": 6023,
+      "name": "InvalidPosition",
+      "msg": "Invalid position for orderbook"
+    },
+    {
+      "code": 6024,
+      "name": "PositionLiquidated",
+      "msg": "Position has been liquidated"
+    },
+    {
+      "code": 6025,
+      "name": "InvalidOption",
+      "msg": "Invalid option"
+    },
+    {
+      "code": 6026,
+      "name": "OrderbookFull",
+      "msg": "Orderbook is full"
     }
   ],
   "types": [
@@ -9410,6 +9486,10 @@
               {
                 "name": "size_percent",
                 "type": "u16"
+              },
+              {
+                "name": "receive_sol",
+                "type": "bool"
               }
             ]
           },
@@ -9423,6 +9503,10 @@
               {
                 "name": "size_percent",
                 "type": "u16"
+              },
+              {
+                "name": "receive_sol",
+                "type": "bool"
               }
             ]
           },
@@ -9444,6 +9528,12 @@
                 "type": {
                   "option": "u16"
                 }
+              },
+              {
+                "name": "new_receive_sol",
+                "type": {
+                  "option": "bool"
+                }
               }
             ]
           },
@@ -9464,6 +9554,12 @@
                 "name": "new_size_percent",
                 "type": {
                   "option": "u16"
+                }
+              },
+              {
+                "name": "new_receive_sol",
+                "type": {
+                  "option": "bool"
                 }
               }
             ]
@@ -10586,6 +10682,10 @@
             "type": "u16"
           },
           {
+            "name": "receive_sol",
+            "type": "bool"
+          },
+          {
             "name": "is_active",
             "type": "bool"
           }
@@ -10624,6 +10724,10 @@
           {
             "name": "size_percent",
             "type": "u16"
+          },
+          {
+            "name": "receive_sol",
+            "type": "bool"
           }
         ]
       }
@@ -10654,15 +10758,19 @@
             "type": "u8"
           },
           {
-            "name": "price",
+            "name": "executed_price",
             "type": "u64"
           },
           {
-            "name": "size_percent",
+            "name": "executed_size_percent",
             "type": "u16"
           },
           {
-            "name": "execution_time",
+            "name": "receive_sol",
+            "type": "bool"
+          },
+          {
+            "name": "executed_at",
             "type": "i64"
           }
         ]
@@ -10731,6 +10839,12 @@
             "name": "new_size_percent",
             "type": {
               "option": "u16"
+            }
+          },
+          {
+            "name": "new_receive_sol",
+            "type": {
+              "option": "bool"
             }
           }
         ]

@@ -1469,6 +1469,12 @@ export type OptionContract = {
           }
         },
         {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
           "name": "solCustodyTokenAccount",
           "writable": true,
           "pda": {
@@ -7384,68 +7390,138 @@ export type OptionContract = {
   "errors": [
     {
       "code": 6000,
-      "name": "invalidWithdrawError",
-      "msg": "Invalid withdrawal amount or conditions"
+      "name": "invalidAmount",
+      "msg": "Invalid amount specified"
     },
     {
       "code": 6001,
-      "name": "invalidPoolBalanceError",
-      "msg": "Pool balance is invalid or insufficient"
+      "name": "invalidOrderType",
+      "msg": "Invalid position type"
     },
     {
       "code": 6002,
-      "name": "invalidSignerBalanceError",
-      "msg": "Signer balance insufficient for pool operation"
+      "name": "invalidSlippage",
+      "msg": "Invalid slippage tolerance"
     },
     {
       "code": 6003,
-      "name": "invalidCustodyTokenError",
-      "msg": "Invalid custody token specified"
+      "name": "priceSlippage",
+      "msg": "Price slippage exceeded limits"
     },
     {
       "code": 6004,
-      "name": "invalidPoolState",
-      "msg": "Pool is in invalid state"
+      "name": "slippageExceededError",
+      "msg": "Slippage exceeded on trade"
     },
     {
       "code": 6005,
-      "name": "invalidCustodyState",
-      "msg": "Custody is in invalid state"
+      "name": "invalidParameterError",
+      "msg": "Invalid parameter provided"
     },
     {
       "code": 6006,
-      "name": "invalidPoolName",
-      "msg": "Invalid pool name"
+      "name": "insufficientBalance",
+      "msg": "Insufficient balance for operation"
     },
     {
       "code": 6007,
-      "name": "invalidPoolIndex",
-      "msg": "Invalid pool index"
+      "name": "insufficientFundsError",
+      "msg": "Insufficient funds for transaction"
     },
     {
       "code": 6008,
-      "name": "invalidPoolConfig",
-      "msg": "Invalid pool config"
+      "name": "insufficientPoolLiquidity",
+      "msg": "Insufficient pool liquidity"
     },
     {
       "code": 6009,
-      "name": "invalidCustodyConfig",
-      "msg": "Invalid custody config"
+      "name": "unauthorized",
+      "msg": "Unauthorized access"
     },
     {
       "code": 6010,
-      "name": "invalidCollateralCustody",
-      "msg": "Invalid collateral custody"
+      "name": "invalidOwner",
+      "msg": "Invalid owner"
     },
     {
       "code": 6011,
-      "name": "tokenRatioOutOfRange",
-      "msg": "Token ratio out of range"
+      "name": "invalidMintError",
+      "msg": "Invalid mint specified"
     },
     {
       "code": 6012,
-      "name": "unsupportedToken",
-      "msg": "Token is not supported"
+      "name": "invalidPrice",
+      "msg": "Invalid price specified"
+    },
+    {
+      "code": 6013,
+      "name": "invalidPriceRange",
+      "msg": "Invalid price range for TP/SL"
+    },
+    {
+      "code": 6014,
+      "name": "invalidTakeProfitPrice",
+      "msg": "Invalid take profit price"
+    },
+    {
+      "code": 6015,
+      "name": "invalidStopLossPrice",
+      "msg": "Invalid stop loss price"
+    },
+    {
+      "code": 6016,
+      "name": "positionTooSmall",
+      "msg": "Position size too small"
+    },
+    {
+      "code": 6017,
+      "name": "invalidSignerBalanceError",
+      "msg": "Insufficient balance to cover premium/collateral"
+    },
+    {
+      "code": 6018,
+      "name": "invalidLockedBalanceError",
+      "msg": "Invalid locked balance in custody"
+    },
+    {
+      "code": 6019,
+      "name": "priceConfidenceError",
+      "msg": "Price confidence interval too wide - oracle data unreliable"
+    },
+    {
+      "code": 6020,
+      "name": "precisionLossError",
+      "msg": "Precision loss detected in calculations - values too small"
+    },
+    {
+      "code": 6021,
+      "name": "stalePriceError",
+      "msg": "Stale price data"
+    },
+    {
+      "code": 6022,
+      "name": "orderbookAlreadyExists",
+      "msg": "Orderbook already exists for this position"
+    },
+    {
+      "code": 6023,
+      "name": "invalidPosition",
+      "msg": "Invalid position for orderbook"
+    },
+    {
+      "code": 6024,
+      "name": "positionLiquidated",
+      "msg": "Position has been liquidated"
+    },
+    {
+      "code": 6025,
+      "name": "invalidOption",
+      "msg": "Invalid option"
+    },
+    {
+      "code": 6026,
+      "name": "orderbookFull",
+      "msg": "Orderbook is full"
     }
   ],
   "types": [
@@ -9416,6 +9492,10 @@ export type OptionContract = {
               {
                 "name": "sizePercent",
                 "type": "u16"
+              },
+              {
+                "name": "receiveSol",
+                "type": "bool"
               }
             ]
           },
@@ -9429,6 +9509,10 @@ export type OptionContract = {
               {
                 "name": "sizePercent",
                 "type": "u16"
+              },
+              {
+                "name": "receiveSol",
+                "type": "bool"
               }
             ]
           },
@@ -9450,6 +9534,12 @@ export type OptionContract = {
                 "type": {
                   "option": "u16"
                 }
+              },
+              {
+                "name": "newReceiveSol",
+                "type": {
+                  "option": "bool"
+                }
               }
             ]
           },
@@ -9470,6 +9560,12 @@ export type OptionContract = {
                 "name": "newSizePercent",
                 "type": {
                   "option": "u16"
+                }
+              },
+              {
+                "name": "newReceiveSol",
+                "type": {
+                  "option": "bool"
                 }
               }
             ]
@@ -10592,6 +10688,10 @@ export type OptionContract = {
             "type": "u16"
           },
           {
+            "name": "receiveSol",
+            "type": "bool"
+          },
+          {
             "name": "isActive",
             "type": "bool"
           }
@@ -10630,6 +10730,10 @@ export type OptionContract = {
           {
             "name": "sizePercent",
             "type": "u16"
+          },
+          {
+            "name": "receiveSol",
+            "type": "bool"
           }
         ]
       }
@@ -10660,15 +10764,19 @@ export type OptionContract = {
             "type": "u8"
           },
           {
-            "name": "price",
+            "name": "executedPrice",
             "type": "u64"
           },
           {
-            "name": "sizePercent",
+            "name": "executedSizePercent",
             "type": "u16"
           },
           {
-            "name": "executionTime",
+            "name": "receiveSol",
+            "type": "bool"
+          },
+          {
+            "name": "executedAt",
             "type": "i64"
           }
         ]
@@ -10737,6 +10845,12 @@ export type OptionContract = {
             "name": "newSizePercent",
             "type": {
               "option": "u16"
+            }
+          },
+          {
+            "name": "newReceiveSol",
+            "type": {
+              "option": "bool"
             }
           }
         ]

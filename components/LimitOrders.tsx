@@ -11,7 +11,6 @@ import SettledTpSls from "./SettledTpSls";
 import { usePythPrice } from "@/hooks/usePythPrice";
 import { Button } from "./ui/button";
 import { ChevronDown } from "lucide-react";
-import { TpSlOrderResponse } from "@/services/tpSlApiService";
 import { toast } from "sonner";
 import { Switch } from './ui/switch'
 import apiService from "@/services/apiService";
@@ -86,7 +85,6 @@ export default function LimitOrders({
     poolName
 }: LimitOrdersProps) {
     const [isOpen, setIsOpen] = useState<boolean>(false);
-    const [backendOrders, setBackendOrders] = useState<TpSlOrderResponse[]>([]);
     const { priceData } = usePythPrice("Crypto.SOL/USD");
     const [currentTime, setCurrentTime] = useState(new Date());
 

@@ -2,8 +2,9 @@
 
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
-import apiService, { Position, Option, Transaction, UserStats, PoolMetrics, PriceData, TpSlOrderResponse } from '@/services/apiService';
+import apiService, { Position, Option, Transaction, UserStats, PoolMetrics, PriceData } from '@/services/apiService';
 import { usePythPrice } from '@/hooks/usePythPrice';
+import { BackendTpSlOrder } from '@/types/trading';
 
 interface DataContextType {
   // User Data
@@ -11,7 +12,7 @@ interface DataContextType {
   options: Option[];
   transactions: Transaction[];
   userStats: UserStats | null;
-  tpSlOrders: { orders: TpSlOrderResponse[] };
+  tpSlOrders: { orders: BackendTpSlOrder[] };
   
   // Market Data
   poolMetrics: PoolMetrics[];
@@ -61,7 +62,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const [options, setOptions] = useState<Option[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [tpSlOrders, setTpSlOrders] = useState<{ orders: TpSlOrderResponse[] }>({ orders: [] });
+  const [tpSlOrders, setTpSlOrders] = useState<{ orders: BackendTpSlOrder[] }>({ orders: [] });
   
   const [poolMetrics, setPoolMetrics] = useState<PoolMetrics[]>([]);
   const [priceData, setPriceData] = useState<PriceData[]>([]);
@@ -126,7 +127,6 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         setPositions(userPositions.value);
       }
       if (userOptions.status === 'fulfilled') {
-        console.log(userOptions.value);
         setOptions(userOptions.value);
       }
       if (userTransactions.status === 'fulfilled') {
