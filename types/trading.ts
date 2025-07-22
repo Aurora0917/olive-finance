@@ -13,7 +13,7 @@ export interface PerpTPSL {
     receiveSol: boolean;
 }
 
-interface BackendTpSlOrder {
+export interface BackendTpSlOrder {
     _id: string;
     user: string;
     positionId: string;

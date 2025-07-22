@@ -15,7 +15,7 @@ import { ChevronDown, Activity, Clock } from "lucide-react";
 import { Switch } from './ui/switch'
 import apiService from "@/services/apiService";
 import { EXIT_FEE } from "@/utils/const";
-import { BackendTpSlOrder } from "@/types/trading";
+import { BackendTpSlOrder } from "../types/trading";
 
 interface OpenFuturesProps {
     logo: string;
