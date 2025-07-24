@@ -50,7 +50,7 @@ interface LimitOrdersProps {
     triggerPrice: number;
     unrealizedPnl?: number;
     onCollateral: (amount: number, isSol: boolean, isDeposit: boolean) => Promise<void>;
-    onClose: (percent: number, receiveToken: string, exitPrice: number) => Promise<void>;
+    onClose: (percent: number, receiveToken: string) => Promise<void>;
     isClosing?: boolean;
     // Backend integration props
     userId?: string; // User wallet address or identifier
@@ -187,9 +187,9 @@ export default function LimitOrders({
                                             collateral={collateral}
                                             position={position}
                                             orderType="limit"
-                                            onClose={(closePercent, receiveToken, exitPrice) => {
+                                            onClose={(closePercent, receiveToken) => {
                                                 // Handle the close operation
-                                                onClose(closePercent, receiveToken, exitPrice)
+                                                onClose(closePercent, receiveToken)
                                             }}
                                         />
                                     </TableCell>

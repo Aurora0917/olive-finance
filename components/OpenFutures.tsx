@@ -32,7 +32,7 @@ interface OpenFuturesProps {
     purchaseDate: string;
     unrealizedPnl?: number;
     onCollateral: (amount: number, isSol: boolean, isDeposit: boolean) => Promise<void>;
-    onClose: (percent: number, receiveToken: string, exitPrice: number) => Promise<void>;
+    onClose: (percent: number, receiveToken: string) => Promise<void>;
     isClosing?: boolean;
     // Onchain integration props
     positionIndex?: number;

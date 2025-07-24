@@ -15,7 +15,7 @@ interface CloseFuturesProps {
     collateral: number;
     position: string;
     orderType: string;
-    onClose?: (closeSize: number, receiveToken: string, exitPrice: number) => void;
+    onClose?: (closeSize: number, receiveToken: string) => void;
 }
 
 export default function CloseFutures({ 
@@ -68,7 +68,7 @@ export default function CloseFutures({
 
     const handleConfirm = () => {
         if (onClose && closeSize > 0) {
-            onClose(closeSize / size * 100, selectedToken,  markPrice * (position ==  'long' ? 0.99 : 1.01));
+            onClose(closeSize / size * 100, selectedToken);
         }
         setIsOpen(false);
     };

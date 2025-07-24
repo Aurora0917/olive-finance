@@ -2618,12 +2618,9 @@ export type OptionContract = {
       ],
       "accounts": [
         {
-          "name": "owner",
+          "name": "signer",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "receivingAccount"
-          ]
+          "signer": true
         },
         {
           "name": "receivingAccount",
@@ -2720,7 +2717,8 @@ export type OptionContract = {
               },
               {
                 "kind": "account",
-                "path": "owner"
+                "path": "position.owner",
+                "account": "position"
               },
               {
                 "kind": "arg",
@@ -6405,90 +6403,6 @@ export type OptionContract = {
       "returns": "u8"
     },
     {
-      "name": "setTpSl",
-      "discriminator": [
-        243,
-        36,
-        162,
-        182,
-        44,
-        224,
-        216,
-        34
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "pool",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "params.pool_name"
-              }
-            ]
-          }
-        },
-        {
-          "name": "position",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "arg",
-                "path": "params.position_index"
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "setTpSlParams"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "updateBorrowFees",
       "discriminator": [
         206,
@@ -7270,19 +7184,6 @@ export type OptionContract = {
       ]
     },
     {
-      "name": "perpTpSlSet",
-      "discriminator": [
-        3,
-        41,
-        41,
-        31,
-        233,
-        57,
-        120,
-        249
-      ]
-    },
-    {
       "name": "poolAdded",
       "discriminator": [
         38,
@@ -7659,16 +7560,16 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "borrowFeePayment",
             "type": "u64"
           },
           {
             "name": "newAccruedBorrowFees",
             "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
           },
           {
             "name": "previousInterestSnapshot",
@@ -7801,11 +7702,7 @@ export type OptionContract = {
           },
           {
             "name": "closePercentage",
-            "type": "u8"
-          },
-          {
-            "name": "minPrice",
-            "type": "f64"
+            "type": "u64"
           },
           {
             "name": "receiveSol",
@@ -7860,6 +7757,10 @@ export type OptionContract = {
             "type": "u64"
           },
           {
+            "name": "price",
+            "type": "u64"
+          },
+          {
             "name": "newCollateralAmount",
             "type": "u64"
           },
@@ -7869,18 +7770,22 @@ export type OptionContract = {
           },
           {
             "name": "newLeverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "newLiquidationPrice",
             "type": "u64"
           },
           {
-            "name": "newBorrowSizeUsd",
+            "name": "updateTime",
+            "type": "i64"
+          },
+          {
+            "name": "accruedBorrowFees",
             "type": "u64"
           },
           {
-            "name": "updateTime",
+            "name": "lastBorrowFeesUpdateTime",
             "type": "i64"
           }
         ]
@@ -7941,14 +7846,10 @@ export type OptionContract = {
           },
           {
             "name": "newLeverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "newLiquidationPrice",
-            "type": "u64"
-          },
-          {
-            "name": "newBorrowSizeUsd",
             "type": "u64"
           },
           {
@@ -7961,6 +7862,14 @@ export type OptionContract = {
           },
           {
             "name": "updateTime",
+            "type": "i64"
+          },
+          {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
             "type": "i64"
           }
         ]
@@ -8416,10 +8325,6 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
@@ -8440,11 +8345,11 @@ export type OptionContract = {
             "type": "u128"
           },
           {
-            "name": "openingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "borrowFeesPaid",
             "type": "u64"
           },
           {
@@ -8454,18 +8359,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "triggerPrice",
@@ -8546,10 +8439,6 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
@@ -8562,6 +8451,10 @@ export type OptionContract = {
             "type": "i64"
           },
           {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "liquidationPrice",
             "type": "u64"
           },
@@ -8570,11 +8463,11 @@ export type OptionContract = {
             "type": "u128"
           },
           {
-            "name": "openingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "borrowFeesPaid",
             "type": "u64"
           },
           {
@@ -8584,18 +8477,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "triggerPrice",
@@ -8939,18 +8820,6 @@ export type OptionContract = {
           {
             "name": "paySol",
             "type": "bool"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           }
         ]
       }
@@ -9658,10 +9527,6 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
@@ -9674,6 +9539,14 @@ export type OptionContract = {
             "type": "i64"
           },
           {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "liquidationPrice",
             "type": "u64"
           },
@@ -9682,11 +9555,15 @@ export type OptionContract = {
             "type": "u128"
           },
           {
-            "name": "closingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "tradeFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "borrowFeesPaid",
             "type": "u64"
           },
           {
@@ -9696,18 +9573,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "triggerPrice",
@@ -9729,10 +9594,6 @@ export type OptionContract = {
           },
           {
             "name": "realizedPnl",
-            "type": "i64"
-          },
-          {
-            "name": "unrealizedPnl",
             "type": "i64"
           },
           {
@@ -9792,15 +9653,15 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
           {
             "name": "openTime",
+            "type": "i64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
             "type": "i64"
           },
           {
@@ -9822,11 +9683,11 @@ export type OptionContract = {
             "type": "u128"
           },
           {
-            "name": "openingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "accruedBorrowFees",
             "type": "u64"
           },
           {
@@ -9836,18 +9697,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "triggerPrice",
@@ -9860,122 +9709,8 @@ export type OptionContract = {
             "type": "bool"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "perpTpSlSet",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "index",
+            "name": "maxSlippage",
             "type": "u64"
-          },
-          {
-            "name": "pubKey",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "custody",
-            "type": "pubkey"
-          },
-          {
-            "name": "collateralCustody",
-            "type": "pubkey"
-          },
-          {
-            "name": "orderType",
-            "type": "u8"
-          },
-          {
-            "name": "side",
-            "type": "u8"
-          },
-          {
-            "name": "isLiquidated",
-            "type": "bool"
-          },
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "sizeUsd",
-            "type": "u64"
-          },
-          {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
-            "name": "collateralUsd",
-            "type": "u64"
-          },
-          {
-            "name": "openTime",
-            "type": "i64"
-          },
-          {
-            "name": "updateTime",
-            "type": "i64"
-          },
-          {
-            "name": "liquidationPrice",
-            "type": "u64"
-          },
-          {
-            "name": "cumulativeInterestSnapshot",
-            "type": "u128"
-          },
-          {
-            "name": "openingFeePaid",
-            "type": "u64"
-          },
-          {
-            "name": "totalFeesPaid",
-            "type": "u64"
-          },
-          {
-            "name": "lockedAmount",
-            "type": "u64"
-          },
-          {
-            "name": "collateralAmount",
-            "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "triggerPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "triggerAboveThreshold",
-            "type": "bool"
           },
           {
             "name": "bump",
@@ -10162,10 +9897,6 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
@@ -10192,15 +9923,19 @@ export type OptionContract = {
             "type": "u128"
           },
           {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "accruedBorrowFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "borrowFeesPaid",
             "type": "u64"
           },
           {
-            "name": "openingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
@@ -10210,18 +9945,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "tpSlOrderbook",
@@ -10296,10 +10019,6 @@ export type OptionContract = {
             "type": "u64"
           },
           {
-            "name": "borrowSizeUsd",
-            "type": "u64"
-          },
-          {
             "name": "collateralUsd",
             "type": "u64"
           },
@@ -10312,6 +10031,10 @@ export type OptionContract = {
             "type": "i64"
           },
           {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "liquidationPrice",
             "type": "u64"
           },
@@ -10320,11 +10043,19 @@ export type OptionContract = {
             "type": "u128"
           },
           {
-            "name": "closingFeePaid",
+            "name": "tradeFees",
             "type": "u64"
           },
           {
-            "name": "totalFeesPaid",
+            "name": "tradeFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "borrowFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "accruedBorrowFees",
             "type": "u64"
           },
           {
@@ -10334,18 +10065,6 @@ export type OptionContract = {
           {
             "name": "collateralAmount",
             "type": "u64"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "triggerPrice",
@@ -10443,14 +10162,10 @@ export type OptionContract = {
           },
           {
             "name": "newLeverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "newLiquidationPrice",
-            "type": "u64"
-          },
-          {
-            "name": "newBorrowSizeUsd",
             "type": "u64"
           },
           {
@@ -10613,34 +10328,6 @@ export type OptionContract = {
       }
     },
     {
-      "name": "setTpSlParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "positionIndex",
-            "type": "u64"
-          },
-          {
-            "name": "poolName",
-            "type": "string"
-          },
-          {
-            "name": "takeProfitPrice",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stopLossPrice",
-            "type": {
-              "option": "u64"
-            }
-          }
-        ]
-      }
-    },
-    {
       "name": "side",
       "type": {
         "kind": "enum",
@@ -10717,6 +10404,10 @@ export type OptionContract = {
           },
           {
             "name": "triggerOrderType",
+            "type": "u8"
+          },
+          {
+            "name": "positionSide",
             "type": "u8"
           },
           {

@@ -975,8 +975,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           maxSlippage: new BN(maxSlippage),
           poolName: "SOL/USDC",
           paySol: paySol,
-          takeProfitPrice: null,
-          stopLossPrice: null,
         })
         .accountsPartial({
           owner: publicKey,
@@ -1027,7 +1025,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const onClosePerp = useCallback(async (
     closePercentage: number = 100,
     receiveAsset: "SOL" | "USDC" = "USDC",
-    minPrice: number = 0,
     positionIndex: number,
   ) => {
     try {
@@ -1050,7 +1047,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Closing perp position with params:", {
         positionIndex,
         closePercentage,
-        minPrice,
         receiveAsset,
         poolName: "SOL/USDC"
       });
@@ -1059,12 +1055,11 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         .closePerpPosition({
           positionIndex: new BN(positionIndex),
           poolName: "SOL/USDC",
-          closePercentage: closePercentage,
-          minPrice: minPrice,
+          closePercentage: new BN(closePercentage),
           receiveSol: receiveAsset === "SOL",
         })
         .accountsPartial({
-          owner: publicKey,
+          signer: publicKey,
           receivingAccount: receiveAsset === "SOL" ? userSolAccount : userUsdcAccount,
           transferAuthority: transferAuthority,
           contract: contract,
@@ -1113,7 +1108,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const onCancelLimitPerp = useCallback(async (
     closePercentage: number = 100,
     receiveAsset: "SOL" | "USDC" = "USDC",
-    minPrice: number = 0,
     positionIndex: number,
   ) => {
     try {
@@ -1136,7 +1130,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       console.log("Cancelling limit perp position with params:", {
         positionIndex,
         closePercentage,
-        minPrice,
         receiveAsset,
         poolName: "SOL/USDC"
       });
@@ -1146,7 +1139,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           positionIndex: new BN(positionIndex),
           poolName: "SOL/USDC",
           closePercentage: closePercentage,
-          minPrice: minPrice,
           receiveSol: receiveAsset === "SOL",
         })
         .accountsPartial({

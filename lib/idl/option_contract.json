@@ -2612,12 +2612,9 @@
       ],
       "accounts": [
         {
-          "name": "owner",
+          "name": "signer",
           "writable": true,
-          "signer": true,
-          "relations": [
-            "receiving_account"
-          ]
+          "signer": true
         },
         {
           "name": "receiving_account",
@@ -2714,7 +2711,8 @@
               },
               {
                 "kind": "account",
-                "path": "owner"
+                "path": "position.owner",
+                "account": "Position"
               },
               {
                 "kind": "arg",
@@ -6399,90 +6397,6 @@
       "returns": "u8"
     },
     {
-      "name": "set_tp_sl",
-      "discriminator": [
-        243,
-        36,
-        162,
-        182,
-        44,
-        224,
-        216,
-        34
-      ],
-      "accounts": [
-        {
-          "name": "owner",
-          "writable": true,
-          "signer": true
-        },
-        {
-          "name": "pool",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  111,
-                  108
-                ]
-              },
-              {
-                "kind": "arg",
-                "path": "params.pool_name"
-              }
-            ]
-          }
-        },
-        {
-          "name": "position",
-          "writable": true,
-          "pda": {
-            "seeds": [
-              {
-                "kind": "const",
-                "value": [
-                  112,
-                  111,
-                  115,
-                  105,
-                  116,
-                  105,
-                  111,
-                  110
-                ]
-              },
-              {
-                "kind": "account",
-                "path": "owner"
-              },
-              {
-                "kind": "arg",
-                "path": "params.position_index"
-              },
-              {
-                "kind": "account",
-                "path": "pool"
-              }
-            ]
-          }
-        }
-      ],
-      "args": [
-        {
-          "name": "params",
-          "type": {
-            "defined": {
-              "name": "SetTpSlParams"
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "update_borrow_fees",
       "discriminator": [
         206,
@@ -7264,19 +7178,6 @@
       ]
     },
     {
-      "name": "PerpTpSlSet",
-      "discriminator": [
-        3,
-        41,
-        41,
-        31,
-        233,
-        57,
-        120,
-        249
-      ]
-    },
-    {
       "name": "PoolAdded",
       "discriminator": [
         38,
@@ -7653,16 +7554,16 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "borrow_fee_payment",
             "type": "u64"
           },
           {
             "name": "new_accrued_borrow_fees",
             "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
           },
           {
             "name": "previous_interest_snapshot",
@@ -7795,11 +7696,7 @@
           },
           {
             "name": "close_percentage",
-            "type": "u8"
-          },
-          {
-            "name": "min_price",
-            "type": "f64"
+            "type": "u64"
           },
           {
             "name": "receive_sol",
@@ -7854,6 +7751,10 @@
             "type": "u64"
           },
           {
+            "name": "price",
+            "type": "u64"
+          },
+          {
             "name": "new_collateral_amount",
             "type": "u64"
           },
@@ -7863,18 +7764,22 @@
           },
           {
             "name": "new_leverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "new_liquidation_price",
             "type": "u64"
           },
           {
-            "name": "new_borrow_size_usd",
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "accrued_borrow_fees",
             "type": "u64"
           },
           {
-            "name": "update_time",
+            "name": "last_borrow_fees_update_time",
             "type": "i64"
           }
         ]
@@ -7935,14 +7840,10 @@
           },
           {
             "name": "new_leverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "new_liquidation_price",
-            "type": "u64"
-          },
-          {
-            "name": "new_borrow_size_usd",
             "type": "u64"
           },
           {
@@ -7955,6 +7856,14 @@
           },
           {
             "name": "update_time",
+            "type": "i64"
+          },
+          {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
             "type": "i64"
           }
         ]
@@ -8410,10 +8319,6 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
@@ -8434,11 +8339,11 @@
             "type": "u128"
           },
           {
-            "name": "opening_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "borrow_fees_paid",
             "type": "u64"
           },
           {
@@ -8448,18 +8353,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "trigger_price",
@@ -8540,10 +8433,6 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
@@ -8556,6 +8445,10 @@
             "type": "i64"
           },
           {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "liquidation_price",
             "type": "u64"
           },
@@ -8564,11 +8457,11 @@
             "type": "u128"
           },
           {
-            "name": "opening_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "borrow_fees_paid",
             "type": "u64"
           },
           {
@@ -8578,18 +8471,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "trigger_price",
@@ -8933,18 +8814,6 @@
           {
             "name": "pay_sol",
             "type": "bool"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           }
         ]
       }
@@ -9652,10 +9521,6 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
@@ -9668,6 +9533,14 @@
             "type": "i64"
           },
           {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "liquidation_price",
             "type": "u64"
           },
@@ -9676,11 +9549,15 @@
             "type": "u128"
           },
           {
-            "name": "closing_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "trade_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fees_paid",
             "type": "u64"
           },
           {
@@ -9690,18 +9567,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "trigger_price",
@@ -9723,10 +9588,6 @@
           },
           {
             "name": "realized_pnl",
-            "type": "i64"
-          },
-          {
-            "name": "unrealized_pnl",
             "type": "i64"
           },
           {
@@ -9786,15 +9647,15 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
           {
             "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
             "type": "i64"
           },
           {
@@ -9816,11 +9677,11 @@
             "type": "u128"
           },
           {
-            "name": "opening_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "accrued_borrow_fees",
             "type": "u64"
           },
           {
@@ -9830,18 +9691,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "trigger_price",
@@ -9854,122 +9703,8 @@
             "type": "bool"
           },
           {
-            "name": "bump",
-            "type": "u8"
-          }
-        ]
-      }
-    },
-    {
-      "name": "PerpTpSlSet",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "index",
+            "name": "max_slippage",
             "type": "u64"
-          },
-          {
-            "name": "pub_key",
-            "type": "pubkey"
-          },
-          {
-            "name": "owner",
-            "type": "pubkey"
-          },
-          {
-            "name": "pool",
-            "type": "pubkey"
-          },
-          {
-            "name": "custody",
-            "type": "pubkey"
-          },
-          {
-            "name": "collateral_custody",
-            "type": "pubkey"
-          },
-          {
-            "name": "order_type",
-            "type": "u8"
-          },
-          {
-            "name": "side",
-            "type": "u8"
-          },
-          {
-            "name": "is_liquidated",
-            "type": "bool"
-          },
-          {
-            "name": "price",
-            "type": "u64"
-          },
-          {
-            "name": "size_usd",
-            "type": "u64"
-          },
-          {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
-            "name": "collateral_usd",
-            "type": "u64"
-          },
-          {
-            "name": "open_time",
-            "type": "i64"
-          },
-          {
-            "name": "update_time",
-            "type": "i64"
-          },
-          {
-            "name": "liquidation_price",
-            "type": "u64"
-          },
-          {
-            "name": "cumulative_interest_snapshot",
-            "type": "u128"
-          },
-          {
-            "name": "opening_fee_paid",
-            "type": "u64"
-          },
-          {
-            "name": "total_fees_paid",
-            "type": "u64"
-          },
-          {
-            "name": "locked_amount",
-            "type": "u64"
-          },
-          {
-            "name": "collateral_amount",
-            "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "trigger_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "trigger_above_threshold",
-            "type": "bool"
           },
           {
             "name": "bump",
@@ -10156,10 +9891,6 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
@@ -10186,15 +9917,19 @@
             "type": "u128"
           },
           {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "accrued_borrow_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "borrow_fees_paid",
             "type": "u64"
           },
           {
-            "name": "opening_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
@@ -10204,18 +9939,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "tp_sl_orderbook",
@@ -10290,10 +10013,6 @@
             "type": "u64"
           },
           {
-            "name": "borrow_size_usd",
-            "type": "u64"
-          },
-          {
             "name": "collateral_usd",
             "type": "u64"
           },
@@ -10306,6 +10025,10 @@
             "type": "i64"
           },
           {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "liquidation_price",
             "type": "u64"
           },
@@ -10314,11 +10037,19 @@
             "type": "u128"
           },
           {
-            "name": "closing_fee_paid",
+            "name": "trade_fees",
             "type": "u64"
           },
           {
-            "name": "total_fees_paid",
+            "name": "trade_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "accrued_borrow_fees",
             "type": "u64"
           },
           {
@@ -10328,18 +10059,6 @@
           {
             "name": "collateral_amount",
             "type": "u64"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
           },
           {
             "name": "trigger_price",
@@ -10437,14 +10156,10 @@
           },
           {
             "name": "new_leverage",
-            "type": "u64"
+            "type": "f64"
           },
           {
             "name": "new_liquidation_price",
-            "type": "u64"
-          },
-          {
-            "name": "new_borrow_size_usd",
             "type": "u64"
           },
           {
@@ -10607,34 +10322,6 @@
       }
     },
     {
-      "name": "SetTpSlParams",
-      "type": {
-        "kind": "struct",
-        "fields": [
-          {
-            "name": "position_index",
-            "type": "u64"
-          },
-          {
-            "name": "pool_name",
-            "type": "string"
-          },
-          {
-            "name": "take_profit_price",
-            "type": {
-              "option": "u64"
-            }
-          },
-          {
-            "name": "stop_loss_price",
-            "type": {
-              "option": "u64"
-            }
-          }
-        ]
-      }
-    },
-    {
       "name": "Side",
       "type": {
         "kind": "enum",
@@ -10711,6 +10398,10 @@
           },
           {
             "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "position_side",
             "type": "u8"
           },
           {

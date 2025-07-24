@@ -164,7 +164,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
         }
 
         try {
-          const payTokenPrice = await getPythPrice(payCurrency, 0);
+          const payTokenPrice = await getPythPrice(payCurrency);
           const collateralUSDValue = payTokenPrice * parseFloat(amount);
 
           if (collateralUSDValue > 10) {
@@ -179,7 +179,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
             setCollateralUSD(collateralUSDValue);
 
-            const actualPositionAmount = parseFloat(amount) * leverageNum;
+            const actualPositionAmount = parseFloat((parseFloat(amount) * leverageNum).toFixed(2));
             setPositionAmount(actualPositionAmount);
 
             const liquidationBuffer = LIQUIDATION_MARGIN;
@@ -295,12 +295,13 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
       let success;
       
       const percentageNum = parseFloat(closePercentage);
-      const currentPrice = priceData.price || selectedPosition.currentPrice;
+
+      console.log(selectedPosition);
       
       if (selectedPosition.orderType === 'market') {
-        success = await onClosePerp(percentageNum, receiveToken, currentPrice * (selectedPosition.positionSide ==  'long' ? 0.99 : 1.01), selectedPosition.index);
+        success = await onClosePerp(percentageNum * 1000000, receiveToken, selectedPosition.index);
       } else {
-        success = await onCancelLimitPerp(percentageNum, receiveToken, currentPrice * (selectedPosition.positionSide ==  'long' ? 0.99 : 1.01), selectedPosition.index);
+        success = await onCancelLimitPerp(percentageNum * 1000000, receiveToken, selectedPosition.index);
       }
 
       if (success) {

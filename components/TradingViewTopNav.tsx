@@ -357,13 +357,6 @@ export default function TradingViewTopNav({
                     <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
-                    <span className="text-secondary-foreground font-normal text-[10px] h-3">Next Funding</span>
-                    <span className="text-foreground text-xs font-medium">24:23</span>
-                </div>
-                <div className="px-4 py-1">
-                    <Separator orientation="vertical" />
-                </div>
-                <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">Maximum Leverage</span>
                     <span className="text-foreground text-xs font-medium">100.00x</span>
                 </div>

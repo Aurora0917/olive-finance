@@ -66,10 +66,11 @@ export interface Transaction {
   collateral?: number;
   addedCollateral?: number;
   removedCollateral?: number;
+  nativeCollateral?: number;
   positionSize?: number;
   price: number;
   fees?: number;
-  exitFees?: number;
+  tradeFees?: number;
   borrowFees?: number;
   leverage?: number;
   percent?: number;

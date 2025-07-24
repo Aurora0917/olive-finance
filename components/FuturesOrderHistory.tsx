@@ -53,11 +53,13 @@ export default function FuturesOrderHistory({
 
         // Calculate total fees
         const totalFees = sortedTransactions.reduce((sum, t) => {
-            return sum + (t.fees || 0) + (t.exitFees || 0) + (t.borrowFees || 0);
+            return sum + (t.fees || 0) + (t.tradeFees || 0) + (t.borrowFees || 0);
         }, 0);
 
         // Calculate PnL
-        const pnl = closeTransaction?.pnl || 0;
+        const pnl = sortedTransactions.reduce((sum, t) => {
+            return sum + (t.pnl || 0);
+        }, 0);
 
         const isOpen = !closeTransaction;
         const timeOpened = openTransaction?.timestamp || sortedTransactions[0].timestamp;
@@ -94,6 +96,8 @@ export default function FuturesOrderHistory({
         );
     }
 
+    console.log("🥹🥹🥹🥹", positionSummary);
+
     // Calculate PnL with or without fees
     const displayPnl = withFees
         ? positionSummary.pnl - positionSummary.totalFees
@@ -115,23 +119,24 @@ export default function FuturesOrderHistory({
         const diffHours = Math.floor(diffMinutes / 60);
         const diffDays = Math.floor(diffHours / 24);
 
-        if (diffDays > 0) {
-            const remainingHours = diffHours % 24;
-            return remainingHours > 0 ? `${diffDays}d ${remainingHours}h` : `${diffDays}d`;
-        } else if (diffHours > 0) {
-            const remainingMinutes = diffMinutes % 60;
-            return `${diffHours}h ${remainingMinutes}m`;
-        } else if (diffMinutes > 0) {
-            return `${diffMinutes}m`;
-        } else {
-            return `${diffSeconds}s`;
-        }
+        const remainingHours = diffHours % 24;
+        const remainingMinutes = diffMinutes % 60;
+        const remainingSeconds = diffSeconds % 60;
+
+        const parts: string[] = [];
+
+        if (diffDays > 0) parts.push(`${diffDays}d`);
+        if (remainingHours > 0) parts.push(`${remainingHours}h`);
+        if (remainingMinutes > 0) parts.push(`${remainingMinutes}m`);
+        if (remainingSeconds > 0 || parts.length === 0) parts.push(`${remainingSeconds}s`);
+
+        return parts.join(' ');
     };
 
     const formatTimestamp = (date: string): string => {
         const d = new Date(date);
-        return d.toLocaleDateString('en-US', { 
-            month: 'short', 
+        return d.toLocaleDateString('en-US', {
+            month: 'short',
             day: 'numeric',
             hour: '2-digit',
             minute: '2-digit'
@@ -196,7 +201,7 @@ export default function FuturesOrderHistory({
                             </div>
                         </div>
                     </div>
-                    
+
                     <Button
                         variant="ghost"
                         size="sm"
@@ -219,7 +224,7 @@ export default function FuturesOrderHistory({
                         <span className="text-[10px] text-muted-foreground">{withFees ? 'w/ fees' : 'w/o fees'}</span>
                     </div>
                     <span className={`text-sm font-semibold ${displayPnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                        {displayPnl >= 0 ? '+' : ''}${(Math.abs(displayPnl) / 1000000).toFixed(2)} ({(pnlPercentage / 1000000).toFixed(2)}%)
+                        {displayPnl >= 0 ? '+' : ''}${(Math.abs(displayPnl)).toFixed(2)} ({(pnlPercentage).toFixed(2)}%)
                     </span>
                 </div>
 
@@ -246,7 +251,7 @@ export default function FuturesOrderHistory({
                         </div>
                         <div>
                             <span className="text-muted-foreground">Fees:</span>
-                            <span className="ml-1 text-red-400 font-medium">${(positionSummary.totalFees / 1000000).toFixed(2)}</span>
+                            <span className="ml-1 text-red-400 font-medium">${(positionSummary.totalFees).toFixed(2)}</span>
                         </div>
                         <div>
                             <span className="text-muted-foreground">Collateral:</span>
@@ -291,7 +296,7 @@ export default function FuturesOrderHistory({
                                 <span className="text-[10px] text-muted-foreground">{withFees ? 'w/ fees' : 'w/o fees'}</span>
                             </div>
                             <span className={`text-sm font-semibold ${displayPnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {displayPnl >= 0 ? '+' : ''}${(Math.abs(displayPnl) / 1000000).toFixed(2)} ({(pnlPercentage / 1000000).toFixed(2)}%)
+                                {displayPnl >= 0 ? '+' : ''}${(Math.abs(displayPnl)).toFixed(2)} ({(pnlPercentage).toFixed(2)}%)
                             </span>
                         </div>
 
@@ -318,7 +323,7 @@ export default function FuturesOrderHistory({
                     </div>
                     <div>
                         <span className="text-muted-foreground block">Fees</span>
-                        <span className="text-red-400 font-medium">${(positionSummary.totalFees / 1000000).toFixed(2)}</span>
+                        <span className="text-red-400 font-medium">${(positionSummary.totalFees).toFixed(2)}</span>
                     </div>
                     <div>
                         <span className="text-muted-foreground block">Duration</span>
@@ -350,8 +355,8 @@ export default function FuturesOrderHistory({
                         </div>
                         <div>
                             <span className={`text-sm font-semibold ${displayPnl >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                {displayPnl >= 0 ? '+' : '-'}${Math.abs(displayPnl / 1000000).toFixed(2)} (
-                                {(pnlPercentage / 1000000).toFixed(2)}%)
+                                {displayPnl >= 0 ? '+' : '-'}${Math.abs(displayPnl).toFixed(2)} (
+                                {(pnlPercentage).toFixed(2)}%)
                             </span>
                         </div>
                     </div>
@@ -393,7 +398,7 @@ export default function FuturesOrderHistory({
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-red-500 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        ${(positionSummary.totalFees / 1000000).toFixed(2)}
+                                        ${(positionSummary.totalFees).toFixed(2)}
                                     </TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs py-0 text-white underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
                                         <span>
@@ -451,6 +456,7 @@ export default function FuturesOrderHistory({
                                                     <>
                                                         <div><span className="text-muted-foreground">Price:</span> ${transaction.price?.toFixed(2)}</div>
                                                         <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                        <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div><span className="text-muted-foreground">Leverage:</span> {transaction.leverage}x</div>
                                                         <div><span className="text-muted-foreground">Collateral:</span> ${transaction.collateral?.toFixed(2)}</div>
                                                     </>
@@ -459,17 +465,19 @@ export default function FuturesOrderHistory({
                                                     <>
                                                         <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
                                                         <div><span className="text-muted-foreground">Exit Price:</span> ${transaction.price?.toFixed(2)}</div>
+                                                        <div><span className="text-muted-foreground">Native Exit Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div><span className="text-muted-foreground">Closed:</span> {transaction.percent}%</div>
-                                                        <div><span className="text-muted-foreground">PnL:</span> <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0) / 1000000).toFixed(2)}</span></div>
-                                                        <div><span className="text-muted-foreground">Exit Fees:</span> ${((transaction.exitFees || 0) / 1000000).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Borrow Fees:</span> ${((transaction.borrowFees || 0) / 1000000).toFixed(2)}</div>
+                                                        <div><span className="text-muted-foreground">PnL:</span> <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                        <div><span className="text-muted-foreground">Exit Fees:</span> ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                        <div><span className="text-muted-foreground">Borrow Fees:</span> ${((transaction.borrowFees || 0)).toFixed(6)}</div>
                                                     </>
                                                 )}
                                                 {transaction.transactionType === 'add_collateral' && (
                                                     <>
                                                         <div><span className="text-muted-foreground">Added:</span> ${(transaction.addedCollateral || 0).toFixed(2)}</div>
+                                                        <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div><span className="text-muted-foreground">New Total:</span> ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">New Leverage:</span> {transaction.leverage}x</div>
+                                                        <div><span className="text-muted-foreground">New Leverage:</span> {transaction.leverage?.toFixed(2)}x</div>
                                                     </>
                                                 )}
                                             </div>
@@ -501,10 +509,20 @@ export default function FuturesOrderHistory({
                                             </div>
 
                                             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                                {transaction.transactionType === 'limit_order' && (
+                                                    <>
+                                                        <div>Price: ${transaction.price?.toFixed(2)}</div>
+                                                        <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                        <div>Leverage: {transaction.leverage}x</div>
+                                                        <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
+                                                    </>
+                                                )}
                                                 {transaction.transactionType === 'open_position' && (
                                                     <>
                                                         <div>Price: ${transaction.price?.toFixed(2)}</div>
                                                         <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>Leverage: {transaction.leverage}x</div>
                                                         <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
                                                     </>
@@ -514,24 +532,27 @@ export default function FuturesOrderHistory({
                                                         <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
                                                         <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
                                                         <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
+                                                        <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>Percentage Closed: {transaction.percent}%</div>
-                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0) / 1000000).toFixed(2)}</span></div>
-                                                        <div>Exit Fees: ${((transaction.exitFees || 0) / 1000000).toFixed(2)}</div>
-                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0) / 1000000).toFixed(2)}</div>
+                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                        <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
                                                     </>
                                                 )}
                                                 {transaction.transactionType === 'add_collateral' && (
                                                     <>
                                                         <div>Added: ${(transaction.addedCollateral || 0).toFixed(2)}</div>
+                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>New Leverage: {transaction.leverage}x</div>
+                                                        <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
                                                     </>
                                                 )}
                                                 {transaction.transactionType === 'remove_collateral' && (
                                                     <>
                                                         <div>Removed: ${(transaction.removedCollateral || 0).toFixed(2)}</div>
+                                                        <div>Native Collateral: -{(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>New Leverage: {transaction.leverage}x</div>
+                                                        <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
                                                     </>
                                                 )}
                                                 {transaction.transactionType === 'liquidation' && (
@@ -539,9 +560,10 @@ export default function FuturesOrderHistory({
                                                         <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
                                                         <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
                                                         <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0) / 1000000).toFixed(2)}</span></div>
-                                                        <div>Exit Fees: ${((transaction.exitFees || 0) / 1000000).toFixed(2)}</div>
-                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0) / 1000000).toFixed(2)}</div>
+                                                        <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                        <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
                                                     </>
                                                 )}
                                             </div>

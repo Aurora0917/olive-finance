@@ -2,8 +2,6 @@
 
 import { useState, useEffect, useRef } from "react";
 import { PRICE_FEEDS } from "../lib/data/price-feed";
-import { HermesClient } from "@pythnetwork/hermes-client";
-const PYTH_ENDPOINT = "https://hermes.pyth.network";
 const POLLING_INTERVAL = 15000;
 const HISTORICAL_INTERVAL = 45000;
 
@@ -147,31 +145,23 @@ export function usePyth24hChange(token : string) : PriceChangeState{
 }
 
 
-export const getPythPrice = async (token: string, timestamp: number) => {
-  const priceFeed = PRICE_FEEDS.find((feed) => feed.token === token);
-  const globalConnection = new HermesClient(PYTH_ENDPOINT);
-  if (!priceFeed) return 0;
-  // const priceData = await globalConnection.getPriceUpdatesAtTimestamp(
-  //   Math.round(timestamp / 1000),
-  //   [priceFeed.id],
-  //   { parsed: true, ignoreInvalidPriceIds: true }
-  // );
-  const priceData = await globalConnection.getLatestPriceUpdates(
-    [priceFeed.id],
-    { parsed: true, ignoreInvalidPriceIds: true }
-  );
-  if (priceData) {
-    //TODO: to update on Mainnet
-    // const price = priceData.getEmaPriceNoOlderThan(300); // Historical price data
-    const price = priceData.parsed?.find((feed) =>
-      priceFeed.id.includes(feed.id)
-    );
+export async function getPythPrice(
+  token: string,
+  timestamp?: number
+): Promise<number> {
+  const feed = PRICE_FEEDS.find(f => f.token === token);
+  if (!feed) return 0;
 
-    if (!price) return 0;
-    // Adjust price and confidence with exponent
-    return parseFloat(price.price.price) * Math.pow(10, price.price.expo);
-  } else {
-    console.log("No price data available for that time.");
+  const res = await fetch(`/api/pyth-price?id=${feed.id}`);
+  if (!res.ok) {
+    console.error("Fetch error:", await res.text());
     return 0;
   }
-};
+
+  const data =await res.json();
+  const entry = data.parsed[0];
+  if (!entry) return 0;
+
+  const raw = entry.price;
+  return parseFloat(raw.price) * 10 ** raw.expo;
+}

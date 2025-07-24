@@ -245,7 +245,7 @@ export default function FuturesPositions() {
         }
     }
 
-    const handleCancleLimit = async (position: FuturePos, percent: number, receiveToken: string, exitPrice: number) => {
+    const handleCancleLimit = async (position: FuturePos, percent: number, receiveToken: string) => {
         if (!position.accountAddress) {
             console.error("Invalid position - no account address");
             return;
@@ -255,7 +255,7 @@ export default function FuturesPositions() {
 
         setIsClosing(position.index);
         try {
-            const success = await onCancelLimitPerp(percent, receiveToken, exitPrice, position.index);
+            const success = await onCancelLimitPerp(percent, receiveToken, position.index);
             if (success) {
                 console.log("Position closed successfully!");
                 // Position will be automatically removed from the list via refresh
@@ -269,7 +269,7 @@ export default function FuturesPositions() {
         }
     };
 
-    const handleClosePosition = async (position: FuturePos, percent: number, receiveToken: string, exitPrice: number) => {
+    const handleClosePosition = async (position: FuturePos, percent: number, receiveToken: string) => {
         if (!position.accountAddress) {
             console.error("Invalid position - no account address");
             return;
@@ -277,7 +277,7 @@ export default function FuturesPositions() {
 
         setIsClosing(position.index);
         try {
-            const success = await onClosePerp(percent, receiveToken, exitPrice, position.index);
+            const success = await onClosePerp(percent * 1000000, receiveToken, position.index);
             if (success) {
                 console.log("Position closed successfully!");
                 // Position will be automatically removed from the list via refresh
@@ -459,7 +459,7 @@ export default function FuturesPositions() {
 
                                                 // Callbacks
                                                 onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
-                                                onClose={(percent, receiveToken, exitPrice) => handleClosePosition(pos, percent, receiveToken, exitPrice)}
+                                                onClose={(percent, receiveToken) => handleClosePosition(pos, percent, receiveToken)}
                                                 isClosing={isClosing === positionIndex}
 
                                                 // Backend integration props
@@ -529,7 +529,7 @@ export default function FuturesPositions() {
 
                                                 // Callbacks
                                                 onCollateral={(amount, isSol, isDeposit) => handleCollateral(pos, amount, isSol, isDeposit)}
-                                                onClose={(percent, receiveToken, exitPrice) => handleCancleLimit(pos, percent, receiveToken, exitPrice)}
+                                                onClose={(percent, receiveToken) => handleCancleLimit(pos, percent, receiveToken)}
                                                 isClosing={isClosing === positionIndex}
 
                                                 // Backend integration props
