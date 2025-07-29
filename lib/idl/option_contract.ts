@@ -1569,6 +1569,10 @@ export type OptionContract = {
           "writable": true
         },
         {
+          "name": "tpSlOrderbook",
+          "optional": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -2618,9 +2622,12 @@ export type OptionContract = {
       ],
       "accounts": [
         {
-          "name": "signer",
+          "name": "owner",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "receivingAccount"
+          ]
         },
         {
           "name": "receivingAccount",
@@ -2717,8 +2724,7 @@ export type OptionContract = {
               },
               {
                 "kind": "account",
-                "path": "position.owner",
-                "account": "position"
+                "path": "owner"
               },
               {
                 "kind": "arg",
@@ -2886,6 +2892,10 @@ export type OptionContract = {
         {
           "name": "usdcMint",
           "writable": true
+        },
+        {
+          "name": "tpSlOrderbook",
+          "optional": true
         },
         {
           "name": "tokenProgram",
@@ -3525,6 +3535,350 @@ export type OptionContract = {
           "type": {
             "defined": {
               "name": "executeLimitOrderParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "executeTpSlOrder",
+      "discriminator": [
+        10,
+        7,
+        106,
+        225,
+        184,
+        113,
+        28,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "receivingAccount",
+          "writable": true
+        },
+        {
+          "name": "transferAuthority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.owner",
+                "account": "position"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tpSlOrderbook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  112,
+                  95,
+                  115,
+                  108,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tp_sl_orderbook.owner",
+                "account": "tpSlOrderbook"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              },
+              {
+                "kind": "arg",
+                "path": "params.contract_type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "solMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdcMint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdcCustodyTokenAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "solOracleAccount"
+        },
+        {
+          "name": "usdcOracleAccount"
+        },
+        {
+          "name": "solMint",
+          "writable": true
+        },
+        {
+          "name": "usdcMint",
+          "writable": true
+        },
+        {
+          "name": "tokenProgram",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "executeTpSlOrderParams"
             }
           }
         }
@@ -4314,6 +4668,10 @@ export type OptionContract = {
           "writable": true
         },
         {
+          "name": "tpSlOrderbook",
+          "optional": true
+        },
+        {
           "name": "tokenProgram",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -4392,7 +4750,28 @@ export type OptionContract = {
           }
         },
         {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "pool",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -4417,6 +4796,14 @@ export type OptionContract = {
         },
         {
           "name": "optionDetail",
+          "optional": true
+        },
+        {
+          "name": "solCustody",
+          "optional": true
+        },
+        {
+          "name": "usdcCustody",
           "optional": true
         }
       ],
@@ -7197,6 +7584,19 @@ export type OptionContract = {
       ]
     },
     {
+      "name": "positionAccountClosed",
+      "discriminator": [
+        129,
+        147,
+        67,
+        108,
+        211,
+        239,
+        188,
+        156
+      ]
+    },
+    {
       "name": "positionLiquidated",
       "discriminator": [
         40,
@@ -7272,6 +7672,19 @@ export type OptionContract = {
         218,
         210,
         51
+      ]
+    },
+    {
+      "name": "tpSlOrderbookClosed",
+      "discriminator": [
+        60,
+        166,
+        35,
+        152,
+        200,
+        250,
+        63,
+        58
       ]
     },
     {
@@ -7423,6 +7836,21 @@ export type OptionContract = {
       "code": 6026,
       "name": "orderbookFull",
       "msg": "Orderbook is full"
+    },
+    {
+      "code": 6027,
+      "name": "orderbookNotEmpty",
+      "msg": "Orderbook must be empty before closing"
+    },
+    {
+      "code": 6028,
+      "name": "positionNotEmpty",
+      "msg": "Position must be empty before closing account"
+    },
+    {
+      "code": 6029,
+      "name": "positionNotClosed",
+      "msg": "Position must be closed before closing account"
     }
   ],
   "types": [
@@ -7621,6 +8049,10 @@ export type OptionContract = {
             "type": "string"
           },
           {
+            "name": "contractType",
+            "type": "u8"
+          },
+          {
             "name": "closePercentage",
             "type": "u8"
           },
@@ -7699,6 +8131,10 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          },
+          {
+            "name": "contractType",
+            "type": "u8"
           },
           {
             "name": "closePercentage",
@@ -8019,6 +8455,34 @@ export type OptionContract = {
           {
             "name": "executionPrice",
             "type": "f64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "executeTpSlOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "poolName",
+            "type": "string"
+          },
+          {
+            "name": "contractType",
+            "type": "u8"
+          },
+          {
+            "name": "triggerOrderType",
+            "type": "u8"
+          },
+          {
+            "name": "orderIndex",
+            "type": "u8"
           }
         ]
       }
@@ -8511,6 +8975,10 @@ export type OptionContract = {
           {
             "name": "poolName",
             "type": "string"
+          },
+          {
+            "name": "contractType",
+            "type": "u8"
           },
           {
             "name": "liquidatorRewardAccount",
@@ -9575,6 +10043,10 @@ export type OptionContract = {
             "type": "u64"
           },
           {
+            "name": "nativeExitAmount",
+            "type": "u64"
+          },
+          {
             "name": "triggerPrice",
             "type": {
               "option": "u64"
@@ -9965,6 +10437,34 @@ export type OptionContract = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "positionAccountClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionKey",
+            "type": "pubkey"
+          },
+          {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "rentRefunded",
+            "type": "u64"
           }
         ]
       }
@@ -10435,12 +10935,64 @@ export type OptionContract = {
         "kind": "struct",
         "fields": [
           {
+            "name": "positionIndex",
+            "type": "u64"
+          },
+          {
+            "name": "positionKey",
+            "type": "pubkey"
+          },
+          {
             "name": "owner",
             "type": "pubkey"
           },
           {
-            "name": "position",
+            "name": "pool",
             "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateralCustody",
+            "type": "pubkey"
+          },
+          {
+            "name": "orderType",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "isLiquidated",
+            "type": "bool"
+          },
+          {
+            "name": "entryPrice",
+            "type": "u64"
+          },
+          {
+            "name": "sizeUsd",
+            "type": "u64"
+          },
+          {
+            "name": "collateralUsd",
+            "type": "u64"
+          },
+          {
+            "name": "collateralAmount",
+            "type": "u64"
+          },
+          {
+            "name": "nativeExitAmount",
+            "type": "u64"
+          },
+          {
+            "name": "lockedAmount",
+            "type": "u64"
           },
           {
             "name": "contractType",
@@ -10451,8 +11003,12 @@ export type OptionContract = {
             "type": "u8"
           },
           {
-            "name": "index",
+            "name": "orderIndex",
             "type": "u8"
+          },
+          {
+            "name": "orderPrice",
+            "type": "u64"
           },
           {
             "name": "executedPrice",
@@ -10467,8 +11023,56 @@ export type OptionContract = {
             "type": "bool"
           },
           {
+            "name": "tradeFees",
+            "type": "u64"
+          },
+          {
+            "name": "tradeFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "borrowFeesPaid",
+            "type": "u64"
+          },
+          {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "realizedPnl",
+            "type": "i64"
+          },
+          {
+            "name": "settlementTokens",
+            "type": "u64"
+          },
+          {
+            "name": "openTime",
+            "type": "i64"
+          },
+          {
+            "name": "updateTime",
+            "type": "i64"
+          },
+          {
             "name": "executedAt",
             "type": "i64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
+            "name": "liquidationPrice",
+            "type": "u64"
+          },
+          {
+            "name": "cumulativeInterestSnapshot",
+            "type": "u128"
+          },
+          {
+            "name": "isFullClose",
+            "type": "bool"
           }
         ]
       }
@@ -10625,6 +11229,30 @@ export type OptionContract = {
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "tpSlOrderbookClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contractType",
+            "type": "u8"
+          },
+          {
+            "name": "rentRefunded",
+            "type": "u64"
           }
         ]
       }

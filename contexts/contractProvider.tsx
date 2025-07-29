@@ -1,12 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-function-type */
 "use client";
 
-import { getPythPrice, usePythPrice } from "@/hooks/usePythPrice";
+import { usePythPrice } from "@/hooks/usePythPrice";
 import { Connection, PublicKey, SystemProgram } from "@solana/web3.js";
 import {
   createContext,
   useCallback,
-  useContext,
   useEffect,
   useState,
 } from "react";
@@ -19,9 +18,7 @@ import {
   Provider,
 } from "@coral-xyz/anchor";
 import { Position } from "@/lib/data/Positions";
-import { formatDate, Transaction, FuturePos } from "@/lib/data/WalletActivity";
-import { coins } from "@/lib/data/coins";
-import { format } from "date-fns";
+import { Transaction, FuturePos } from "@/lib/data/WalletActivity";
 import { OptionContract } from "@/lib/idl/option_contract";
 import * as idl from "../lib/idl/option_contract.json";
 import {
@@ -42,9 +39,9 @@ import {
 import { PerpTPSL } from "@/types/trading";
 
 // Import the separated modules
-import { usePositionManagement } from "@/hooks/usePositionManagement";
-import { useVolumeCalculation } from "@/hooks/useVolumeCalculation";
-import { usePoolData } from "@/hooks/usePoolData";
+// import { usePositionManagement } from "@/hooks/usePositionManagement";
+// import { useVolumeCalculation } from "@/hooks/useVolumeCalculation";
+// import { usePoolData } from "@/hooks/usePoolData";
 import { PDAs } from "@/utils/pdas";
 import { TransactionBuilder } from "@/utils/transactionBuilder";
 
@@ -91,8 +88,8 @@ export type ExpiredOption = {
 interface ContractContextType {
   program: Program<OptionContract> | undefined;
   pub: PublicKey | undefined;
-  getCustodies: Function;
-  getDetailInfos: Function;
+  // getCustodies: Function;
+  // getDetailInfos: Function;
   onOpenLimitOption: Function;
   onCloseLimitOption: Function;
   onOpenOption: Function;
@@ -111,32 +108,32 @@ interface ContractContextType {
   onUpdateTpSl: Function;
   onRemoveTpSl: Function;
   getOptionDetailAccount: Function;
-  getPoolFees: () => Promise<{
-    ratioMultiplier: string;
-    addLiquidityFee: string;
-    removeLiquidityFee: string;
-  } | null>;
-  positions: Position[];
-  expiredPositions: ExpiredOption[];
-  donePositions: Transaction[];
-  perpPositions: FuturePos[];
-  refreshPositions: () => Promise<void>;
-  refreshPerpPositions: () => Promise<void>;
-  positionsLoading: boolean;
-  poolData: PoolData | null;
-  poolDataLoading: boolean;
-  poolDataError: string | null;
-  getPoolUtilization: (asset: "SOL" | "USDC") => PoolUtilization | null;
-  volumeData: VolumeData | null;
-  getVolumeData: () => VolumeData | null;
-  refreshVolumeData: () => Promise<void>;
+  // getPoolFees: () => Promise<{
+  //   ratioMultiplier: string;
+  //   addLiquidityFee: string;
+  //   removeLiquidityFee: string;
+  // } | null>;
+  // positions: Position[];
+  // expiredPositions: ExpiredOption[];
+  // donePositions: Transaction[];
+  // perpPositions: FuturePos[];
+  // refreshPositions: () => Promise<void>;
+  // refreshPerpPositions: () => Promise<void>;
+  // positionsLoading: boolean;
+  // poolData: PoolData | null;
+  // poolDataLoading: boolean;
+  // poolDataError: string | null;
+  // getPoolUtilization: (asset: "SOL" | "USDC") => PoolUtilization | null;
+  // volumeData: VolumeData | null;
+  // getVolumeData: () => VolumeData | null;
+  // refreshVolumeData: () => Promise<void>;
 }
 
 export const ContractContext = createContext<ContractContextType>({
   program: undefined,
   pub: undefined,
-  getCustodies: () => { },
-  getDetailInfos: () => { },
+  // getCustodies: () => { },
+  // getDetailInfos: () => { },
   onOpenLimitOption: async () => { },
   onCloseLimitOption: () => { },
   onOpenOption: async () => { },
@@ -155,21 +152,21 @@ export const ContractContext = createContext<ContractContextType>({
   onUpdateTpSl: async () => false,
   onRemoveTpSl: async () => false,
   getOptionDetailAccount: () => { },
-  getPoolFees: async () => null,
-  positions: [],
-  expiredPositions: [],
-  donePositions: [],
-  perpPositions: [],
-  refreshPositions: async () => { },
-  refreshPerpPositions: async () => { },
-  positionsLoading: false,
-  poolData: null,
-  poolDataLoading: false,
-  poolDataError: null,
-  getPoolUtilization: () => null,
-  volumeData: null,
-  getVolumeData: () => null,
-  refreshVolumeData: async () => { },
+  // getPoolFees: async () => null,
+  // positions: [],
+  // expiredPositions: [],
+  // donePositions: [],
+  // perpPositions: [],
+  // refreshPositions: async () => { },
+  // refreshPerpPositions: async () => { },
+  // positionsLoading: false,
+  // poolData: null,
+  // poolDataLoading: false,
+  // poolDataError: null,
+  // getPoolUtilization: () => null,
+  // volumeData: null,
+  // getVolumeData: () => null,
+  // refreshVolumeData: async () => { },
 });
 
 export const clusterUrl = "https://api.devnet.solana.com";
@@ -185,28 +182,23 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const [pub, setPubKey] = useState<PublicKey>();
 
   // Use the separated hooks
-  const {
-    positions,
-    expiredPositions,
-    donePositions,
-    perpPositions,
-    positionsLoading,
-    setPositions,
-    setExpiredPositions,
-    setDonePositions,
-    setPerpPositions,
-    setPositionsLoading,
-    refreshPositions,
-    refreshPerpPositions,
-  } = usePositionManagement(program, publicKey, priceData);
+  // const {
+  //   positions,
+  //   expiredPositions,
+  //   donePositions,
+  //   perpPositions,
+  //   positionsLoading,
+  //   refreshPositions,
+  //   refreshPerpPositions,
+  // } = usePositionManagement(program, publicKey, priceData);
 
-  const { poolData, getPoolUtilization, refreshPoolData, isLoading: poolDataLoading, error: poolDataError } = usePoolData(program, publicKey);
+  // const { poolData, getPoolUtilization, refreshPoolData, isLoading: poolDataLoading, error: poolDataError } = usePoolData(program, publicKey);
 
-  const {
-    volumeData,
-    getVolumeData,
-    refreshVolumeData
-  } = useVolumeCalculation(positions, perpPositions, donePositions, priceData?.price || 150, getPoolUtilization);
+  // const {
+  //   volumeData,
+  //   getVolumeData,
+  //   refreshVolumeData
+  // } = useVolumeCalculation(positions, perpPositions, donePositions, priceData?.price || 150, getPoolUtilization);
 
   // ===============================
   // UTILITY FUNCTIONS
@@ -222,9 +214,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [connected, publicKey, program, wallet]);
 
-  const getCustodies = useCallback(async (program: Program<OptionContract>) => {
-    return refreshPoolData(program);
-  }, [refreshPoolData]);
+  // const getCustodies = useCallback(async (program: Program<OptionContract>) => {
+  //   return refreshPoolData(program);
+  // }, [refreshPoolData]);
 
   const getPoolFees = useCallback(async () => {
     try {
@@ -323,13 +315,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Option opened successfully:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.log("Error opening option:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   const onOpenLimitOption = useCallback(async (
     amount: number,
@@ -404,13 +395,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Limit option opened successfully:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.log("Error opening limit option:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   const onEditOption = useCallback(async (params: {
     optionIndex: number;
@@ -542,13 +532,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log(`Option edited successfully with ${selectedPaymentToken}:`, signature);
-      await refreshPositions();
       return true;
     } catch (error) {
       console.error("Error editing option:", error);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   const onCloseOption = useCallback(async (optionIndex: number, closeQuantity: number) => {
     try {
@@ -644,13 +633,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Option closed successfully, signature:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.log("Error closing option:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   const onCloseLimitOption = useCallback(async (optionIndex: number, closeQuantity: number) => {
     try {
@@ -746,13 +734,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Option closed successfully, signature:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.log("Error closing limit option:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   const onClaimOption = useCallback(async (optionIndex: number, solPrice: number) => {
     try {
@@ -781,13 +768,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Option claimed successfully:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.log("Error claiming option:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   const onExerciseOption = useCallback(async (optionIndex: number) => {
     try {
@@ -901,13 +887,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Option exercised successfully, signature:", signature);
-      await refreshPositions();
       return true;
     } catch (error) {
       console.error("Error exercising option:", error);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
 
   // ===============================
   // PERPETUAL TRADING FUNCTIONS
@@ -1014,13 +999,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Perp position opened successfully:", signature);
-      await refreshPositions();
       return true;
     } catch (e) {
       console.error("Error opening perp position:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   const onClosePerp = useCallback(async (
     closePercentage: number = 100,
@@ -1044,10 +1028,22 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const userSolAccount = getAssociatedTokenAddressSync(WSOL_MINT, wallet.publicKey);
       const userUsdcAccount = getAssociatedTokenAddressSync(USDC_MINT, wallet.publicKey);
 
+      const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('tp_sl_orderbook'),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, 'le', 8),
+          Buffer.from("SOL/USDC"),
+          new BN(0).toArrayLike(Buffer, 'le', 1),
+        ],
+        program.programId
+      );
+
       console.log("Closing perp position with params:", {
         positionIndex,
         closePercentage,
         receiveAsset,
+        contractType: 0,
         poolName: "SOL/USDC"
       });
 
@@ -1059,12 +1055,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           receiveSol: receiveAsset === "SOL",
         })
         .accountsPartial({
-          signer: publicKey,
+          owner: publicKey,
           receivingAccount: receiveAsset === "SOL" ? userSolAccount : userUsdcAccount,
           transferAuthority: transferAuthority,
           contract: contract,
           pool: pool,
           position: position,
+          tpSlOrderbook: tpSlOrderbook,
           solCustody: solCustody,
           usdcCustody: usdcCustody,
           solCustodyTokenAccount: solCustodyTokenAccount,
@@ -1097,13 +1094,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       console.log(`Perp position ${closePercentage === 100 ? 'fully' : 'partially'} closed successfully:`, signature);
       console.log(`Settlement received as: ${receiveAsset}`);
-      await refreshPerpPositions();
       return true;
     } catch (e) {
       console.error("Error closing perp position:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   const onCancelLimitPerp = useCallback(async (
     closePercentage: number = 100,
@@ -1180,13 +1176,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       console.log(`Limit perp position ${closePercentage === 100 ? 'fully' : 'partially'} cancelled successfully:`, signature);
       console.log(`Settlement received as: ${receiveAsset}`);
-      await refreshPerpPositions();
       return true;
     } catch (e) {
       console.error("Error cancelling limit perp position:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   const onAddCollateral = useCallback(async (
     positionIndex: number,
@@ -1253,13 +1248,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("Collateral added successfully:", signature);
-      await refreshPerpPositions();
       return true;
     } catch (e) {
       console.error("Error adding collateral:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   const onRemoveCollateral = useCallback(async (
     positionIndex: number,
@@ -1329,13 +1323,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       console.log("Collateral removed successfully:", signature);
       console.log(`Received as: ${receiveSol ? "SOL" : "USDC"}`);
-      await refreshPerpPositions();
       return true;
     } catch (e) {
       console.error("Error removing collateral:", e);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction]);
 
   // ===============================
   // TP/SL MANAGEMENT FUNCTIONS (FIXED!)
@@ -1416,6 +1409,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         instructions.push(initInstruction);
       }
 
+      const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
+      const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
+
       for (const tp of takeProfits) {
         console.log("Adding TP order:", tp);
 
@@ -1438,6 +1434,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             pool: pool,
             position: position,
             optionDetail: null,
+            solCustody,
+            usdcCustody
           })
           .instruction();
 
@@ -1466,6 +1464,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             pool: pool,
             position: position,
             optionDetail: null,
+            solCustody,
+            usdcCustody
           })
           .instruction();
 
@@ -1492,14 +1492,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("TP/SL orders set successfully:", signature);
-      await refreshPerpPositions();
       return true;
 
     } catch (error) {
       console.error("Error setting TP/SL:", error);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
 
   const onUpdateTpSl = useCallback(async (
     positionIndex: number,
@@ -1532,6 +1531,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const position = PDAs.getPosition(publicKey, positionIndex, pool, program.programId);
 
+      const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
+      const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
+
+
       const instructions = [];
 
       if (updates.updateTPs) {
@@ -1557,6 +1560,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               pool: pool,
               position: position,
               optionDetail: null,
+              solCustody,
+              usdcCustody
             })
             .instruction();
 
@@ -1587,6 +1592,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
               pool: pool,
               position: position,
               optionDetail: null,
+              solCustody,
+              usdcCustody
             })
             .instruction();
 
@@ -1619,14 +1626,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("TP/SL orders updated successfully:", signature);
-      await refreshPerpPositions();
       return true;
 
     } catch (error) {
       console.error("Error updating TP/SL:", error);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
 
   const onRemoveTpSl = useCallback(async (
     positionIndex: number,
@@ -1738,14 +1744,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       });
 
       console.log("TP/SL orders removed successfully:", signature);
-      await refreshPerpPositions();
       return true;
 
     } catch (error) {
       console.error("Error removing TP/SL:", error);
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, refreshPerpPositions]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
 
   // ===============================
   // LIQUIDITY FUNCTIONS
@@ -1910,8 +1915,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         program,
         pub,
-        getCustodies,
-        getDetailInfos: refreshPositions,
+        // getCustodies,
+        // getDetailInfos: refreshPositions,
         onOpenLimitOption,
         onCloseLimitOption,
         onOpenOption,
@@ -1930,21 +1935,21 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onUpdateTpSl,
         onRemoveTpSl,
         getOptionDetailAccount,
-        getPoolFees,
-        positions,
-        expiredPositions,
-        donePositions,
-        perpPositions,
-        refreshPositions,
-        refreshPerpPositions,
-        positionsLoading,
-        poolData,
-        poolDataLoading,
-        poolDataError,
-        getPoolUtilization,
-        volumeData,
-        getVolumeData,
-        refreshVolumeData
+        // getPoolFees,
+        // positions,
+        // expiredPositions,
+        // donePositions,
+        // perpPositions,
+        // refreshPositions,
+        // refreshPerpPositions,
+        // positionsLoading,
+        // poolData,
+        // poolDataLoading,
+        // poolDataError,
+        // getPoolUtilization,
+        // volumeData,
+        // getVolumeData,
+        // refreshVolumeData
       }}
     >
       {children}

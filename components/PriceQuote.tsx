@@ -5,7 +5,6 @@ import Image from "next/image";
 import type { PythPriceState } from "@/hooks/usePythPrice";
 import { CallIconDark, GrayDot, GreenDot, OrangeDot, PurpleDot, PutIconDark } from "@/public/svgs/icons";
 import { tokenList, USDC } from "@/lib/data/tokenlist";
-import { useOptionsPricing } from "@/hooks/useOptionsPricing";
 import { black_scholes } from "@/utils/optionsPricing";
 import { differenceInSeconds, differenceInYears } from "date-fns";
 import { formatPrice } from "@/utils/formatter";

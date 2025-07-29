@@ -41,7 +41,7 @@ export default function SellCard() {
   const [selectedOption, setSelectedOption] = useState<Position | null>(null);
   const [closeQuantity, setCloseQuantity] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { positions, onCloseOption, onCloseLimitOption } = useContext(ContractContext);
+  const { onCloseOption, onCloseLimitOption } = useContext(ContractContext);
 
   // Reset close quantity when option changes
   useEffect(() => {
@@ -273,7 +273,7 @@ export default function SellCard() {
         <h2 className="text-xl font-semibold">Your Options</h2>
       </div>
 
-      {positions.length > 0 ? (
+      {/* {positions.length > 0 ? (
         <ScrollArea className="h-[395px] w-full">
           <div className="space-y-2">
             {positions.map((option) => (
@@ -312,7 +312,7 @@ export default function SellCard() {
         <div className="text-center py-8 text-secondary-foreground">
           No options found. Start trading to see your options here.
         </div>
-      )}
+      )} */}
     </div>
   );
 }

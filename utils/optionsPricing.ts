@@ -274,7 +274,7 @@ export class BorrowRateCurve {
 }
 
 // Utility functions that match your Rust OptionDetail implementation
-export class OptionDetailUtils {
+export class TradingUtils {
   /**
    * Calculate utilization percentage: (tokenLocked / tokenOwned) * 100
    */
@@ -295,7 +295,7 @@ export class OptionDetailUtils {
       : BorrowRateCurve.fromLegacyParameters(80, 1, 5, 25);  // USDC: 1% base, 5% optimal at 80%, 25% max
 
     // Calculate utilization
-    const utilizationPct = OptionDetailUtils.calculateUtilization(tokenLocked, tokenOwned);
+    const utilizationPct = TradingUtils.calculateUtilization(tokenLocked, tokenOwned);
     const utilizationBps = Math.min(utilizationPct * 100, 10000);
     const utilizationFraction = Fraction.fromBps(utilizationBps);
 
@@ -311,14 +311,14 @@ export class OptionDetailUtils {
    * Get SOL borrow rate
    */
   static getSolBorrowRate(solLocked: number, solOwned: number): number {
-    return OptionDetailUtils.calculateBorrowRate(solLocked, solOwned, true);
+    return TradingUtils.calculateBorrowRate(solLocked, solOwned, true);
   }
 
   /**
    * Get USDC borrow rate
    */
   static getUsdcBorrowRate(usdcLocked: number, usdcOwned: number): number {
-    return OptionDetailUtils.calculateBorrowRate(usdcLocked, usdcOwned, false);
+    return TradingUtils.calculateBorrowRate(usdcLocked, usdcOwned, false);
   }
 
   /**
@@ -334,7 +334,7 @@ export class OptionDetailUtils {
     isSol: boolean       // Asset type
   ): number {
     // Calculate dynamic risk-free rate from borrow curve
-    const r = OptionDetailUtils.calculateBorrowRate(tokenLocked, tokenOwned, isSol) / 100;
+    const r = TradingUtils.calculateBorrowRate(tokenLocked, tokenOwned, isSol) / 100;
     const sigma = 0.5; // Keep volatility simple for now
 
     const d1 = (Math.log(s / k) + (r + 0.5 * sigma * sigma) * t) / (sigma * Math.sqrt(t));

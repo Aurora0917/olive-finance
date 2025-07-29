@@ -5,7 +5,7 @@ import EarnNav from "./EarnNav"
 import { Card, CardContent, CardHeader } from "./ui/card"
 import { Progress } from "./ui/progress"
 import { Sheet, SheetTrigger } from "./ui/sheet"
-import EarnSidebar from "./EarnSidebar"
+// import EarnSidebar from "./EarnSidebar"
 import EarnCardlogo from "./EarnCardLogo"
 import { generateStrategies, Strategy, getStrategy } from "@/lib/data/strategies"
 import EarnPaginate from "./EarnPaginate"
@@ -26,13 +26,13 @@ export default function EarnCards() {
     const { poolMetrics } = useDataContext();
     
     // Convert to contract provider format for compatibility
-    const poolData = poolMetrics.length > 0 ? poolMetrics[0] : null;
+    const poolData = poolMetrics;
     const { priceData, loading: priceLoading } = usePythPrice('Crypto.SOL/USD');
 
     useEffect(() => {
         if (poolData) {
             // Backend API provides totalValueLocked directly
-            const total = poolData.totalValueLocked;
+            const total = poolData.aumUsd;
             // setAllStrategies(generateStrategies(19))
             setAllStrategies([getStrategy(total)]);
         }
@@ -124,7 +124,7 @@ export default function EarnCards() {
                                 </Card>
                             </div>
                         </SheetTrigger>
-                        <EarnSidebar name={strategy.name} symbol={strategy.symbol} logo={strategy.asset.logo} apy={strategy.stats.apy} apr={strategy.stats.apr} />
+                        {/* <EarnSidebar name={strategy.name} symbol={strategy.symbol} logo={strategy.asset.logo} apy={strategy.stats.apy} apr={strategy.stats.apr} /> */}
                     </Sheet>
                 ))}
             </div>

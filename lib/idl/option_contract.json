@@ -2612,9 +2612,12 @@
       ],
       "accounts": [
         {
-          "name": "signer",
+          "name": "owner",
           "writable": true,
-          "signer": true
+          "signer": true,
+          "relations": [
+            "receiving_account"
+          ]
         },
         {
           "name": "receiving_account",
@@ -2711,8 +2714,7 @@
               },
               {
                 "kind": "account",
-                "path": "position.owner",
-                "account": "Position"
+                "path": "owner"
               },
               {
                 "kind": "arg",
@@ -2880,6 +2882,10 @@
         {
           "name": "usdc_mint",
           "writable": true
+        },
+        {
+          "name": "tp_sl_orderbook",
+          "optional": true
         },
         {
           "name": "token_program",
@@ -3519,6 +3525,350 @@
           "type": {
             "defined": {
               "name": "ExecuteLimitOrderParams"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "execute_tp_sl_order",
+      "discriminator": [
+        10,
+        7,
+        106,
+        225,
+        184,
+        113,
+        28,
+        18
+      ],
+      "accounts": [
+        {
+          "name": "executor",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "receiving_account",
+          "writable": true
+        },
+        {
+          "name": "transfer_authority",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  114,
+                  97,
+                  110,
+                  115,
+                  102,
+                  101,
+                  114,
+                  95,
+                  97,
+                  117,
+                  116,
+                  104,
+                  111,
+                  114,
+                  105,
+                  116,
+                  121
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
+          "name": "pool",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  111,
+                  108
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              }
+            ]
+          }
+        },
+        {
+          "name": "position",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  111,
+                  115,
+                  105,
+                  116,
+                  105,
+                  111,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "position.owner",
+                "account": "Position"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              }
+            ]
+          }
+        },
+        {
+          "name": "tp_sl_orderbook",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  116,
+                  112,
+                  95,
+                  115,
+                  108,
+                  95,
+                  111,
+                  114,
+                  100,
+                  101,
+                  114,
+                  98,
+                  111,
+                  111,
+                  107
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "tp_sl_orderbook.owner",
+                "account": "TpSlOrderbook"
+              },
+              {
+                "kind": "arg",
+                "path": "params.position_index"
+              },
+              {
+                "kind": "arg",
+                "path": "params.pool_name"
+              },
+              {
+                "kind": "arg",
+                "path": "params.contract_type"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_mint"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "sol_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "usdc_custody_token_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  117,
+                  115,
+                  116,
+                  111,
+                  100,
+                  121,
+                  95,
+                  116,
+                  111,
+                  107,
+                  101,
+                  110,
+                  95,
+                  97,
+                  99,
+                  99,
+                  111,
+                  117,
+                  110,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "pool"
+              },
+              {
+                "kind": "account",
+                "path": "usdc_custody.mint",
+                "account": "Custody"
+              }
+            ]
+          }
+        },
+        {
+          "name": "sol_oracle_account"
+        },
+        {
+          "name": "usdc_oracle_account"
+        },
+        {
+          "name": "sol_mint",
+          "writable": true
+        },
+        {
+          "name": "usdc_mint",
+          "writable": true
+        },
+        {
+          "name": "token_program",
+          "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
+        }
+      ],
+      "args": [
+        {
+          "name": "params",
+          "type": {
+            "defined": {
+              "name": "ExecuteTpSlOrderParams"
             }
           }
         }
@@ -4308,6 +4658,10 @@
           "writable": true
         },
         {
+          "name": "tp_sl_orderbook",
+          "optional": true
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -4386,7 +4740,28 @@
           }
         },
         {
+          "name": "contract",
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  111,
+                  110,
+                  116,
+                  114,
+                  97,
+                  99,
+                  116
+                ]
+              }
+            ]
+          }
+        },
+        {
           "name": "pool",
+          "writable": true,
           "pda": {
             "seeds": [
               {
@@ -4411,6 +4786,14 @@
         },
         {
           "name": "option_detail",
+          "optional": true
+        },
+        {
+          "name": "sol_custody",
+          "optional": true
+        },
+        {
+          "name": "usdc_custody",
           "optional": true
         }
       ],
@@ -7191,6 +7574,19 @@
       ]
     },
     {
+      "name": "PositionAccountClosed",
+      "discriminator": [
+        129,
+        147,
+        67,
+        108,
+        211,
+        239,
+        188,
+        156
+      ]
+    },
+    {
       "name": "PositionLiquidated",
       "discriminator": [
         40,
@@ -7266,6 +7662,19 @@
         218,
         210,
         51
+      ]
+    },
+    {
+      "name": "TpSlOrderbookClosed",
+      "discriminator": [
+        60,
+        166,
+        35,
+        152,
+        200,
+        250,
+        63,
+        58
       ]
     },
     {
@@ -7417,6 +7826,21 @@
       "code": 6026,
       "name": "OrderbookFull",
       "msg": "Orderbook is full"
+    },
+    {
+      "code": 6027,
+      "name": "OrderbookNotEmpty",
+      "msg": "Orderbook must be empty before closing"
+    },
+    {
+      "code": 6028,
+      "name": "PositionNotEmpty",
+      "msg": "Position must be empty before closing account"
+    },
+    {
+      "code": 6029,
+      "name": "PositionNotClosed",
+      "msg": "Position must be closed before closing account"
     }
   ],
   "types": [
@@ -7693,6 +8117,10 @@
           {
             "name": "pool_name",
             "type": "string"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
           },
           {
             "name": "close_percentage",
@@ -8013,6 +8441,34 @@
           {
             "name": "execution_price",
             "type": "f64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "ExecuteTpSlOrderParams",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool_name",
+            "type": "string"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "trigger_order_type",
+            "type": "u8"
+          },
+          {
+            "name": "order_index",
+            "type": "u8"
           }
         ]
       }
@@ -8505,6 +8961,10 @@
           {
             "name": "pool_name",
             "type": "string"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
           },
           {
             "name": "liquidator_reward_account",
@@ -9964,6 +10424,34 @@
       }
     },
     {
+      "name": "PositionAccountClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_key",
+            "type": "pubkey"
+          },
+          {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "pool",
+            "type": "pubkey"
+          },
+          {
+            "name": "rent_refunded",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
       "name": "PositionLiquidated",
       "type": {
         "kind": "struct",
@@ -10429,12 +10917,60 @@
         "kind": "struct",
         "fields": [
           {
+            "name": "position_index",
+            "type": "u64"
+          },
+          {
+            "name": "position_key",
+            "type": "pubkey"
+          },
+          {
             "name": "owner",
             "type": "pubkey"
           },
           {
-            "name": "position",
+            "name": "pool",
             "type": "pubkey"
+          },
+          {
+            "name": "custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "collateral_custody",
+            "type": "pubkey"
+          },
+          {
+            "name": "order_type",
+            "type": "u8"
+          },
+          {
+            "name": "side",
+            "type": "u8"
+          },
+          {
+            "name": "is_liquidated",
+            "type": "bool"
+          },
+          {
+            "name": "entry_price",
+            "type": "u64"
+          },
+          {
+            "name": "size_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_usd",
+            "type": "u64"
+          },
+          {
+            "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "locked_amount",
+            "type": "u64"
           },
           {
             "name": "contract_type",
@@ -10445,8 +10981,12 @@
             "type": "u8"
           },
           {
-            "name": "index",
+            "name": "order_index",
             "type": "u8"
+          },
+          {
+            "name": "order_price",
+            "type": "u64"
           },
           {
             "name": "executed_price",
@@ -10461,8 +11001,56 @@
             "type": "bool"
           },
           {
+            "name": "trade_fees",
+            "type": "u64"
+          },
+          {
+            "name": "trade_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "borrow_fees_paid",
+            "type": "u64"
+          },
+          {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "realized_pnl",
+            "type": "i64"
+          },
+          {
+            "name": "settlement_tokens",
+            "type": "u64"
+          },
+          {
+            "name": "open_time",
+            "type": "i64"
+          },
+          {
+            "name": "update_time",
+            "type": "i64"
+          },
+          {
             "name": "executed_at",
             "type": "i64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
+            "name": "liquidation_price",
+            "type": "u64"
+          },
+          {
+            "name": "cumulative_interest_snapshot",
+            "type": "u128"
+          },
+          {
+            "name": "is_full_close",
+            "type": "bool"
           }
         ]
       }
@@ -10619,6 +11207,30 @@
           {
             "name": "bump",
             "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "TpSlOrderbookClosed",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "owner",
+            "type": "pubkey"
+          },
+          {
+            "name": "position",
+            "type": "pubkey"
+          },
+          {
+            "name": "contract_type",
+            "type": "u8"
+          },
+          {
+            "name": "rent_refunded",
+            "type": "u64"
           }
         ]
       }

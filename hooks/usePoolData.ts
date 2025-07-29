@@ -3,7 +3,7 @@ import { PublicKey } from "@solana/web3.js";
 import { Program } from "@coral-xyz/anchor";
 import { OptionContract } from "@/lib/idl/option_contract";
 import { PDAs } from "@/utils/pdas";
-import { OptionDetailUtils } from "@/utils/optionsPricing";
+import { TradingUtils } from "@/utils/optionsPricing";
 import {
   USDC_DECIMALS,
   USDC_MINT,
@@ -50,7 +50,7 @@ export const usePoolData = (
     const utilizationPercent = tokenOwned > 0 ? (tokenLocked / tokenOwned) * 100 : 0;
 
     // Calculate borrow rate using the existing utility
-    const borrowRate = OptionDetailUtils.calculateBorrowRate(
+    const borrowRate = TradingUtils.calculateBorrowRate(
       tokenLocked,
       tokenOwned,
       isSol

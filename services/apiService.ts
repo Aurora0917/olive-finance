@@ -60,13 +60,15 @@ export interface Transaction {
   signature: string;
   user: string;
   transactionType: string;
-  
+
   poolName: string;
 
   collateral?: number;
   addedCollateral?: number;
   removedCollateral?: number;
   nativeCollateral?: number;
+  triggeredType?: string;
+  settledPrice?: number;
   positionSize?: number;
   price: number;
   fees?: number;
@@ -77,16 +79,16 @@ export interface Transaction {
   pnl?: number;
   lpTokens?: number;
   profit?: number;
-  
+
   positionId: string;
-  
+
   blockHeight: number;
   timestamp: Date;
   status: string;
-  
+
   priorityFee?: number;
   slippageTolerance?: number;
-  
+
   createdAt: Date;
   updatedAt: Date;
 }
@@ -105,14 +107,48 @@ export interface UserStats {
 }
 
 export interface PoolMetrics {
-  poolName: string;
-  totalValueLocked: number;
-  volume24h: number;
-  trades24h: number;
-  activePositions: number;
-  utilizationRate: number;
-  fundingRate: number;
-  interestRate: number;
+  address: string;
+  name: string;
+  aumUsd: number;
+  utilizationRatio: number;
+  borrowRate: number;
+  lendingRate: number;
+
+  // SOL custody data
+  solCustody: {
+    address: string;
+    tokenLocked: number;
+    tokenOwned: number;
+    utilization: number;
+    borrowRate: number;
+    availableLiquidity: number;
+    totalBorrowed: number;
+  };
+
+  // USDC custody data
+  usdcCustody: {
+    address: string;
+    tokenLocked: number;
+    tokenOwned: number;
+    utilization: number;
+    borrowRate: number;
+    availableLiquidity: number;
+    totalBorrowed: number;
+  };
+
+  // Pool metrics - integrate with VolumeMetrics
+  metrics: {
+    totalVolume24h: number;
+    totalFees24h: number;
+    activeLongPositions: number;
+    activeShortPositions: number;
+    totalOpenInterest: number;
+    trades24h: number;
+    averageTradeSize: number;
+  };
+
+  lastUpdated: Date;
+  blockHeight: number;
 }
 
 export interface PriceData {
@@ -211,8 +247,8 @@ class ApiService {
   }
 
   async updateTpSlOrder(
-    userPublicKey: string, 
-    positionId: string, 
+    userPublicKey: string,
+    positionId: string,
     updates: {
       takeProfitPrice?: number;
       stopLossPrice?: number;
@@ -240,7 +276,7 @@ class ApiService {
   // ===== TRANSACTION HISTORY =====
 
   async getUserTransactions(
-    userPublicKey: string, 
+    userPublicKey: string,
     options?: {
       limit?: number;
       offset?: number;
@@ -296,19 +332,90 @@ class ApiService {
 
   // ===== MARKET DATA =====
 
-  async getPoolMetrics(poolName?: string): Promise<PoolMetrics[]> {
+  async getPoolMetrics(poolName?: string): Promise<PoolMetrics> {
     try {
-      const url = poolName ? `/pools/${poolName}` : '/pools';
+      const url = poolName ? `/pools/${encodeURIComponent(poolName)}` : '/pools';
       const response = await this.api.get(url);
-      return response.data.data || [];
+      return response.data.data || {
+        address: '',
+        name: '',
+        aumUsd: 0,
+        utilizationRatio: 0,
+        borrowRate: 0,
+        lendingRate: 0,
+        solCustody: {
+          address: '',
+          tokenLocked: 0,
+          tokenOwned: 0,
+          utilization: 0,
+          borrowRate: 0,
+          availableLiquidity: 0,
+          totalBorrowed: 0,
+        },
+        usdcCustody: {
+          address: '',
+          tokenLocked: 0,
+          tokenOwned: 0,
+          utilization: 0,
+          borrowRate: 0,
+          availableLiquidity: 0,
+          totalBorrowed: 0,
+        },
+        metrics: {
+          totalVolume24h: 0,
+          totalFees24h: 0,
+          activePositions: 0,
+          totalOpenInterest: 0,
+          trades24h: 0,
+          averageTradeSize: 0,
+        },
+        lastUpdated: new Date(0),
+        blockHeight: 0,
+      };
     } catch (error) {
       console.error('Failed to fetch pool metrics:', error);
-      return [];
+      return {
+        address: '',
+        name: '',
+        aumUsd: 0,
+        utilizationRatio: 0,
+        borrowRate: 0,
+        lendingRate: 0,
+        solCustody: {
+          address: '',
+          tokenLocked: 0,
+          tokenOwned: 0,
+          utilization: 0,
+          borrowRate: 0,
+          availableLiquidity: 0,
+          totalBorrowed: 0,
+        },
+        usdcCustody: {
+          address: '',
+          tokenLocked: 0,
+          tokenOwned: 0,
+          utilization: 0,
+          borrowRate: 0,
+          availableLiquidity: 0,
+          totalBorrowed: 0,
+        },
+        metrics: {
+          totalVolume24h: 0,
+          totalFees24h: 0,
+          activeLongPositions: 0,
+          activeShortPositions: 0,
+          totalOpenInterest: 0,
+          trades24h: 0,
+          averageTradeSize: 0,
+        },
+        lastUpdated: new Date(0),
+        blockHeight: 0,
+      };
     }
   }
 
   async getPriceHistory(
-    symbol: string, 
+    symbol: string,
     timeframe: '1m' | '5m' | '15m' | '1h' | '4h' | '1d' = '1h',
     limit: number = 100
   ): Promise<any[]> {

@@ -3,7 +3,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import apiService, { Position, Option, Transaction, UserStats, PoolMetrics, PriceData } from '@/services/apiService';
-import { usePythPrice } from '@/hooks/usePythPrice';
 import { BackendTpSlOrder } from '@/types/trading';
 
 interface DataContextType {
@@ -13,28 +12,24 @@ interface DataContextType {
   transactions: Transaction[];
   userStats: UserStats | null;
   tpSlOrders: { orders: BackendTpSlOrder[] };
-  
+
   // Market Data
-  poolMetrics: PoolMetrics[];
+  poolMetrics: PoolMetrics;
   priceData: PriceData[];
   volumeMetrics: any;
-  
+
   // Loading States
   isLoadingPositions: boolean;
   isLoadingOptions: boolean;
   isLoadingTransactions: boolean;
   isLoadingUserStats: boolean;
   isLoadingMarketData: boolean;
-  
+
   // Actions
   refreshUserData: () => Promise<void>;
   refreshMarketData: () => Promise<void>;
   refreshAll: () => Promise<void>;
-  
-  // TP/SL Data (read-only - managed onchain)
-  // Note: TP/SL operations now trigger onchain transactions directly
-  // Backend automatically indexes these changes
-  
+
   // Data Subscriptions
   subscribeToRealTimeUpdates: () => void;
   unsubscribeFromRealTimeUpdates: () => void;
@@ -56,28 +51,64 @@ interface DataProviderProps {
 
 export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   const { publicKey, connected } = useWallet();
-  
+
   // State
   const [positions, setPositions] = useState<Position[]>([]);
   const [options, setOptions] = useState<Option[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
   const [tpSlOrders, setTpSlOrders] = useState<{ orders: BackendTpSlOrder[] }>({ orders: [] });
-  
-  const [poolMetrics, setPoolMetrics] = useState<PoolMetrics[]>([]);
+
+  const [poolMetrics, setPoolMetrics] = useState<PoolMetrics>({
+    address: '',
+    name: '',
+    aumUsd: 0,
+    utilizationRatio: 0,
+    borrowRate: 0,
+    lendingRate: 0,
+    solCustody: {
+      address: '',
+      tokenLocked: 0,
+      tokenOwned: 0,
+      utilization: 0,
+      borrowRate: 0,
+      availableLiquidity: 0,
+      totalBorrowed: 0,
+    },
+    usdcCustody: {
+      address: '',
+      tokenLocked: 0,
+      tokenOwned: 0,
+      utilization: 0,
+      borrowRate: 0,
+      availableLiquidity: 0,
+      totalBorrowed: 0,
+    },
+    metrics: {
+      totalVolume24h: 0,
+      totalFees24h: 0,
+      activeLongPositions: 0,
+      activeShortPositions: 0,
+      totalOpenInterest: 0,
+      trades24h: 0,
+      averageTradeSize: 0,
+    },
+    lastUpdated: new Date(0),
+    blockHeight: 0,
+  });
   const [priceData, setPriceData] = useState<PriceData[]>([]);
   const [volumeMetrics, setVolumeMetrics] = useState<any>({});
-  
+
   // Loading states
   const [isLoadingPositions, setIsLoadingPositions] = useState(false);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
   const [isLoadingTransactions, setIsLoadingTransactions] = useState(false);
   const [isLoadingUserStats, setIsLoadingUserStats] = useState(false);
   const [isLoadingMarketData, setIsLoadingMarketData] = useState(false);
-  
+
   // Real-time updates
   const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
-  
+
   // Refresh intervals
   const refreshIntervals = useRef<{
     userData?: NodeJS.Timeout;
@@ -86,7 +117,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   }>({});
 
   // ===== USER DATA MANAGEMENT =====
-  
+
   const refreshUserData = useCallback(async () => {
     if (!publicKey || !connected) {
       // Clear user data when wallet disconnected
@@ -99,13 +130,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     }
 
     const userKey = publicKey.toString();
-    
+
     // Set loading states
     setIsLoadingPositions(true);
     setIsLoadingOptions(true);
     setIsLoadingTransactions(true);
     setIsLoadingUserStats(true);
-    
+
     try {
       // Fetch all user data in parallel
       const [
@@ -152,10 +183,10 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   }, [publicKey, connected]);
 
   // ===== MARKET DATA MANAGEMENT =====
-  
+
   const refreshMarketData = useCallback(async () => {
     setIsLoadingMarketData(true);
-    
+
     try {
       // Fetch market data in parallel
       const [
@@ -163,10 +194,13 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
         priceDataResponse,
         volumeMetricsData
       ] = await Promise.allSettled([
-        apiService.getPoolMetrics(),
+        apiService.getPoolMetrics("SOL/USDC"),
         apiService.getCurrentPrices(),
         apiService.getVolumeMetrics('24h')
       ]);
+
+      console.log(volumeMetricsData);
+      console.log(poolMetricsData);
 
       if (poolMetricsData.status === 'fulfilled') {
         setPoolMetrics(poolMetricsData.value);
@@ -187,7 +221,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   }, []);
 
   // ===== REFRESH ALL DATA =====
-  
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       refreshUserData(),
@@ -201,7 +235,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   // Data provider only fetches indexed TP/SL data from backend
 
   // ===== REAL-TIME UPDATES =====
-  
+
   const subscribeToRealTimeUpdates = useCallback(() => {
     if (!publicKey || wsConnection) return;
 
@@ -211,7 +245,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
 
       ws.onopen = () => {
         console.log('Connected to real-time updates');
-        
+
         // Subscribe to user-specific updates
         ws.send(JSON.stringify({
           type: 'subscribe',
@@ -223,7 +257,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          
+
           switch (data.type) {
             case 'priceUpdate':
               setPriceData(prev => {
@@ -237,7 +271,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 return newData;
               });
               break;
-              
+
             case 'positionUpdate':
               if (data.user === publicKey.toString()) {
                 setPositions(prev => {
@@ -250,14 +284,14 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
                 });
               }
               break;
-              
+
             case 'tpslUpdate':
               if (data.user === publicKey.toString()) {
                 // Refresh TP/SL orders when updated
                 apiService.getTpSlOrders(publicKey.toString()).then(setTpSlOrders);
               }
               break;
-              
+
             default:
               console.log('Unknown WebSocket message:', data);
           }
@@ -269,7 +303,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
       ws.onclose = () => {
         console.log('Disconnected from real-time updates');
         setWsConnection(null);
-        
+
         // Attempt to reconnect after 5 seconds
         setTimeout(() => {
           if (publicKey && connected) {
@@ -296,7 +330,7 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
   }, [wsConnection]);
 
   // ===== EFFECTS =====
-  
+
   // Initial data load and wallet connection handling
   useEffect(() => {
     if (connected && publicKey) {
@@ -360,27 +394,27 @@ export const DataProvider: React.FC<DataProviderProps> = ({ children }) => {
     transactions,
     userStats,
     tpSlOrders,
-    
+
     // Market Data
     poolMetrics,
     priceData,
     volumeMetrics,
-    
+
     // Loading States
     isLoadingPositions,
     isLoadingOptions,
     isLoadingTransactions,
     isLoadingUserStats,
     isLoadingMarketData,
-    
+
     // Actions
     refreshUserData,
     refreshMarketData,
     refreshAll,
-    
+
     // TP/SL Data (read-only)
     // Operations handled onchain via contract provider
-    
+
     // Real-time Updates
     subscribeToRealTimeUpdates,
     unsubscribeFromRealTimeUpdates

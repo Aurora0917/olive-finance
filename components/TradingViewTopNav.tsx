@@ -19,6 +19,7 @@ import { Progress } from "./ui/progress";
 import CircularProgressBar from "./ui/circular-progress-bar";
 import { RatioBar } from "./RatioBar";
 import { USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const";
+import { PoolMetrics } from "@/services/apiService";
 
 
 type CryptoData = {
@@ -51,7 +52,7 @@ interface TradingViewTopNavProps {
     marketChanges: MarketChanges;
     onTokenSelect: (token: CryptoData) => void;
     priceData: any;
-    poolData: any;
+    poolData: PoolMetrics;
     volumeData: any;
     marketData: any;
     priceLoading: boolean;
@@ -300,35 +301,35 @@ export default function TradingViewTopNav({
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">24h trades</span>
-                    <span className="text-foreground text-xs font-medium">{type === 'options' ? volumeData?.optionsCount24h : volumeData?.perpsCount24h}</span>
+                    <span className="text-foreground text-xs font-medium">{type === 'options' ? poolData?.metrics.trades24h : poolData?.metrics.trades24h}</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Open interest(L)</span>
-                    <span className="text-foreground text-xs font-medium">{(poolData?.sol.tokenLocked | 0).toFixed(2)} / {(poolData?.sol.tokenOwned | 0).toFixed(2)} SOL</span>
+                    <span className="text-foreground text-xs font-medium">{(poolData?.solCustody.tokenLocked | 0).toFixed(2)} / {(poolData?.solCustody.tokenOwned | 0).toFixed(2)} SOL</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Open interest(S)</span>
-                    <span className="text-foreground text-xs font-medium">{(poolData?.usdc.tokenLocked | 0).toFixed(2)} / {(poolData?.usdc.tokenOwned | 0).toFixed(2)} USDC</span>
+                    <span className="text-foreground text-xs font-medium">{(poolData?.usdcCustody.tokenLocked | 0).toFixed(2)} / {(poolData?.usdcCustody.tokenOwned | 0).toFixed(2)} USDC</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Borrowing(L)</span>
-                    <span className="text-red-500 text-xs font-medium">{(poolData?.sol.borrowRate ? poolData?.sol.borrowRate * activePeriod : 0).toFixed(6)} %</span>
+                    <span className="text-red-500 text-xs font-medium">{(poolData?.solCustody.borrowRate ? poolData?.solCustody.borrowRate / 24.0 / 365.0 * 100 * activePeriod : 0).toFixed(6)} %</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>Borrowing(S)</span>
-                    <span className="text-red-500 text-xs font-medium">{(poolData?.usdc.borrowRate ? poolData?.usdc.borrowRate * activePeriod : 0).toFixed(6)} %</span>
+                    <span className="text-red-500 text-xs font-medium">{(poolData?.usdcCustody.borrowRate ? poolData?.usdcCustody.borrowRate / 24.0 / 365.0 * 100 * activePeriod : 0).toFixed(6)} %</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />
@@ -348,8 +349,8 @@ export default function TradingViewTopNav({
                         <span className="text-red-500 text-xs font-medium">{volumeData?.callCount + volumeData?.putCount === 0 ? '0.00' : (volumeData?.putCount * 100.0 / (volumeData?.callCount + volumeData?.putCount)).toFixed(2)}%</span>
                     </div> :
                         <div className="flex flex-row">
-                            <span className="text-green-500 text-xs font-medium">{volumeData?.longCount + volumeData?.shortCount === 0 ? '0.00' : (volumeData?.longCount * 100.0 / (volumeData?.longCount + volumeData?.shortCount)).toFixed(2)}% / </span>
-                            <span className="text-red-500 text-xs font-medium">{volumeData?.longCount + volumeData?.shortCount === 0 ? '0.00' : (volumeData?.shortCount * 100.0 / (volumeData?.longCount + volumeData?.shortCount)).toFixed(2)}%</span>
+                            <span className="text-green-500 text-xs font-medium">{poolData?.metrics.activeLongPositions + poolData?.metrics.activeShortPositions === 0 ? '0.00' : (poolData?.metrics.activeLongPositions * 100.0 / (poolData?.metrics.activeLongPositions + poolData?.metrics.activeShortPositions)).toFixed(2)}% / </span>
+                            <span className="text-red-500 text-xs font-medium">{poolData?.metrics.activeLongPositions + poolData?.metrics.activeShortPositions === 0 ? '0.00' : (poolData?.metrics.activeShortPositions * 100.0 / (poolData?.metrics.activeLongPositions + poolData?.metrics.activeShortPositions)).toFixed(2)}%</span>
                         </div>
                     }
                 </div>
@@ -358,7 +359,7 @@ export default function TradingViewTopNav({
                 </div>
                 <div className="flex flex-col">
                     <span className="text-secondary-foreground font-normal text-[10px] h-3">Maximum Leverage</span>
-                    <span className="text-foreground text-xs font-medium">100.00x</span>
+                    <span className="text-foreground text-xs font-medium">250.00x</span>
                 </div>
                 <div className="px-4 py-1">
                     <Separator orientation="vertical" />

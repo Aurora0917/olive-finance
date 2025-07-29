@@ -96,8 +96,6 @@ export default function FuturesOrderHistory({
         );
     }
 
-    console.log("🥹🥹🥹🥹", positionSummary);
-
     // Calculate PnL with or without fees
     const displayPnl = withFees
         ? positionSummary.pnl - positionSummary.totalFees
@@ -163,6 +161,8 @@ export default function FuturesOrderHistory({
 
     const getTransactionTypeLabel = (type: string): string => {
         switch (type) {
+            case 'limit_order':
+                return 'Limit Order';
             case 'open_position':
                 return 'Open Position';
             case 'close_position':
@@ -535,6 +535,8 @@ export default function FuturesOrderHistory({
                                                         <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>Percentage Closed: {transaction.percent}%</div>
                                                         <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                        <div>Triggered Type: <span className={`${transaction.triggeredType === 'tp' ? 'text-green-400' : transaction.triggeredType === 'sl' ? 'text-red-400' : ''}`}>{transaction.triggeredType}</span></div>
+                                                        {transaction.settledPrice && <div>Ordered Price: ${transaction.settledPrice?.toFixed(2)}</div>}
                                                         <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
                                                         <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
                                                     </>
@@ -560,7 +562,6 @@ export default function FuturesOrderHistory({
                                                         <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
                                                         <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
                                                         <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
                                                         <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
                                                         <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
                                                         <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>

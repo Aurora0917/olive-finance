@@ -21,7 +21,7 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import { ContractContext } from "@/contexts/contractProvider";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { EXIT_FEE, LIQUIDATION_MARGIN, USDC_DECIMALS, WSOL_DECIMALS } from "@/utils/const";
-import { OptionDetailUtils } from "@/utils/optionsPricing";
+import { TradingUtils } from "@/utils/optionsPricing";
 import { useDataContext } from "@/contexts/dataProvider";
 import { tokenList } from "@/lib/data/tokenlist";
 import { ScrollArea } from "./ui/scroll-area";
@@ -64,8 +64,8 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
   const [tokenPrices, setTokenPrices] = useState<{ [key: string]: number }>({});
 
   // Context hooks
-  const { onOpenPerp, poolData, onClosePerp, onCancelLimitPerp } = useContext(ContractContext);
-  const { positions: backendPositions, isLoadingPositions, refreshUserData } = useDataContext();
+  const { onOpenPerp, onClosePerp, onCancelLimitPerp } = useContext(ContractContext);
+  const { positions: backendPositions, isLoadingPositions, refreshUserData, poolMetrics } = useDataContext();
 
   // States for dynamic calculations (open interface)
   const [liquidationPrice, setLiquidationPrice] = useState<number | null>(null);
@@ -77,11 +77,16 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
   const leverageMarks = {
     1.1: '1.1x',
-    20: '20x',
-    40: '40x',
-    60: '60x',
-    80: '80x',
-    100: '100x'
+    25: '25x',
+    50: '50x',
+    75: '75x',
+    100: '100x',
+    125: '125x',
+    150: '150x',
+    175: '175x',
+    200: '200x',
+    225: '225x',
+    250: '250x',
   };
 
   const isPositive = marketData.change24h !== null && marketData.change24h > 0;
@@ -149,9 +154,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
     if (type === 'open') {
       const calculateValues = async () => {
         if (priceData.price) {
-          const solPoolsize = (poolData!.sol.tokenOwned - poolData!.sol.tokenLocked) / 10 ** WSOL_DECIMALS;
-          const usdcPoolsize = (poolData!.usdc.tokenOwned - poolData!.usdc.tokenLocked) / 10 ** USDC_DECIMALS;
-          const availableLiquidity = solPoolsize * priceData.price + usdcPoolsize;
+          const availableLiquidity = selectedTx === 'long' ? poolMetrics.solCustody.availableLiquidity * priceData.price : poolMetrics.usdcCustody.availableLiquidity;
           setAvailableLiquidity(availableLiquidity);
         }
         if (!amount || !leverage || !priceData.price) {
@@ -174,8 +177,8 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
             const exitFeeValue = (grossPositionSizeValue * EXIT_FEE) / (1 + EXIT_FEE * leverageNum);
             setExitFee(exitFeeValue);
-            const borrowRateValue = payCurrency === 'Crypto.SOL/USD' ? OptionDetailUtils.getSolBorrowRate(poolData!.sol.tokenLocked, poolData!.sol.tokenOwned) : OptionDetailUtils.getSolBorrowRate(poolData!.usdc.tokenLocked, poolData!.usdc.tokenOwned);
-            setBorrowRate(borrowRateValue / 24.0 / 365.0);
+            const borrowRateValue = payCurrency === 'Crypto.SOL/USD' ? poolMetrics.solCustody.borrowRate : poolMetrics.usdcCustody.borrowRate;
+            setBorrowRate(borrowRateValue / 24.0 / 365.0 * 100);
 
             setCollateralUSD(collateralUSDValue);
 
@@ -862,7 +865,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
 
                 if (isNaN(num)) return;
 
-                const clamped = Math.min(Math.max(num, 1.1), 100);
+                const clamped = Math.min(Math.max(num, 1.1), 250);
                 if (clamped !== parseFloat(leverage)) {
                   setLeverage(clamped.toString());
                 }
@@ -875,7 +878,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
             <div className="h-12 w-full px-4 pt-2 border rounded-sm">
               <Slider
                 min={1.1}
-                max={100}
+                max={250}
                 step={0.1}
                 value={parseFloat(tempLeverage)}
                 onChange={(value) => setTempLeverage((Array.isArray(value) ? value[0] : value).toString())}
@@ -1002,7 +1005,7 @@ export default function FutureCard({ type, orderType, onSymbolChange, onIdxChang
             <div className="flex justify-between text-sm text-secondary-foreground font-normal">
               <span>Borrow Fee Due</span>
               <span>
-                {borrowRate ? `$${borrowRate.toFixed(6)}` : '-'}
+                {borrowRate ? `${borrowRate.toFixed(6)} %/hr` : '-'} 
               </span>
             </div>
             <div className="flex justify-between text-sm text-secondary-foreground font-normal">

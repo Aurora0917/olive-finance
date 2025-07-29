@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import OptionCardContainer from "@/components/OptionCardContainer";
 import { addWeeks } from "date-fns";
-import { useOptionsPricing } from "@/hooks/useOptionsPricing";
+// import { useOptionsPricing } from "@/hooks/useOptionsPricing";
 import { setOptionParameters } from "@/lib/optionsDatafeed";
 import { ToastContainer } from "react-toastify";
 import { useGreeks } from "@/hooks/useGreeks";
@@ -49,14 +49,17 @@ export default function Homepage(){
     const s = priceData.price ?? 0;
     const k = parseFloat(strikePrice);
     
-    const premium = useOptionsPricing({
-        type: contractType,
-        currentPrice: s,
-        strikePrice: k,
-        expiryDate: expiry,
-        useEnhancedPricing: true,
-        assetType: contractType == 'Call' ? 'SOL' : 'USDC',
-    })
+    // const premium = useOptionsPricing({
+    //     type: contractType,
+    //     currentPrice: s,
+    //     strikePrice: k,
+    //     expiryDate: expiry,
+    //     useEnhancedPricing: true,
+    //     assetType: contractType == 'Call' ? 'SOL' : 'USDC',
+    // })
+    const premium = {
+      premium: ((k - s) * Math.pow(10,-7)),
+    };
 
     const greeks = useGreeks({
         type: contractType,

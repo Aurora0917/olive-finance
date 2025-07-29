@@ -3,13 +3,13 @@ import { Badge } from "./ui/badge";
 import { useState, useContext } from "react";
 import { Tabs, TabsList, TabsTrigger } from "./ui/tabs";
 import { Button } from './ui/button';
-import PositionOverview from './PositionOverview';
+// import PositionOverview from './PositionOverview';
 import PositionGreeks from './PositionGreeks';
 import { ArrowDown, ArrowUp, SendIcon } from '@/public/svgs/icons';
 import PositionDetails from './PositionDetails';
 import { Separator } from './ui/separator';
 import { motion, AnimatePresence } from "framer-motion";
-import { OptionDetailUtils } from "@/utils/optionsPricing";
+import { TradingUtils } from "@/utils/optionsPricing";
 import { ContractContext } from "@/contexts/contractProvider";
 import { useDataContext } from "@/contexts/dataProvider";
 
@@ -45,14 +45,12 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
     const { poolMetrics } = useDataContext();
     
     const getPoolUtilization = (asset: "SOL" | "USDC") => {
-        if (poolMetrics.length > 0) {
             // Convert backend format to match contract provider format
-            const pool = poolMetrics[0];
+            const pool = poolMetrics;
             return {
-                utilizationPercent: pool.utilizationRate,
-                borrowRate: pool.interestRate
+                utilizationPercent: pool.utilizationRatio,
+                borrowRate: pool.borrowRate
             };
-        }
         return null;
     };
 
@@ -60,7 +58,7 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
     const timeToExpiry = (new Date(expiry).getTime() - Date.now()) / (365.25 * 24 * 60 * 60 * 1000);
     const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
 
-    const premium = OptionDetailUtils.blackScholesWithBorrowRate(
+    const premium = TradingUtils.blackScholesWithBorrowRate(
         currentPrice,
         strikePrice,
         timeToExpiry,
@@ -151,17 +149,18 @@ export default function OpenPositions({ token, logo, symbol, type, expiry, size,
                             </div>
                         </div>
                         {activeTab === 'Overview' && (
-                            <PositionOverview
-                                type={type}
-                                expiry={expiry}
-                                size={size}
-                                pnl={pnl}
-                                value={premium * size}
-                                strikePrice={strikePrice}
-                                entryPrice={entryPrice}
-                                purchaseDate={purchaseDate}
-                                optionIndex={index}
-                            />
+                            <></>
+                            // <PositionOverview
+                            //     type={type}
+                            //     expiry={expiry}
+                            //     size={size}
+                            //     pnl={pnl}
+                            //     value={premium * size}
+                            //     strikePrice={strikePrice}
+                            //     entryPrice={entryPrice}
+                            //     purchaseDate={purchaseDate}
+                            //     optionIndex={index}
+                            // />
                         )}
                         {activeTab === 'Greeks' && (
                             <PositionGreeks delta={greeks.delta} gamma={greeks.gamma} theta={greeks.theta} vega={greeks.vega} />

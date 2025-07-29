@@ -3,14 +3,12 @@
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "./ui/button";
 import Image from "next/image";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import TradingViewTopNav from "./TradingViewTopNav";
-import { usePythMarketData } from "@/hooks/usePythMarketData";
-import { usePyth24hChange, usePythPrice, type PythPriceState } from "@/hooks/usePythPrice";
+import { usePyth24hChange, type PythPriceState } from "@/hooks/usePythPrice";
 import type { MarketDataState } from "@/hooks/usePythMarketData";
 import { tokenList, Token } from "@/lib/data/tokenlist";
 
-import { ContractContext } from "@/contexts/contractProvider";
 import { useDataContext } from "@/contexts/dataProvider";
 
 
@@ -110,20 +108,6 @@ export default function CryptoNav({
     const { poolMetrics, volumeMetrics } = useDataContext();
     
     // Convert to contract provider format for compatibility
-    const poolData = poolMetrics.length > 0 ? {
-        sol: {
-            tokenLocked: poolMetrics[0].totalValueLocked * 0.5, // Approximate split
-            tokenOwned: poolMetrics[0].totalValueLocked * 0.5,
-            utilizationPercent: poolMetrics[0].utilizationRate,
-            borrowRate: poolMetrics[0].interestRate
-        },
-        usdc: {
-            tokenLocked: poolMetrics[0].totalValueLocked * 0.5,
-            tokenOwned: poolMetrics[0].totalValueLocked * 0.5,
-            utilizationPercent: poolMetrics[0].utilizationRate,
-            borrowRate: poolMetrics[0].interestRate
-        }
-    } : null;
     const volumeData = {
         volume24h: volumeMetrics.volume24h || 0,
         optionsCount24h: volumeMetrics.optionsCount24h || 0,
@@ -267,7 +251,7 @@ export default function CryptoNav({
                 pythSymbol={cryptoData[active].pythSymbol} 
                 logo={cryptoData[active].iconPath}
                 tokens={cryptoData}
-                poolData={poolData}
+                poolData={poolMetrics}
                 volumeData={volumeData}
                 marketChanges={marketChanges}
                 onTokenSelect={handleTokenSelect}

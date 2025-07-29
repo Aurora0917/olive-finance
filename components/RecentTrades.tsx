@@ -40,8 +40,6 @@ import {
   type MarketDataState,
 } from "@/hooks/usePythMarketData";
 import { usePythPrice, type PythPriceState } from "@/hooks/usePythPrice";
-import { black_scholes } from "@/utils/optionsPricing";
-import { useOptionsPricing } from "@/hooks/useOptionsPricing";
 
 interface OptionDetail {
   profile: string;

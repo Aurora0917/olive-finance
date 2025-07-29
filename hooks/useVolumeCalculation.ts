@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { Position } from "@/lib/data/Positions";
 import { Transaction, FuturePos } from "@/lib/data/WalletActivity";
-import { OptionDetailUtils } from "@/utils/optionsPricing";
+import { TradingUtils } from "@/utils/optionsPricing";
 
 interface VolumeData {
   volume24h: number;
@@ -78,7 +78,7 @@ export const useVolumeCalculation = (
           const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
           
           if (utilization && currentPrice > 0) {
-            const premium = OptionDetailUtils.blackScholesWithBorrowRate(
+            const premium = TradingUtils.blackScholesWithBorrowRate(
               currentPrice,
               position.strikePrice,
               Math.max(timeToExpiry, 0.001),
@@ -132,7 +132,7 @@ export const useVolumeCalculation = (
           const utilization = getPoolUtilization(isCall ? 'SOL' : 'USDC');
           
           if (utilization && currentPrice > 0) {
-            const premium = OptionDetailUtils.blackScholesWithBorrowRate(
+            const premium = TradingUtils.blackScholesWithBorrowRate(
               currentPrice,
               donePosition.strikePrice,
               timeToExpiry,

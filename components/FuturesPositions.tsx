@@ -187,13 +187,13 @@ export default function FuturesPositions() {
     const walletAddress = publicKey?.toBase58() || '';
 
     // Debug wallet connection
-    useEffect(() => {
-        console.log('🔍 Wallet Integration Debug:', {
-            publicKey: publicKey?.toBase58(),
-            finalWalletAddress: walletAddress,
-            hasWallet: !!walletAddress
-        });
-    }, [publicKey, walletAddress]);
+    // useEffect(() => {
+    //     console.log('🔍 Wallet Integration Debug:', {
+    //         publicKey: publicKey?.toBase58(),
+    //         finalWalletAddress: walletAddress,
+    //         hasWallet: !!walletAddress
+    //     });
+    // }, [publicKey, walletAddress]);
 
     // Convert real perp positions to futures transactions for history
     const convertPerpPositionsToTransactions = (positions: FuturePos[]): FuturesTransaction[] => {
