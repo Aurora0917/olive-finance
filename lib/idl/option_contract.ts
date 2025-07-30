@@ -8054,7 +8054,7 @@ export type OptionContract = {
           },
           {
             "name": "closePercentage",
-            "type": "u8"
+            "type": "u64"
           },
           {
             "name": "receiveSol",
@@ -9828,7 +9828,7 @@ export type OptionContract = {
               },
               {
                 "name": "sizePercent",
-                "type": "u16"
+                "type": "u64"
               },
               {
                 "name": "receiveSol",
@@ -9845,7 +9845,7 @@ export type OptionContract = {
               },
               {
                 "name": "sizePercent",
-                "type": "u16"
+                "type": "u64"
               },
               {
                 "name": "receiveSol",
@@ -9869,7 +9869,7 @@ export type OptionContract = {
               {
                 "name": "newSizePercent",
                 "type": {
-                  "option": "u16"
+                  "option": "u64"
                 }
               },
               {
@@ -9896,7 +9896,7 @@ export type OptionContract = {
               {
                 "name": "newSizePercent",
                 "type": {
-                  "option": "u16"
+                  "option": "u64"
                 }
               },
               {
@@ -10872,7 +10872,7 @@ export type OptionContract = {
           },
           {
             "name": "sizePercent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receiveSol",
@@ -10920,7 +10920,7 @@ export type OptionContract = {
           },
           {
             "name": "sizePercent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receiveSol",
@@ -11016,7 +11016,7 @@ export type OptionContract = {
           },
           {
             "name": "executedSizePercent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receiveSol",
@@ -11139,7 +11139,7 @@ export type OptionContract = {
           {
             "name": "newSizePercent",
             "type": {
-              "option": "u16"
+              "option": "u64"
             }
           },
           {
@@ -11204,11 +11204,11 @@ export type OptionContract = {
           },
           {
             "name": "totalTpPercent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "totalSlPercent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "lastExecutedTpIndex",

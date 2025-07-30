@@ -1563,6 +1563,10 @@
           "writable": true
         },
         {
+          "name": "tp_sl_orderbook",
+          "optional": true
+        },
+        {
           "name": "token_program",
           "address": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"
         }
@@ -8039,8 +8043,12 @@
             "type": "string"
           },
           {
-            "name": "close_percentage",
+            "name": "contract_type",
             "type": "u8"
+          },
+          {
+            "name": "close_percentage",
+            "type": "u64"
           },
           {
             "name": "receive_sol",
@@ -9814,7 +9822,7 @@
               },
               {
                 "name": "size_percent",
-                "type": "u16"
+                "type": "u64"
               },
               {
                 "name": "receive_sol",
@@ -9831,7 +9839,7 @@
               },
               {
                 "name": "size_percent",
-                "type": "u16"
+                "type": "u64"
               },
               {
                 "name": "receive_sol",
@@ -9855,7 +9863,7 @@
               {
                 "name": "new_size_percent",
                 "type": {
-                  "option": "u16"
+                  "option": "u64"
                 }
               },
               {
@@ -9882,7 +9890,7 @@
               {
                 "name": "new_size_percent",
                 "type": {
-                  "option": "u16"
+                  "option": "u64"
                 }
               },
               {
@@ -10026,6 +10034,10 @@
           },
           {
             "name": "collateral_amount",
+            "type": "u64"
+          },
+          {
+            "name": "native_exit_amount",
             "type": "u64"
           },
           {
@@ -10854,7 +10866,7 @@
           },
           {
             "name": "size_percent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receive_sol",
@@ -10902,7 +10914,7 @@
           },
           {
             "name": "size_percent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receive_sol",
@@ -10969,6 +10981,10 @@
             "type": "u64"
           },
           {
+            "name": "native_exit_amount",
+            "type": "u64"
+          },
+          {
             "name": "locked_amount",
             "type": "u64"
           },
@@ -10994,7 +11010,7 @@
           },
           {
             "name": "executed_size_percent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "receive_sol",
@@ -11117,7 +11133,7 @@
           {
             "name": "new_size_percent",
             "type": {
-              "option": "u16"
+              "option": "u64"
             }
           },
           {
@@ -11182,11 +11198,11 @@
           },
           {
             "name": "total_tp_percent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "total_sl_percent",
-            "type": "u16"
+            "type": "u64"
           },
           {
             "name": "last_executed_tp_index",

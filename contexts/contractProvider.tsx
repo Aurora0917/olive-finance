@@ -1423,7 +1423,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             action: {
               addTakeProfit: {
                 price: new BN(Math.floor(tp.price * 1e6)),
-                sizePercent: Math.floor(tp.sizePercent * 100),
+                sizePercent: new BN(Math.floor(tp.sizePercent * 1e6)),
                 receiveSol: tp.receiveSol,
               },
             },
@@ -1453,7 +1453,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             action: {
               addStopLoss: {
                 price: new BN(Math.floor(sl.price * 1e6)),
-                sizePercent: Math.floor(sl.sizePercent * 100),
+                sizePercent: new BN(Math.floor(sl.sizePercent * 1e6)),
                 receiveSol: sl.receiveSol,
               },
             },
@@ -1550,7 +1550,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
                 updateTakeProfit: {
                   index: update.index,
                   newPrice: update.price ? new BN(Math.floor(update.price * 1e6)) : null,
-                  newSizePercent: update.sizePercent ? Math.floor(update.sizePercent * 100) : null,
+                  newSizePercent: update.sizePercent ? new BN(Math.floor(update.sizePercent * 1e6)) : null,
                 },
               },
             })
@@ -1582,7 +1582,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
                 updateStopLoss: {
                   index: update.index,
                   newPrice: update.price ? new BN(Math.floor(update.price * 1e6)) : null,
-                  newSizePercent: update.sizePercent ? Math.floor(update.sizePercent * 100) : null,
+                  newSizePercent: update.sizePercent ? new BN(Math.floor(update.sizePercent * 1e6)) : null,
                 },
               },
             })
