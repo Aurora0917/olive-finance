@@ -45,6 +45,8 @@ interface LimitOrdersProps {
     liquidation: number;
     size: number;
     collateral: number;
+    collateralAmount: number;
+    lockedAmount: number;
     tpsl: number;
     purchaseDate: string;
     triggerPrice: number;
@@ -71,6 +73,8 @@ export default function LimitOrders({
     liquidation,
     size,
     collateral,
+    collateralAmount,
+    lockedAmount,
     tpsl,
     purchaseDate,
     triggerPrice,
@@ -153,11 +157,11 @@ export default function LimitOrders({
                             <TableBody>
                                 <TableRow className="w-full grid grid-cols-5 min-w-[900px]">
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        ${size.toFixed(2)}
+                                        {lockedAmount.toFixed(2)} {token}
                                     </TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
                                         <span>
-                                            ${collateral.toFixed(2)}
+                                            {collateralAmount.toFixed(2)} {token}
                                         </span>
                                         {/* <Collateral
                                             currentLeverage={leverage}

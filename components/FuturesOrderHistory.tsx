@@ -45,7 +45,7 @@ export default function FuturesOrderHistory({
         );
 
         const openTransaction = sortedTransactions.find(t => t.transactionType === 'open_position');
-        const closeTransaction = sortedTransactions.find(t => t.transactionType === 'close_position');
+        const closeTransaction = sortedTransactions.find(t => t.transactionType === 'close_position' || t.transactionType === 'liquidation');
         const addCollateralTransactions = sortedTransactions.filter(t => t.transactionType === 'add_collateral');
 
         // Calculate total volume (sum of all position movements - entry + partial closes + final close)

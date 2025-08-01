@@ -260,7 +260,7 @@ export default function FuturesPositions() {
 
         setIsClosing(position.index);
         try {
-            const success = await onCancelLimitPerp(percent, receiveToken, position.index);
+            const success = await onCancelLimitPerp(percent * 1000000, receiveToken, position.index);
             if (success) {
                 console.log("Position closed successfully!");
             } else {
@@ -482,6 +482,8 @@ export default function FuturesPositions() {
                                                     entry={pos.entryPrice}
                                                     liquidation={pos.LiqPrice}
                                                     size={pos.size}
+                                                    collateralAmount={pos.collateralAmount}
+                                                    lockedAmount={pos.lockedAmount}
                                                     collateral={pos.collateral}
                                                     triggerPrice={pos.triggerPrice || 0}
                                                     tpsl={pos.TPSL}

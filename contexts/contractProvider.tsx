@@ -142,14 +142,14 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const [pub, setPubKey] = useState<PublicKey>();
 
   // Initialize toast actions
-  const { 
-    showSuccess, 
-    showError, 
-    showInfo, 
+  const {
+    showSuccess,
+    showError,
+    showInfo,
     showWarning,
     showTransactionProgress,
     updateTransactionStep,
-    hideTransactionProgress 
+    hideTransactionProgress
   } = useToastActions();
 
   // ===============================
@@ -276,7 +276,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -396,7 +396,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -566,7 +566,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -714,7 +714,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -839,7 +839,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -1043,7 +1043,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -1177,7 +1177,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -1292,7 +1292,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -1352,11 +1352,23 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const userSolAccount = getAssociatedTokenAddressSync(WSOL_MINT, wallet.publicKey);
       const userUsdcAccount = getAssociatedTokenAddressSync(USDC_MINT, wallet.publicKey);
 
+      const [tpSlOrderbook] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from('tp_sl_orderbook'),
+          publicKey.toBuffer(),
+          new BN(positionIndex).toArrayLike(Buffer, 'le', 8),
+          Buffer.from("SOL/USDC"),
+          new BN(0).toArrayLike(Buffer, 'le', 1),
+        ],
+        program.programId
+      );
+
       const transaction = await program.methods
         .cancelLimitOrder({
           positionIndex: new BN(positionIndex),
           poolName: "SOL/USDC",
-          closePercentage: closePercentage,
+          contractType: new BN(0),
+          closePercentage: new BN(closePercentage),
           receiveSol: receiveAsset === "SOL",
         })
         .accountsPartial({
@@ -1366,6 +1378,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           contract: contract,
           pool: pool,
           position: position,
+          tpSlOrderbook,
           solCustody: solCustody,
           usdcCustody: usdcCustody,
           solCustodyTokenAccount: solCustodyTokenAccount,
@@ -1382,7 +1395,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -1461,7 +1474,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -1542,7 +1555,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -1719,7 +1732,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       updateTransactionStep('execute', 'completed');
       updateTransactionStep('confirm', 'loading');
 
@@ -1859,7 +1872,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -1975,7 +1988,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -2053,7 +2066,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
@@ -2139,7 +2152,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       transaction.feePayer = publicKey;
 
       const signature = await sendTransaction(transaction, connection);
-      
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
