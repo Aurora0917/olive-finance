@@ -37,13 +37,11 @@ import {
 } from "@/utils/const";
 
 import { PerpTPSL } from "@/types/trading";
-
-// Import the separated modules
-// import { usePositionManagement } from "@/hooks/usePositionManagement";
-// import { useVolumeCalculation } from "@/hooks/useVolumeCalculation";
-// import { usePoolData } from "@/hooks/usePoolData";
 import { PDAs } from "@/utils/pdas";
 import { TransactionBuilder } from "@/utils/transactionBuilder";
+
+// Import your existing toast hook
+import { useToastActions } from "@/components/ToastSystem"; // Adjust path as needed
 
 interface PoolUtilization {
   tokenLocked: number;
@@ -88,8 +86,6 @@ export type ExpiredOption = {
 interface ContractContextType {
   program: Program<OptionContract> | undefined;
   pub: PublicKey | undefined;
-  // getCustodies: Function;
-  // getDetailInfos: Function;
   onOpenLimitOption: Function;
   onCloseLimitOption: Function;
   onOpenOption: Function;
@@ -108,32 +104,11 @@ interface ContractContextType {
   onUpdateTpSl: Function;
   onRemoveTpSl: Function;
   getOptionDetailAccount: Function;
-  // getPoolFees: () => Promise<{
-  //   ratioMultiplier: string;
-  //   addLiquidityFee: string;
-  //   removeLiquidityFee: string;
-  // } | null>;
-  // positions: Position[];
-  // expiredPositions: ExpiredOption[];
-  // donePositions: Transaction[];
-  // perpPositions: FuturePos[];
-  // refreshPositions: () => Promise<void>;
-  // refreshPerpPositions: () => Promise<void>;
-  // positionsLoading: boolean;
-  // poolData: PoolData | null;
-  // poolDataLoading: boolean;
-  // poolDataError: string | null;
-  // getPoolUtilization: (asset: "SOL" | "USDC") => PoolUtilization | null;
-  // volumeData: VolumeData | null;
-  // getVolumeData: () => VolumeData | null;
-  // refreshVolumeData: () => Promise<void>;
 }
 
 export const ContractContext = createContext<ContractContextType>({
   program: undefined,
   pub: undefined,
-  // getCustodies: () => { },
-  // getDetailInfos: () => { },
   onOpenLimitOption: async () => { },
   onCloseLimitOption: () => { },
   onOpenOption: async () => { },
@@ -152,21 +127,6 @@ export const ContractContext = createContext<ContractContextType>({
   onUpdateTpSl: async () => false,
   onRemoveTpSl: async () => false,
   getOptionDetailAccount: () => { },
-  // getPoolFees: async () => null,
-  // positions: [],
-  // expiredPositions: [],
-  // donePositions: [],
-  // perpPositions: [],
-  // refreshPositions: async () => { },
-  // refreshPerpPositions: async () => { },
-  // positionsLoading: false,
-  // poolData: null,
-  // poolDataLoading: false,
-  // poolDataError: null,
-  // getPoolUtilization: () => null,
-  // volumeData: null,
-  // getVolumeData: () => null,
-  // refreshVolumeData: async () => { },
 });
 
 export const clusterUrl = "https://api.devnet.solana.com";
@@ -181,24 +141,16 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   const [program, setProgram] = useState<Program<OptionContract>>();
   const [pub, setPubKey] = useState<PublicKey>();
 
-  // Use the separated hooks
-  // const {
-  //   positions,
-  //   expiredPositions,
-  //   donePositions,
-  //   perpPositions,
-  //   positionsLoading,
-  //   refreshPositions,
-  //   refreshPerpPositions,
-  // } = usePositionManagement(program, publicKey, priceData);
-
-  // const { poolData, getPoolUtilization, refreshPoolData, isLoading: poolDataLoading, error: poolDataError } = usePoolData(program, publicKey);
-
-  // const {
-  //   volumeData,
-  //   getVolumeData,
-  //   refreshVolumeData
-  // } = useVolumeCalculation(positions, perpPositions, donePositions, priceData?.price || 150, getPoolUtilization);
+  // Initialize toast actions
+  const { 
+    showSuccess, 
+    showError, 
+    showInfo, 
+    showWarning,
+    showTransactionProgress,
+    updateTransactionStep,
+    hideTransactionProgress 
+  } = useToastActions();
 
   // ===============================
   // UTILITY FUNCTIONS
@@ -213,10 +165,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       return PDAs.getOptionDetail(publicKey, index, pool, custody, program.programId);
     }
   }, [connected, publicKey, program, wallet]);
-
-  // const getCustodies = useCallback(async (program: Program<OptionContract>) => {
-  //   return refreshPoolData(program);
-  // }, [refreshPoolData]);
 
   const getPoolFees = useCallback(async () => {
     try {
@@ -234,9 +182,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       };
     } catch (error) {
       console.error("Error fetching pool fees:", error);
+      showError("Failed to fetch pool fees", "Please try again later");
       return null;
     }
-  }, [program, publicKey]);
+  }, [program, publicKey, showError]);
 
   // ===============================
   // OPTION TRADING FUNCTIONS
@@ -251,7 +200,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     paySol: boolean
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showTransactionProgress("Opening Option Position", [
+        { id: 'prepare', label: 'Preparing transaction' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('prepare', 'loading');
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const custody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
@@ -265,10 +226,13 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         optionIndex = 1;
       }
 
-      console.log("optionIndex", optionIndex);
-
       const optionDetailAccount = getOptionDetailAccount(optionIndex, pool, custody);
-      if (!optionDetailAccount) return false;
+      if (!optionDetailAccount) {
+        updateTransactionStep('prepare', 'error');
+        hideTransactionProgress();
+        showError("Failed to prepare transaction", "Could not generate option detail account");
+        return false;
+      }
 
       const fundingAccount = getAssociatedTokenAddressSync(
         paySol ? WSOL_MINT : USDC_MINT,
@@ -277,6 +241,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const paycustody = PDAs.getCustody(pool, paySol ? WSOL_MINT : USDC_MINT, program.programId);
       const paycustodyData = await program.account.custody.fetch(paycustody);
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .openOption({
@@ -304,23 +271,43 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("result", result);
+
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Option opened successfully:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "Option Position Opened!",
+          `${isCall ? 'Call' : 'Put'} option created successfully`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (e) {
       console.log("Error opening option:", e);
+      hideTransactionProgress();
+      showError("Option Creation Failed", "Please check your balance and try again");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onOpenLimitOption = useCallback(async (
     amount: number,
@@ -332,7 +319,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     limitPrice: number
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showTransactionProgress("Opening Limit Option Position", [
+        { id: 'prepare', label: 'Preparing limit order' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('prepare', 'loading');
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const custody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
@@ -347,7 +346,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const optionDetailAccount = getOptionDetailAccount(optionIndex, pool, custody);
-      if (!optionDetailAccount) return false;
+      if (!optionDetailAccount) {
+        updateTransactionStep('prepare', 'error');
+        hideTransactionProgress();
+        showError("Failed to prepare transaction", "Could not generate option detail account");
+        return false;
+      }
 
       const fundingAccount = getAssociatedTokenAddressSync(
         paySol ? WSOL_MINT : USDC_MINT,
@@ -356,6 +360,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const paycustody = PDAs.getCustody(pool, paySol ? WSOL_MINT : USDC_MINT, program.programId);
       const paycustodyData = await program.account.custody.fetch(paycustody);
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .openLimitOption({
@@ -384,23 +391,43 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("result", result);
+
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Limit option opened successfully:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "Limit Option Created!",
+          `Limit order placed at $${limitPrice}`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (e) {
       console.log("Error opening limit option:", e);
+      hideTransactionProgress();
+      showError("Limit Option Creation Failed", "Please check your parameters and try again");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onEditOption = useCallback(async (params: {
     optionIndex: number;
@@ -413,9 +440,20 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     paymentToken?: 'SOL' | 'USDC';
   }) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
 
-      console.log("Editing option with params:", params);
+      showTransactionProgress("Editing Option Position", [
+        { id: 'validate', label: 'Validating position' },
+        { id: 'prepare', label: 'Preparing edit transaction' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('validate', 'loading');
 
       const pool = PDAs.getPool(params.poolName, program.programId);
       const contract = PDAs.getContract(program.programId);
@@ -424,7 +462,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
       const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
 
-      // Find the option with both possible custodies
       let optionDetailAccount;
       let optionDetailData;
       let custody;
@@ -434,30 +471,36 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         optionDetailData = await program.account.optionDetail.fetch(solOptionDetail);
         optionDetailAccount = solOptionDetail;
         custody = solCustody;
-        console.log("✅ Found option with SOL custody");
       } catch (e) {
         try {
           const usdcOptionDetail = PDAs.getOptionDetail(publicKey, params.optionIndex, pool, usdcCustody, program.programId);
           optionDetailData = await program.account.optionDetail.fetch(usdcOptionDetail);
           optionDetailAccount = usdcOptionDetail;
           custody = usdcCustody;
-          console.log("✅ Found option with USDC custody");
         } catch (e2) {
-          console.error("❌ Option not found with either custody");
+          updateTransactionStep('validate', 'error');
+          hideTransactionProgress();
+          showError("Option not found", "Could not find the specified option position");
           return false;
         }
       }
 
       if (!optionDetailAccount || !optionDetailData || !custody) {
-        console.error("Option detail not found");
+        updateTransactionStep('validate', 'error');
+        hideTransactionProgress();
+        showError("Option validation failed", "Could not validate option position");
         return false;
       }
 
-      // Verify the owner matches
       if (!optionDetailData.owner.equals(publicKey)) {
-        console.error("Option owner mismatch");
+        updateTransactionStep('validate', 'error');
+        hideTransactionProgress();
+        showError("Permission denied", "You don't own this option position");
         return false;
       }
+
+      updateTransactionStep('validate', 'completed');
+      updateTransactionStep('prepare', 'loading');
 
       const selectedPaymentToken = params.paymentToken || 'USDC';
       const payCustody = selectedPaymentToken === 'SOL' ? solCustody : usdcCustody;
@@ -478,6 +521,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const custodyOracleAccount = custody.equals(solCustody)
         ? new PublicKey(WSOL_ORACLE)
         : new PublicKey(USDC_ORACLE);
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .editOption({
@@ -516,32 +562,59 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Edit option simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Edit option simulation failed:", result.value.err);
-        return false;
-      }
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log(`Option edited successfully with ${selectedPaymentToken}:`, signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "Option Position Edited!",
+          "Your option parameters have been updated successfully",
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (error) {
       console.error("Error editing option:", error);
+      hideTransactionProgress();
+      showError("Edit Failed", "Could not edit option position. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onCloseOption = useCallback(async (optionIndex: number, closeQuantity: number) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showTransactionProgress("Closing Option Position", [
+        { id: 'validate', label: 'Finding option position' },
+        { id: 'prepare', label: 'Preparing close transaction' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('validate', 'loading');
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
@@ -567,18 +640,29 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
+          updateTransactionStep('validate', 'error');
+          hideTransactionProgress();
+          showError("Option not found", "Could not find the specified option position");
           return false;
         }
       }
 
       if (!optionDetailData || !optionDetailAccount) {
-        console.error("Option detail not found");
+        updateTransactionStep('validate', 'error');
+        hideTransactionProgress();
+        showError("Option validation failed", "Could not validate option position");
         return false;
       }
 
       if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
-        throw new Error("Invalid close quantity");
+        updateTransactionStep('validate', 'error');
+        hideTransactionProgress();
+        showError("Invalid quantity", "Close quantity must be between 1 and your position size");
+        return false;
       }
+
+      updateTransactionStep('validate', 'completed');
+      updateTransactionStep('prepare', 'loading');
 
       const lockedAsset = optionDetailData.lockedAsset;
       const premiumAsset = optionDetailData.premiumAsset;
@@ -596,6 +680,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const custodyData = await program.account.custody.fetch(custody!);
       const payCustodyData = await program.account.custody.fetch(payCustody);
       const lockedCustodyData = await program.account.custody.fetch(lockedCustody);
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .closeOption({
@@ -622,27 +709,52 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Simulation result:", result);
+
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Option closed successfully, signature:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "Option Position Closed!",
+          `Successfully closed ${closeQuantity} units`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (e) {
       console.log("Error closing option:", e);
+      hideTransactionProgress();
+      showError("Close Failed", "Could not close option position. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onCloseLimitOption = useCallback(async (optionIndex: number, closeQuantity: number) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Closing Limit Option", "Processing your limit option close request...");
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
@@ -668,17 +780,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
+          showError("Option not found", "Could not find the specified limit option");
           return false;
         }
       }
 
       if (!optionDetailData || !optionDetailAccount) {
-        console.error("Option detail not found");
+        showError("Option validation failed", "Could not validate limit option position");
         return false;
       }
 
       if (closeQuantity <= 0 || closeQuantity > optionDetailData.quantity.toNumber()) {
-        throw new Error("Invalid close quantity");
+        showError("Invalid quantity", "Close quantity must be between 1 and your position size");
+        return false;
       }
 
       const lockedAsset = optionDetailData.lockedAsset;
@@ -723,33 +837,49 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Simulation result:", result);
 
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Option closed successfully, signature:", signature);
+      showSuccess(
+        "Limit Option Closed!",
+        `Successfully closed ${closeQuantity} units`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.log("Error closing limit option:", e);
+      showError("Close Failed", "Could not close limit option. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showInfo]);
 
   const onClaimOption = useCallback(async (optionIndex: number, solPrice: number) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Claiming Option", "Processing your option claim...");
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const custody = PDAs.getCustodyTokenAccount(pool, WSOL_MINT, program.programId);
       const optionDetailAccount = getOptionDetailAccount(optionIndex, pool, custody);
 
-      if (!optionDetailAccount) return false;
+      if (!optionDetailAccount) {
+        showError("Option not found", "Could not find the specified option");
+        return false;
+      }
 
       const transaction = await program.methods
         .claimOption(new BN(optionIndex), solPrice)
@@ -767,17 +897,39 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         signature: signature,
       });
 
-      console.log("Option claimed successfully:", signature);
+      showSuccess(
+        "Option Claimed Successfully!",
+        "Your option has been claimed and settled",
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.log("Error claiming option:", e);
+      showError("Claim Failed", "Could not claim option. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showInfo]);
 
   const onExerciseOption = useCallback(async (optionIndex: number) => {
     try {
-      if (!program || !optionIndex || !publicKey || !connected || !wallet) return false;
+      if (!program || !optionIndex || !publicKey || !connected || !wallet) {
+        showError("Invalid parameters", "Please check your inputs and wallet connection");
+        return false;
+      }
+
+      showTransactionProgress("Exercising Option", [
+        { id: 'validate', label: 'Validating option position' },
+        { id: 'prepare', label: 'Preparing exercise transaction' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('validate', 'loading');
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const contract = PDAs.getContract(program.programId);
@@ -806,14 +958,22 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
             custody = usdcCustody;
           }
         } catch (e2) {
+          updateTransactionStep('validate', 'error');
+          hideTransactionProgress();
+          showError("Option not found", "Could not find the specified option");
           return false;
         }
       }
 
       if (!optionDetailAccount || !optionDetailData) {
-        console.error("Option detail not found");
+        updateTransactionStep('validate', 'error');
+        hideTransactionProgress();
+        showError("Option validation failed", "Could not validate option position");
         return false;
       }
+
+      updateTransactionStep('validate', 'completed');
+      updateTransactionStep('prepare', 'loading');
 
       const lockedCustody = optionDetailData.lockedAsset;
       const isCallOption = lockedCustody.equals(solCustody);
@@ -844,8 +1004,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
           lockedCustodyMint
         );
         preInstructions.push(createATAInstruction);
-        console.log("Creating funding account for mint:", lockedCustodyMint.toBase58());
       }
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .exerciseOption({
@@ -876,23 +1038,43 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      const result = await connection.simulateTransaction(transaction);
-      console.log("Simulation result:", result);
+
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Option exercised successfully, signature:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "Option Exercised Successfully!",
+          "Your option has been exercised and settled",
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (error) {
       console.error("Error exercising option:", error);
+      hideTransactionProgress();
+      showError("Exercise Failed", "Could not exercise option. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount]);
+  }, [program, publicKey, connected, wallet, sendTransaction, getOptionDetailAccount, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   // ===============================
   // PERPETUAL TRADING FUNCTIONS
@@ -909,7 +1091,20 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     paySol: boolean = false,
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showTransactionProgress(`Opening ${side.toUpperCase()} Position`, [
+        { id: 'prepare', label: 'Preparing position' },
+        { id: 'validate', label: 'Validating parameters' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('prepare', 'loading');
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const userPDA = PDAs.getUser(publicKey, program.programId);
@@ -923,6 +1118,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const position = PDAs.getPosition(publicKey, perpPositionCount + 1, pool, program.programId);
+
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('validate', 'loading');
 
       const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
       const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
@@ -938,16 +1136,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const perpSide = side === "long" ? { long: {} } : { short: {} };
       const orderType = type === "market" ? { market: {} } : { limit: {} };
 
-      console.log("Opening perp position with params:", {
-        collateralAmount,
-        sizeAmount: positionAmount,
-        side: perpSide,
-        maxSlippage,
-        paySol,
-        paymentAsset: paySol ? "SOL" : "USDC",
-        orderType: type,
-        triggerPrice: triggerPrice,
-      });
+      updateTransactionStep('validate', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .openPerpPosition({
@@ -983,28 +1173,42 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Transaction simulation failed:", result.value.err);
-        return false;
-      }
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Perp position opened successfully:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          `${side.toUpperCase()} Position Opened!`,
+          `${type === 'market' ? 'Market' : 'Limit'} order executed successfully`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (e) {
       console.error("Error opening perp position:", e);
+      hideTransactionProgress();
+      showError("Position Opening Failed", "Could not open perpetual position. Please check your balance and try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onClosePerp = useCallback(async (
     closePercentage: number = 100,
@@ -1012,7 +1216,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     positionIndex: number,
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showTransactionProgress("Closing Position", [
+        { id: 'prepare', label: 'Preparing close transaction' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('prepare', 'loading');
 
       const contract = PDAs.getContract(program.programId);
       const pool = PDAs.getPool("SOL/USDC", program.programId);
@@ -1039,13 +1255,8 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      console.log("Closing perp position with params:", {
-        positionIndex,
-        closePercentage,
-        receiveAsset,
-        contractType: 0,
-        poolName: "SOL/USDC"
-      });
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
 
       const transaction = await program.methods
         .closePerpPosition({
@@ -1077,29 +1288,42 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Close simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Close transaction simulation failed:", result.value.err);
-        return false;
-      }
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log(`Perp position ${closePercentage === 100 ? 'fully' : 'partially'} closed successfully:`, signature);
-      console.log(`Settlement received as: ${receiveAsset}`);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          `Position ${closePercentage === 100 ? 'Fully' : 'Partially'} Closed!`,
+          `Settlement received as ${receiveAsset}`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
     } catch (e) {
       console.error("Error closing perp position:", e);
+      hideTransactionProgress();
+      showError("Close Failed", "Could not close perpetual position. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onCancelLimitPerp = useCallback(async (
     closePercentage: number = 100,
@@ -1107,7 +1331,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     positionIndex: number,
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Cancelling Limit Order", "Processing your limit order cancellation...");
 
       const contract = PDAs.getContract(program.programId);
       const pool = PDAs.getPool("SOL/USDC", program.programId);
@@ -1122,13 +1351,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const userSolAccount = getAssociatedTokenAddressSync(WSOL_MINT, wallet.publicKey);
       const userUsdcAccount = getAssociatedTokenAddressSync(USDC_MINT, wallet.publicKey);
-
-      console.log("Cancelling limit perp position with params:", {
-        positionIndex,
-        closePercentage,
-        receiveAsset,
-        poolName: "SOL/USDC"
-      });
 
       const transaction = await program.methods
         .cancelLimitOrder({
@@ -1159,29 +1381,30 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Cancel limit simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Cancel limit transaction simulation failed:", result.value.err);
-        return false;
-      }
-
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log(`Limit perp position ${closePercentage === 100 ? 'fully' : 'partially'} cancelled successfully:`, signature);
-      console.log(`Settlement received as: ${receiveAsset}`);
+      showSuccess(
+        "Limit Order Cancelled!",
+        `Order cancelled and funds returned as ${receiveAsset}`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.error("Error cancelling limit perp position:", e);
+      showError("Cancel Failed", "Could not cancel limit order. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showInfo]);
 
   const onAddCollateral = useCallback(async (
     positionIndex: number,
@@ -1189,7 +1412,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     paySol: boolean,
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Adding Collateral", "Processing collateral addition...");
 
       const contract = PDAs.getContract(program.programId);
       const pool = PDAs.getPool("SOL/USDC", program.programId);
@@ -1232,28 +1460,30 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Add collateral simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Add collateral simulation failed:", result.value.err);
-        return false;
-      }
-
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Collateral added successfully:", signature);
+      showSuccess(
+        "Collateral Added Successfully!",
+        `Added ${collateralAmount} ${paySol ? 'SOL' : 'USDC'} to your position`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.error("Error adding collateral:", e);
+      showError("Add Collateral Failed", "Could not add collateral to position. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showInfo]);
 
   const onRemoveCollateral = useCallback(async (
     positionIndex: number,
@@ -1261,7 +1491,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     receiveSol: boolean,
   ) => {
     try {
-      if (!program || !publicKey || !connected || !wallet) return false;
+      if (!program || !publicKey || !connected || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Removing Collateral", "Processing collateral removal...");
 
       const contract = PDAs.getContract(program.programId);
       const pool = PDAs.getPool("SOL/USDC", program.programId);
@@ -1306,32 +1541,33 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Remove collateral simulation result:", result);
-
-      if (result.value.err) {
-        console.error("Remove collateral simulation failed:", result.value.err);
-        return false;
-      }
-
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Collateral removed successfully:", signature);
-      console.log(`Received as: ${receiveSol ? "SOL" : "USDC"}`);
+      showSuccess(
+        "Collateral Removed Successfully!",
+        `Removed ${collateralAmount} ${receiveSol ? 'SOL' : 'USDC'} from your position`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.error("Error removing collateral:", e);
+      showError("Remove Collateral Failed", "Could not remove collateral from position. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction]);
+  }, [program, publicKey, connected, wallet, sendTransaction, showError, showSuccess, showInfo]);
 
   // ===============================
-  // TP/SL MANAGEMENT FUNCTIONS (FIXED!)
+  // TP/SL MANAGEMENT FUNCTIONS
   // ===============================
 
   const checkOrderbookExists = useCallback(async (
@@ -1348,10 +1584,9 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         program.programId
       );
 
-      console.log(await program.account.tpSlOrderbook.fetch(tpSlOrderbook));
+      await program.account.tpSlOrderbook.fetch(tpSlOrderbook);
       return true;
     } catch (error) {
-      console.log("Orderbook doesn't exist:", error);
       return false;
     }
   }, [program]);
@@ -1363,15 +1598,19 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<boolean> => {
     try {
       if (!program || !publicKey || !connected || !wallet) {
-        console.error("Missing required dependencies for TP/SL");
+        showError("Wallet not connected", "Please connect your wallet to continue");
         return false;
       }
 
-      console.log("Setting TP/SL for position:", {
-        positionIndex,
-        takeProfits,
-        stopLosses
-      });
+      showTransactionProgress("Setting TP/SL Orders", [
+        { id: 'validate', label: 'Validating position' },
+        { id: 'prepare', label: 'Preparing TP/SL orders' },
+        { id: 'sign', label: 'Waiting for signature' },
+        { id: 'execute', label: 'Executing transaction' },
+        { id: 'confirm', label: 'Confirming on blockchain' }
+      ]);
+
+      updateTransactionStep('validate', 'loading');
 
       const hasOrderbook = await checkOrderbookExists(publicKey, positionIndex);
 
@@ -1385,11 +1624,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const position = PDAs.getPosition(publicKey, positionIndex, pool, program.programId);
 
+      updateTransactionStep('validate', 'completed');
+      updateTransactionStep('prepare', 'loading');
+
       const instructions = [];
 
       if (!hasOrderbook) {
-        console.log("Initializing TP/SL orderbook...");
-
         const initInstruction = await program.methods
           .initTpSlOrderbook({
             orderType: 0,
@@ -1413,8 +1653,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
 
       for (const tp of takeProfits) {
-        console.log("Adding TP order:", tp);
-
         const tpInstruction = await program.methods
           .manageTpSlOrders({
             contractType: 0,
@@ -1443,8 +1681,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       for (const sl of stopLosses) {
-        console.log("Adding SL order:", sl);
-
         const slInstruction = await program.methods
           .manageTpSlOrders({
             contractType: 0,
@@ -1472,33 +1708,50 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         instructions.push(slInstruction);
       }
 
+      updateTransactionStep('prepare', 'completed');
+      updateTransactionStep('sign', 'loading');
+
       const transaction = TransactionBuilder.buildTransaction(instructions);
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      const result = await connection.simulateTransaction(transaction);
-      console.log("TP/SL simulation result:", result);
-
-      if (result.value.err) {
-        console.error("TP/SL simulation failed:", result.value.err);
-        return false;
-      }
+      updateTransactionStep('sign', 'completed');
+      updateTransactionStep('execute', 'loading');
 
       const signature = await sendTransaction(transaction, connection);
+      
+      updateTransactionStep('execute', 'completed');
+      updateTransactionStep('confirm', 'loading');
+
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("TP/SL orders set successfully:", signature);
+      updateTransactionStep('confirm', 'completed');
+
+      setTimeout(() => {
+        hideTransactionProgress();
+        showSuccess(
+          "TP/SL Orders Set Successfully!",
+          `Added ${takeProfits.length} TP and ${stopLosses.length} SL orders`,
+          {
+            label: "View on Solscan",
+            onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+          }
+        );
+      }, 1500);
+
       return true;
 
     } catch (error) {
       console.error("Error setting TP/SL:", error);
+      hideTransactionProgress();
+      showError("TP/SL Setup Failed", "Could not set TP/SL orders. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, showError, showSuccess, showTransactionProgress, updateTransactionStep, hideTransactionProgress]);
 
   const onUpdateTpSl = useCallback(async (
     positionIndex: number,
@@ -1509,15 +1762,15 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<boolean> => {
     try {
       if (!program || !publicKey || !connected || !wallet) {
-        console.error("Missing required dependencies for TP/SL update");
+        showError("Wallet not connected", "Please connect your wallet to continue");
         return false;
       }
 
-      console.log("Updating TP/SL for position:", positionIndex, updates);
+      showInfo("Updating TP/SL Orders", "Modifying your TP/SL orders...");
 
       const hasOrderbook = await checkOrderbookExists(publicKey, positionIndex);
       if (!hasOrderbook) {
-        console.error("No orderbook exists for this position");
+        showError("No TP/SL Orders Found", "No orderbook exists for this position");
         return false;
       }
 
@@ -1534,13 +1787,10 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const solCustody = PDAs.getCustody(pool, WSOL_MINT, program.programId);
       const usdcCustody = PDAs.getCustody(pool, USDC_MINT, program.programId);
 
-
       const instructions = [];
 
       if (updates.updateTPs) {
         for (const update of updates.updateTPs) {
-          console.log("Updating TP order:", update);
-
           const updateInstruction = await program.methods
             .manageTpSlOrders({
               contractType: 0,
@@ -1571,8 +1821,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (updates.updateSLs) {
         for (const update of updates.updateSLs) {
-          console.log("Updating SL order:", update);
-
           const updateInstruction = await program.methods
             .manageTpSlOrders({
               contractType: 0,
@@ -1602,7 +1850,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (instructions.length === 0) {
-        console.log("No updates to perform");
+        showInfo("No Updates", "No updates to perform");
         return true;
       }
 
@@ -1610,29 +1858,31 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      const result = await connection.simulateTransaction(transaction);
-      console.log("TP/SL update simulation result:", result);
-
-      if (result.value.err) {
-        console.error("TP/SL update simulation failed:", result.value.err);
-        return false;
-      }
-
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("TP/SL orders updated successfully:", signature);
+      showSuccess(
+        "TP/SL Orders Updated!",
+        "Your TP/SL orders have been modified successfully",
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
 
     } catch (error) {
       console.error("Error updating TP/SL:", error);
+      showError("TP/SL Update Failed", "Could not update TP/SL orders. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, showError, showSuccess, showInfo]);
 
   const onRemoveTpSl = useCallback(async (
     positionIndex: number,
@@ -1643,15 +1893,15 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
   ): Promise<boolean> => {
     try {
       if (!program || !publicKey || !connected || !wallet) {
-        console.error("Missing required dependencies for TP/SL removal");
+        showError("Wallet not connected", "Please connect your wallet to continue");
         return false;
       }
 
-      console.log("Removing TP/SL for position:", positionIndex, removals);
+      showInfo("Removing TP/SL Orders", "Cancelling your TP/SL orders...");
 
       const hasOrderbook = await checkOrderbookExists(publicKey, positionIndex);
       if (!hasOrderbook) {
-        console.error("No orderbook exists for this position");
+        showError("No TP/SL Orders Found", "No orderbook exists for this position");
         return false;
       }
 
@@ -1669,8 +1919,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (removals.removeTPs) {
         for (const index of removals.removeTPs) {
-          console.log("Removing TP order at index:", index);
-
           const removeInstruction = await program.methods
             .manageTpSlOrders({
               contractType: 0,
@@ -1695,8 +1943,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       if (removals.removeSLs) {
         for (const index of removals.removeSLs) {
-          console.log("Removing SL order at index:", index);
-
           const removeInstruction = await program.methods
             .manageTpSlOrders({
               contractType: 0,
@@ -1720,7 +1966,7 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       if (instructions.length === 0) {
-        console.log("No removals to perform");
+        showInfo("No Removals", "No orders to remove");
         return true;
       }
 
@@ -1728,29 +1974,31 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
 
-      const result = await connection.simulateTransaction(transaction);
-      console.log("TP/SL removal simulation result:", result);
-
-      if (result.value.err) {
-        console.error("TP/SL removal simulation failed:", result.value.err);
-        return false;
-      }
-
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("TP/SL orders removed successfully:", signature);
+      showSuccess(
+        "TP/SL Orders Removed!",
+        "Selected TP/SL orders have been cancelled",
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
 
     } catch (error) {
       console.error("Error removing TP/SL:", error);
+      showError("TP/SL Removal Failed", "Could not remove TP/SL orders. Please try again.");
       return false;
     }
-  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists]);
+  }, [program, publicKey, connected, wallet, sendTransaction, checkOrderbookExists, showError, showSuccess, showInfo]);
 
   // ===============================
   // LIQUIDITY FUNCTIONS
@@ -1762,7 +2010,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     asset: PublicKey
   ) => {
     try {
-      if (!program || !publicKey || !wallet) return false;
+      if (!program || !publicKey || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Adding Liquidity", "Processing your liquidity addition...");
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const custody = PDAs.getCustody(pool, asset, program.programId);
@@ -1798,23 +2051,31 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Add liquidity result", result);
 
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Liquidity added successfully:", signature);
+      showSuccess(
+        "Liquidity Added Successfully!",
+        `Added ${amount} tokens to the liquidity pool`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.log("Error adding liquidity:", e);
+      showError("Add Liquidity Failed", "Could not add liquidity. Please check your balance and try again.");
       return false;
     }
-  }, [publicKey, wallet, sendTransaction]);
+  }, [publicKey, wallet, sendTransaction, showError, showSuccess, showInfo]);
 
   const onRemoveLiquidity = useCallback(async (
     amount: number,
@@ -1822,7 +2083,12 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
     asset: PublicKey
   ) => {
     try {
-      if (!program || !publicKey || !wallet) return false;
+      if (!program || !publicKey || !wallet) {
+        showError("Wallet not connected", "Please connect your wallet to continue");
+        return false;
+      }
+
+      showInfo("Removing Liquidity", "Processing your liquidity removal...");
 
       const pool = PDAs.getPool("SOL/USDC", program.programId);
       const custody = PDAs.getCustody(pool, asset, program.programId);
@@ -1871,23 +2137,31 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const latestBlockHash = await connection.getLatestBlockhash();
       transaction.feePayer = publicKey;
-      let result = await connection.simulateTransaction(transaction);
-      console.log("Remove liquidity result", result);
 
       const signature = await sendTransaction(transaction, connection);
+      
       await connection.confirmTransaction({
         blockhash: latestBlockHash.blockhash,
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: signature,
       });
 
-      console.log("Liquidity removed successfully:", signature);
+      showSuccess(
+        "Liquidity Removed Successfully!",
+        `Removed ${amount} LP tokens from the pool`,
+        {
+          label: "View on Solscan",
+          onClick: () => window.open(`https://solscan.io/tx/${signature}?cluster=devnet`, '_blank')
+        }
+      );
+
       return true;
     } catch (e) {
       console.log("Error removing liquidity:", e);
+      showError("Remove Liquidity Failed", "Could not remove liquidity. Please check your LP token balance and try again.");
       return false;
     }
-  }, [publicKey, wallet, sendTransaction]);
+  }, [publicKey, wallet, sendTransaction, showError, showSuccess, showInfo]);
 
   // Initialize program
   useEffect(() => {
@@ -1915,8 +2189,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         program,
         pub,
-        // getCustodies,
-        // getDetailInfos: refreshPositions,
         onOpenLimitOption,
         onCloseLimitOption,
         onOpenOption,
@@ -1935,21 +2207,6 @@ export const ContractProvider: React.FC<{ children: React.ReactNode }> = ({
         onUpdateTpSl,
         onRemoveTpSl,
         getOptionDetailAccount,
-        // getPoolFees,
-        // positions,
-        // expiredPositions,
-        // donePositions,
-        // perpPositions,
-        // refreshPositions,
-        // refreshPerpPositions,
-        // positionsLoading,
-        // poolData,
-        // poolDataLoading,
-        // poolDataError,
-        // getPoolUtilization,
-        // volumeData,
-        // getVolumeData,
-        // refreshVolumeData
       }}
     >
       {children}

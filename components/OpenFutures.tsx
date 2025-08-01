@@ -16,6 +16,11 @@ import { Switch } from './ui/switch'
 import apiService from "@/services/apiService";
 import { EXIT_FEE } from "@/utils/const";
 import { BackendTpSlOrder } from "../types/trading";
+import {
+    SizeTooltip,
+    CollateralTooltip,
+    NetValueTooltip
+} from '@/components/TradingTooltips';
 
 interface OpenFuturesProps {
     logo: string;
@@ -28,6 +33,8 @@ interface OpenFuturesProps {
     liquidation: number;
     size: number;
     collateral: number;
+    lockedAmount: number;
+    collateralAmount: number;
     tpsl: number;
     purchaseDate: string;
     unrealizedPnl?: number;
@@ -55,6 +62,8 @@ export default function OpenFutures({
     liquidation,
     size,
     collateral,
+    lockedAmount,
+    collateralAmount,
     tpsl,
     purchaseDate,
     unrealizedPnl,
@@ -112,6 +121,40 @@ export default function OpenFutures({
 
     const netValue = useMemo(() => collateral + calculatePnl() - fee, [collateral, pnl]);
     const currentLeverage = (size / netValue).toFixed(2);
+
+    // Calculate tooltip data
+    const tooltipData = useMemo(() => {
+        // Assume SOL price for conversion (you might want to get this from a price feed)
+        const solPrice = markPrice; // This should be the actual SOL price
+        
+        // Size tooltip data
+        const sizeInSol = lockedAmount?.toFixed(4) || 0;
+        
+        // Collateral tooltip data  
+        const collateralInSol = collateralAmount.toFixed(4);
+        
+        // Net Value tooltip data
+        const rawPnl = calculatePnl();
+        const netValueData = {
+            collateral: `$${collateral.toFixed(2)}`,
+            pnl: `${rawPnl >= 0 ? '+' : ''}$${rawPnl.toFixed(2)}`,
+            borrowFee: '$0.00', // Open positions typically don't have borrow fees yet
+            tradeFee: `-$${fee.toFixed(2)}`,
+            netValue: `$${netValue.toFixed(2)}`
+        };
+
+        return {
+            sizeData: {
+                size: `$${size.toFixed(2)}`,
+                sol: `${sizeInSol} ${token}`
+            },
+            collateralData: {
+                amount: `$${collateral.toFixed(2)}`,
+                sol: `${collateralInSol} ${token}`
+            },
+            netValueData
+        };
+    }, [size, collateral, netValue, fee, calculatePnl, markPrice, token]);
 
     // Load backend orders when component mounts or position changes
     useEffect(() => {
@@ -239,9 +282,11 @@ export default function OpenFutures({
                 <div className="flex items-center gap-3">
                     <div className="flex flex-col items-end text-right">
                         <span className="text-xs text-muted-foreground">Net value</span>
-                        <span className="font-semibold underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
-                            ${netValue.toFixed(2)}
-                        </span>
+                        <NetValueTooltip data={tooltipData.netValueData}>
+                            <span className="font-semibold underline-offset-2 underline cursor-help" style={{ textDecorationStyle: 'dotted' }}>
+                                ${netValue.toFixed(2)}
+                            </span>
+                        </NetValueTooltip>
                     </div>
 
                     <Button
@@ -285,12 +330,24 @@ export default function OpenFutures({
                                     </TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">{currentLeverage}x</TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        ${size.toFixed(2)}
+                                        <SizeTooltip 
+                                            size={tooltipData.sizeData.size} 
+                                            sol={tooltipData.sizeData.sol}
+                                        >
+                                            <span className="cursor-help">
+                                                ${size.toFixed(2)}
+                                            </span>
+                                        </SizeTooltip>
                                     </TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs py-0 text-white underline-offset-4 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        <span>
-                                            ${collateral.toFixed(2)}
-                                        </span>
+                                        <CollateralTooltip 
+                                            amount={tooltipData.collateralData.amount} 
+                                            sol={tooltipData.collateralData.sol}
+                                        >
+                                            <span className="cursor-help">
+                                                ${collateral.toFixed(2)}
+                                            </span>
+                                        </CollateralTooltip>
                                         <Collateral
                                             currentLeverage={leverage}
                                             currentLiquidationPrice={liquidation}

@@ -14,6 +14,7 @@ import { clusterApiUrl } from "@solana/web3.js";
 import { useMemo } from "react";
 import { ContractProvider } from "./contractProvider";
 import { DataProvider } from "./dataProvider";
+import { ToastProvider } from "@/components/ToastSystem";
 
 export default ({ children }: { children: React.ReactNode }) => {
   const network = WalletAdapterNetwork.Mainnet;
@@ -32,9 +33,11 @@ export default ({ children }: { children: React.ReactNode }) => {
   return (
     <ConnectionProvider endpoint={endpoint}>
       <WalletProvider wallets={wallets} autoConnect>
-        <ContractProvider>
-          <DataProvider>{children}</DataProvider>
-        </ContractProvider>
+        <ToastProvider>
+          <ContractProvider>
+            <DataProvider>{children}</DataProvider>
+          </ContractProvider>
+        </ToastProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

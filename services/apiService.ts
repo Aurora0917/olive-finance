@@ -23,6 +23,7 @@ export interface Position {
   positionSize: number;
   collateralUSD: number;
   collateralAmount: number;
+  lockedAmount: number;
   leverage: number;
   liquidationPrice: number;
   unrealizedPnl: number;

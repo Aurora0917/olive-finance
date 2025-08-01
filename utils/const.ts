@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 
-export const clusterUrl = "https://api.devnet.solana.com";
+export const clusterUrl = "https://solana-devnet.core.chainstack.com/427baf02dd7b845762e485489b5d7b9f";
 export const connection = new Connection(clusterUrl, "confirmed");
 
 // Mainnet

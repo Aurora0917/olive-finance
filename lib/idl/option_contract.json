@@ -2889,6 +2889,7 @@
         },
         {
           "name": "tp_sl_orderbook",
+          "writable": true,
           "optional": true
         },
         {
@@ -4393,6 +4394,10 @@
           "signer": true
         },
         {
+          "name": "owner",
+          "writable": true
+        },
+        {
           "name": "owner_settlement_account",
           "writable": true
         },
@@ -4663,6 +4668,7 @@
         },
         {
           "name": "tp_sl_orderbook",
+          "writable": true,
           "optional": true
         },
         {
@@ -10905,6 +10911,14 @@
             "type": "u8"
           },
           {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "index",
             "type": "u8"
           },
@@ -11085,6 +11099,14 @@
             "type": "pubkey"
           },
           {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
+          },
+          {
             "name": "contract_type",
             "type": "u8"
           },
@@ -11123,6 +11145,14 @@
           {
             "name": "index",
             "type": "u8"
+          },
+          {
+            "name": "accrued_borrow_fees",
+            "type": "u64"
+          },
+          {
+            "name": "last_borrow_fees_update_time",
+            "type": "i64"
           },
           {
             "name": "new_price",

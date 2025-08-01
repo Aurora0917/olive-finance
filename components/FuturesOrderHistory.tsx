@@ -9,6 +9,14 @@ import { Button } from "./ui/button";
 import { Separator } from "./ui/separator";
 import { Transaction } from "@/services/apiService";
 
+import {
+    SizeTooltip,
+    NetValueTooltip,
+    PositionSizeTooltip,
+    FeesTooltip,
+    CollateralDetailsTooltip
+} from '@/components/TradingTooltips';
+
 interface FuturesOrderHistoryProps {
     transactions: Transaction[]; // All transactions have the same positionId
     logo: string;
@@ -40,16 +48,25 @@ export default function FuturesOrderHistory({
         const closeTransaction = sortedTransactions.find(t => t.transactionType === 'close_position');
         const addCollateralTransactions = sortedTransactions.filter(t => t.transactionType === 'add_collateral');
 
-        // Calculate derived values
-        const totalVolume = openTransaction?.positionSize || 0;
+        // Calculate total volume (sum of all position movements - entry + partial closes + final close)
+        const openPositionVolume = sortedTransactions
+            .filter(t => t.transactionType === 'open_position')
+            .reduce((sum, t) => sum + (t.positionSize || 0), 0);
+        const closePositionVolume = sortedTransactions
+            .filter(t => t.transactionType === 'close_position' || t.transactionType === 'liquidation')
+            .reduce((sum, t) => sum + (t.positionSize || 0), 0);
+        const totalVolume = openPositionVolume + closePositionVolume;
+
         const entryPrice = openTransaction?.price || 0;
         const exitPrice = closeTransaction?.price || entryPrice;
         const leverage = openTransaction?.leverage || 1;
 
-        // Calculate total collateral (initial + added)
+        // Calculate total collateral (initial + net added/removed)
         const initialCollateral = openTransaction?.collateral || 0;
-        const addedCollateral = addCollateralTransactions.reduce((sum, t) => sum + (t.addedCollateral || 0), 0);
-        const totalCollateral = initialCollateral + addedCollateral;
+        const netAddedCollateral = addCollateralTransactions.reduce((sum, t) => sum + (t.addedCollateral || 0), 0) -
+                                 sortedTransactions.filter(t => t.transactionType === 'remove_collateral')
+                                                  .reduce((sum, t) => sum + (t.removedCollateral || 0), 0);
+        const totalCollateral = initialCollateral + netAddedCollateral;
 
         // Calculate total fees
         const totalFees = sortedTransactions.reduce((sum, t) => {
@@ -66,7 +83,7 @@ export default function FuturesOrderHistory({
         const timeClosed = closeTransaction?.timestamp || sortedTransactions[sortedTransactions.length - 1].timestamp;
         const positionId = transactions[0].positionId;
 
-        const isLiquidated = sortedTransactions[sortedTransactions.length - 1].transactionType === 'Liquidation';
+        const isLiquidated = sortedTransactions[sortedTransactions.length - 1].transactionType === 'liquidation';
 
         return {
             positionId,
@@ -88,7 +105,96 @@ export default function FuturesOrderHistory({
         };
     }, [transactions]);
 
-    if (!positionSummary) {
+    // Calculate tooltip data
+    const tooltipData = useMemo(() => {
+        if (!positionSummary) return null;
+
+        const sortedTransactions = positionSummary.sortedTransactions;
+        
+        // Categorize transactions properly
+        const entryTransactions = sortedTransactions.filter(t => t.transactionType === 'open_position');
+        const addCollateralTransactions = sortedTransactions.filter(t => t.transactionType === 'add_collateral');
+        const removeCollateralTransactions = sortedTransactions.filter(t => t.transactionType === 'remove_collateral');
+        
+        // Differentiate between partial closes (decrease) and final closes
+        const partialCloseTransactions = sortedTransactions.filter(t => 
+            (t.transactionType === 'close_position') && (t.percent && t.percent < 100)
+        );
+        const finalCloseTransactions = sortedTransactions.filter(t => 
+            (t.transactionType === 'close_position' && (!t.percent || t.percent === 100)) || 
+            t.transactionType === 'liquidation'
+        );
+
+        const positionSizeData = {
+            entrySize: `${entryTransactions.reduce((sum, t) => sum + (t.positionSize || 0), 0).toFixed(2)}`,
+            increaseSize: `${addCollateralTransactions.reduce((sum, t) => sum + (t.positionSize || 0), 0).toFixed(2)}`,
+            decreaseSize: `${partialCloseTransactions.reduce((sum, t) => sum + (t.positionSize || 0), 0).toFixed(2)}`,
+            closeSize: `${finalCloseTransactions.reduce((sum, t) => sum + (t.positionSize || 0), 0).toFixed(2)}`
+        };
+
+        // Fees Data - separate partial close fees from final close fees
+        const feesData = {
+            entryFee: `${entryTransactions.reduce((sum, t) => sum + (t.fees || 0) + (t.tradeFees || 0), 0).toFixed(2)}`,
+            decreaseBorrowFee: `${partialCloseTransactions.reduce((sum, t) => sum + (t.borrowFees || 0), 0).toFixed(6)}`,
+            decreaseExitFee: `${partialCloseTransactions.reduce((sum, t) => sum + (t.tradeFees || 0), 0).toFixed(2)}`,
+            closeBorrowFee: `${finalCloseTransactions.reduce((sum, t) => sum + (t.borrowFees || 0), 0).toFixed(6)}`,
+            closeExitFee: `${finalCloseTransactions.reduce((sum, t) => sum + (t.tradeFees || 0), 0).toFixed(2)}`
+        };
+
+        // Collateral Details Data
+        const entryCollateral = entryTransactions.reduce((sum, t) => sum + (t.collateral || 0), 0);
+        const addedCollateral = addCollateralTransactions.reduce((sum, t) => sum + (t.addedCollateral || 0), 0);
+        const removedCollateral = removeCollateralTransactions.reduce((sum, t) => sum + (t.removedCollateral || 0), 0);
+        const partialCloseCollateral = partialCloseTransactions.reduce((sum, t) => sum + (t.collateral || 0), 0);
+        const finalCloseCollateral = finalCloseTransactions.reduce((sum, t) => sum + (t.collateral || 0), 0);
+        
+        const entryNativeCollateral = entryTransactions.reduce((sum, t) => sum + (t.nativeCollateral || 0), 0);
+        const addedNativeCollateral = addCollateralTransactions.reduce((sum, t) => sum + (t.nativeCollateral || 0), 0);
+        const removedNativeCollateral = removeCollateralTransactions.reduce((sum, t) => sum + (t.nativeCollateral || 0), 0);
+        const partialCloseNativeCollateral = partialCloseTransactions.reduce((sum, t) => sum + (t.nativeCollateral || 0), 0);
+        const finalCloseNativeCollateral = finalCloseTransactions.reduce((sum, t) => sum + (t.nativeCollateral || 0), 0);
+        
+        // Calculate increase/remove collateral (net of add/remove operations)
+        const netAddedCollateral = addedCollateral - removedCollateral;
+        const netAddedNativeCollateral = addedNativeCollateral - removedNativeCollateral;
+        const totalExitNativeAmount = partialCloseNativeCollateral + finalCloseNativeCollateral;
+
+        const collateralDetailsData = {
+            entryCollateral: {
+                usd: `${entryCollateral.toFixed(2)}`,
+                token: `${entryNativeCollateral.toFixed(2)} ${token}`
+            },
+            increaseRemoveCollateral: {
+                usd: `${Math.abs(netAddedCollateral).toFixed(2)}`,
+                token: `${netAddedNativeCollateral >= 0 ? '+' : ''}${netAddedNativeCollateral.toFixed(2)} ${token}`
+            },
+            decreaseCollateral: {
+                usd: `${partialCloseCollateral.toFixed(2)}`,
+                token: `${partialCloseNativeCollateral.toFixed(2)} ${token}`
+            },
+            closeCollateral: {
+                usd: `${finalCloseCollateral.toFixed(2)}`,
+                token: `${finalCloseNativeCollateral.toFixed(2)} ${token}`
+            },
+            totalExitAmount: `${totalExitNativeAmount.toFixed(2)} ${token}`
+        };
+
+        return {
+            positionSizeData,
+            feesData,
+            collateralDetailsData
+        };
+    }, [positionSummary, token]);
+
+    // All transactions sorted by timestamp (newest first)
+    const sortedTransactions = useMemo(() => {
+        if (!positionSummary) return [];
+
+        return positionSummary.sortedTransactions
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    }, [positionSummary]);
+
+    if (!positionSummary || !tooltipData) {
         return (
             <div className="text-center py-8 text-muted-foreground">
                 No transaction data available
@@ -228,16 +334,24 @@ export default function FuturesOrderHistory({
                     </span>
                 </div>
 
-                {/* Mobile Stats Grid */}
+                {/* Enhanced Mobile Stats Grid - Now includes all desktop information */}
                 <div className="grid grid-cols-2 gap-3 text-xs">
                     <div className="space-y-2">
                         <div>
                             <span className="text-muted-foreground">Volume:</span>
-                            <span className="ml-1 text-foreground font-medium">${positionSummary.totalVolume.toFixed(2)}</span>
+                            <PositionSizeTooltip data={tooltipData.positionSizeData}>
+                                <span className="ml-1 text-foreground font-medium cursor-help underline decoration-dotted">
+                                    ${positionSummary.totalVolume.toFixed(2)}
+                                </span>
+                            </PositionSizeTooltip>
                         </div>
                         <div>
                             <span className="text-muted-foreground">Entry:</span>
                             <span className="ml-1 text-foreground font-medium">${positionSummary.entryPrice.toFixed(2)}</span>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">Exit:</span>
+                            <span className="ml-1 text-foreground font-medium">${positionSummary.exitPrice.toFixed(2)}</span>
                         </div>
                         <div>
                             <span className="text-muted-foreground">Duration:</span>
@@ -246,16 +360,30 @@ export default function FuturesOrderHistory({
                     </div>
                     <div className="space-y-2">
                         <div>
-                            <span className="text-muted-foreground">Exit:</span>
-                            <span className="ml-1 text-foreground font-medium">${positionSummary.exitPrice.toFixed(2)}</span>
+                            <span className="text-muted-foreground">Collateral:</span>
+                            <CollateralDetailsTooltip data={tooltipData.collateralDetailsData}>
+                                <span className="ml-1 text-foreground font-medium cursor-help underline decoration-dotted">
+                                    ${positionSummary.totalCollateral.toFixed(2)}
+                                </span>
+                            </CollateralDetailsTooltip>
                         </div>
                         <div>
                             <span className="text-muted-foreground">Fees:</span>
-                            <span className="ml-1 text-red-400 font-medium">${(positionSummary.totalFees).toFixed(2)}</span>
+                            <FeesTooltip data={tooltipData.feesData}>
+                                <span className="ml-1 text-red-400 font-medium cursor-help underline decoration-dotted">
+                                    ${(positionSummary.totalFees).toFixed(2)}
+                                </span>
+                            </FeesTooltip>
                         </div>
                         <div>
-                            <span className="text-muted-foreground">Collateral:</span>
-                            <span className="ml-1 text-foreground font-medium">${positionSummary.totalCollateral.toFixed(2)}</span>
+                            <span className="text-muted-foreground">Status:</span>
+                            <span className={`ml-1 font-medium ${positionSummary.isLiquidated ? 'text-red-400' : 'text-green-400'}`}>
+                                {positionSummary.status}
+                            </span>
+                        </div>
+                        <div>
+                            <span className="text-muted-foreground">Transactions:</span>
+                            <span className="ml-1 text-foreground font-medium">{positionSummary.sortedTransactions.length}</span>
                         </div>
                     </div>
                 </div>
@@ -311,23 +439,43 @@ export default function FuturesOrderHistory({
                     </div>
                 </div>
 
-                {/* Tablet Stats */}
-                <div className="grid grid-cols-4 gap-4 text-xs">
+                {/* Enhanced Tablet Stats - Now includes tooltips */}
+                <div className="grid grid-cols-3 gap-4 text-xs">
                     <div>
                         <span className="text-muted-foreground block">Volume</span>
-                        <span className="text-foreground font-medium">${positionSummary.totalVolume.toFixed(2)}</span>
+                        <PositionSizeTooltip data={tooltipData.positionSizeData}>
+                            <span className="text-foreground font-medium cursor-help underline decoration-dotted">
+                                ${positionSummary.totalVolume.toFixed(2)}
+                            </span>
+                        </PositionSizeTooltip>
                     </div>
                     <div>
                         <span className="text-muted-foreground block">Entry → Exit</span>
                         <span className="text-foreground font-medium">${positionSummary.entryPrice.toFixed(2)} → ${positionSummary.exitPrice.toFixed(2)}</span>
                     </div>
                     <div>
+                        <span className="text-muted-foreground block">Collateral</span>
+                        <CollateralDetailsTooltip data={tooltipData.collateralDetailsData}>
+                            <span className="text-foreground font-medium cursor-help underline decoration-dotted">
+                                ${positionSummary.totalCollateral.toFixed(2)}
+                            </span>
+                        </CollateralDetailsTooltip>
+                    </div>
+                    <div>
                         <span className="text-muted-foreground block">Fees</span>
-                        <span className="text-red-400 font-medium">${(positionSummary.totalFees).toFixed(2)}</span>
+                        <FeesTooltip data={tooltipData.feesData}>
+                            <span className="text-red-400 font-medium cursor-help underline decoration-dotted">
+                                ${(positionSummary.totalFees).toFixed(2)}
+                            </span>
+                        </FeesTooltip>
                     </div>
                     <div>
                         <span className="text-muted-foreground block">Duration</span>
                         <span className="text-foreground font-medium">{getTimePeriod(positionSummary.timeOpened, positionSummary.timeClosed)}</span>
+                    </div>
+                    <div>
+                        <span className="text-muted-foreground block">Transactions</span>
+                        <span className="text-foreground font-medium">{positionSummary.sortedTransactions.length}</span>
                     </div>
                 </div>
             </div>
@@ -383,8 +531,12 @@ export default function FuturesOrderHistory({
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">
                                         {getTimePeriod(positionSummary.timeOpened, positionSummary.timeClosed)}
                                     </TableCell>
-                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">
-                                        ${positionSummary.totalVolume.toFixed(2)}
+                                    <TableCell className="flex space-x-2 items-center text-xs py-0 text-white underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
+                                        <PositionSizeTooltip data={tooltipData.positionSizeData}>
+                                            <p className="cursor-help">
+                                                ${positionSummary.totalVolume.toFixed(2)}
+                                            </p>
+                                        </PositionSizeTooltip>
                                     </TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-white">
                                         ${positionSummary.entryPrice.toFixed(2)}
@@ -398,12 +550,18 @@ export default function FuturesOrderHistory({
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="flex space-x-2 items-center text-xs py-0 text-red-500 underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        ${(positionSummary.totalFees).toFixed(2)}
+                                        <FeesTooltip data={tooltipData.feesData}>
+                                            <span className="cursor-help">
+                                                ${(positionSummary.totalFees).toFixed(2)}
+                                            </span>
+                                        </FeesTooltip>
                                     </TableCell>
                                     <TableCell className="flex space-x-1 items-center text-xs py-0 text-white underline-offset-2 underline" style={{ textDecorationStyle: 'dotted' }}>
-                                        <span>
-                                            ${positionSummary.totalCollateral.toFixed(2)}
-                                        </span>
+                                        <CollateralDetailsTooltip data={tooltipData.collateralDetailsData}>
+                                            <span className="cursor-help">
+                                                ${positionSummary.totalCollateral.toFixed(2)}
+                                            </span>
+                                        </CollateralDetailsTooltip>
                                     </TableCell>
                                     <TableCell className="flex space-x-2 items-end justify-end">
                                         <button
@@ -420,161 +578,181 @@ export default function FuturesOrderHistory({
                 </div>
             </div>
 
-            {/* Expandable Transaction History */}
+            {/* Expandable Transaction History with Pagination */}
             {isExpanded && (
                 <div className="w-full px-4 pb-4 border-t border-border/50">
                     <div className="pt-4">
-                        <h4 className="text-sm font-medium text-foreground mb-3">Transaction History</h4>
+                        <div className="flex items-center justify-between mb-3">
+                            <h4 className="text-sm font-medium text-foreground">Transaction History</h4>
+                            <span className="text-xs text-muted-foreground">
+                                {positionSummary.sortedTransactions.length} total transactions
+                            </span>
+                        </div>
+
                         <div className="space-y-3">
-                            {positionSummary.sortedTransactions
-                                .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-                                .map((transaction, index) => (
-                                    <div key={index} className="bg-background/50 rounded-lg p-3 border border-border/30">
-                                        {/* Mobile Transaction Layout */}
-                                        <div className="block sm:hidden">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {getTransactionTypeLabel(transaction.transactionType)}
-                                                    </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 w-6 p-0 text-blue-400"
-                                                        onClick={() => window.open(getSolscanUrl(transaction.signature), '_blank')}
-                                                    >
-                                                        🔗
-                                                    </Button>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatMobileTimestamp(transaction.timestamp.toString())}
+                            {sortedTransactions.map((transaction, index) => (
+                                <div key={index} className="bg-background/50 rounded-lg p-3 border border-border/30">
+                                    {/* Mobile Transaction Layout */}
+                                    <div className="block sm:hidden">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-2">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {getTransactionTypeLabel(transaction.transactionType)}
                                                 </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-blue-400"
+                                                    onClick={() => window.open(getSolscanUrl(transaction.signature), '_blank')}
+                                                >
+                                                    🔗
+                                                </Button>
                                             </div>
-
-                                            <div className="grid grid-cols-2 gap-2 text-xs">
-                                                {transaction.transactionType === 'open_position' && (
-                                                    <>
-                                                        <div><span className="text-muted-foreground">Price:</span> ${transaction.price?.toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Leverage:</span> {transaction.leverage}x</div>
-                                                        <div><span className="text-muted-foreground">Collateral:</span> ${transaction.collateral?.toFixed(2)}</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'close_position' && (
-                                                    <>
-                                                        <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Exit Price:</span> ${transaction.price?.toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Native Exit Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Closed:</span> {transaction.percent}%</div>
-                                                        <div><span className="text-muted-foreground">PnL:</span> <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
-                                                        <div><span className="text-muted-foreground">Exit Fees:</span> ${((transaction.tradeFees || 0)).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Borrow Fees:</span> ${((transaction.borrowFees || 0)).toFixed(6)}</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'add_collateral' && (
-                                                    <>
-                                                        <div><span className="text-muted-foreground">Added:</span> ${(transaction.addedCollateral || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">New Total:</span> ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div><span className="text-muted-foreground">New Leverage:</span> {transaction.leverage?.toFixed(2)}x</div>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            <div className="mt-2 text-[10px] text-gray-500 truncate">
-                                                Signature: {transaction.signature.slice(0, 20)}...
-                                            </div>
+                                            <span className="text-xs text-muted-foreground">
+                                                {formatMobileTimestamp(transaction.timestamp.toString())}
+                                            </span>
                                         </div>
 
-                                        {/* Desktop Transaction Layout */}
-                                        <div className="hidden sm:block">
-                                            <div className="flex items-center justify-between mb-2">
-                                                <div className="flex items-center space-x-2">
-                                                    <span className="text-sm font-medium text-foreground">
-                                                        {getTransactionTypeLabel(transaction.transactionType)}
-                                                    </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        className="h-6 w-6 p-0 text-blue-400"
-                                                        onClick={() => window.open(getSolscanUrl(transaction.signature), '_blank')}
-                                                    >
-                                                        🔗
-                                                    </Button>
-                                                </div>
-                                                <span className="text-xs text-muted-foreground">
-                                                    {formatTimestamp(transaction.timestamp.toString())}
-                                                </span>
-                                            </div>
+                                        <div className="grid grid-cols-2 gap-2 text-xs">
+                                            {transaction.transactionType === 'open_position' && (
+                                                <>
+                                                    <div><span className="text-muted-foreground">Price:</span> ${transaction.price?.toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Leverage:</span> {transaction.leverage}x</div>
+                                                    <div><span className="text-muted-foreground">Collateral:</span> ${transaction.collateral?.toFixed(2)}</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'close_position' && (
+                                                <>
+                                                    <div><span className="text-muted-foreground">Size:</span> ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Exit Price:</span> ${transaction.price?.toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Native Exit Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Closed:</span> {transaction.percent}%</div>
+                                                    <div><span className="text-muted-foreground">PnL:</span> <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                    <div><span className="text-muted-foreground">Exit Fees:</span> ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Borrow Fees:</span> ${((transaction.borrowFees || 0)).toFixed(6)}</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'add_collateral' && (
+                                                <>
+                                                    <div><span className="text-muted-foreground">Added:</span> ${(transaction.addedCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Native Collateral:</span> {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">New Total:</span> ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">New Leverage:</span> {transaction.leverage?.toFixed(2)}x</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'remove_collateral' && (
+                                                <>
+                                                    <div><span className="text-muted-foreground">Removed:</span> ${(transaction.removedCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">Native Collateral:</span> -{(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">New Total:</span> ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div><span className="text-muted-foreground">New Leverage:</span> {transaction.leverage?.toFixed(2)}x</div>
+                                                </>
+                                            )}
+                                        </div>
 
-                                            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-                                                {transaction.transactionType === 'limit_order' && (
-                                                    <>
-                                                        <div>Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div>Leverage: {transaction.leverage}x</div>
-                                                        <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'open_position' && (
-                                                    <>
-                                                        <div>Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div>Leverage: {transaction.leverage}x</div>
-                                                        <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'close_position' && (
-                                                    <>
-                                                        <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div>Percentage Closed: {transaction.percent}%</div>
-                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
-                                                        <div>Triggered Type: <span className={`${transaction.triggeredType === 'tp' ? 'text-green-400' : transaction.triggeredType === 'sl' ? 'text-red-400' : ''}`}>{transaction.triggeredType}</span></div>
-                                                        {transaction.settledPrice && <div>Ordered Price: ${transaction.settledPrice?.toFixed(2)}</div>}
-                                                        <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
-                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'add_collateral' && (
-                                                    <>
-                                                        <div>Added: ${(transaction.addedCollateral || 0).toFixed(2)}</div>
-                                                        <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'remove_collateral' && (
-                                                    <>
-                                                        <div>Removed: ${(transaction.removedCollateral || 0).toFixed(2)}</div>
-                                                        <div>Native Collateral: -{(transaction.nativeCollateral || 0).toFixed(2)}</div>
-                                                        <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
-                                                    </>
-                                                )}
-                                                {transaction.transactionType === 'liquidation' && (
-                                                    <>
-                                                        <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
-                                                        <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
-                                                        <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
-                                                        <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
-                                                        <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
-                                                        <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
-                                                    </>
-                                                )}
-                                            </div>
-
-                                            <div className="mt-2 text-[10px] text-gray-500">
-                                                Signature: {transaction.signature.slice(0, 40)}...
-                                            </div>
+                                        <div className="mt-2 text-[10px] text-gray-500 truncate">
+                                            Signature: {transaction.signature.slice(0, 20)}...
                                         </div>
                                     </div>
-                                ))}
+
+                                    {/* Desktop Transaction Layout */}
+                                    <div className="hidden sm:block">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <div className="flex items-center space-x-2">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {getTransactionTypeLabel(transaction.transactionType)}
+                                                </span>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="h-6 w-6 p-0 text-blue-400"
+                                                    onClick={() => window.open(getSolscanUrl(transaction.signature), '_blank')}
+                                                >
+                                                    🔗
+                                                </Button>
+                                            </div>
+                                            <span className="text-xs text-muted-foreground">
+                                                {formatTimestamp(transaction.timestamp.toString())}
+                                            </span>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
+                                            {transaction.transactionType === 'limit_order' && (
+                                                <>
+                                                    <div>Price: ${transaction.price?.toFixed(2)}</div>
+                                                    <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>Leverage: {transaction.leverage}x</div>
+                                                    <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'open_position' && (
+                                                <>
+                                                    <div>Price: ${transaction.price?.toFixed(2)}</div>
+                                                    <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>Leverage: {transaction.leverage}x</div>
+                                                    <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'close_position' && (
+                                                <>
+                                                    <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
+                                                    <div>Native Exit Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>Percentage Closed: {transaction.percent}%</div>
+                                                    <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                    <div>Triggered Type: <span className={`${transaction.triggeredType === 'tp' ? 'text-green-400' : transaction.triggeredType === 'sl' ? 'text-red-400' : ''}`}>{transaction.triggeredType}</span></div>
+                                                    {transaction.settledPrice && <div>Ordered Price: ${transaction.settledPrice?.toFixed(2)}</div>}
+                                                    <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                    <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'add_collateral' && (
+                                                <>
+                                                    <div>Added: ${(transaction.addedCollateral || 0).toFixed(2)}</div>
+                                                    <div>Native Collateral: {(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'remove_collateral' && (
+                                                <>
+                                                    <div>Removed: ${(transaction.removedCollateral || 0).toFixed(2)}</div>
+                                                    <div>Native Collateral: -{(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'remove_collateral' && (
+                                                <>
+                                                    <div>Removed: ${(transaction.removedCollateral || 0).toFixed(2)}</div>
+                                                    <div>Native Collateral: -{(transaction.nativeCollateral || 0).toFixed(2)}</div>
+                                                    <div>New Total: ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div>New Leverage: {transaction.leverage?.toFixed(2)}x</div>
+                                                </>
+                                            )}
+                                            {transaction.transactionType === 'liquidation' && (
+                                                <>
+                                                    <div>Size: ${(transaction.positionSize || 0).toFixed(2)}</div>
+                                                    <div>Collateral: ${transaction.collateral?.toFixed(2)}</div>
+                                                    <div>Exit Price: ${transaction.price?.toFixed(2)}</div>
+                                                    <div>PnL: <span className={`${(transaction.pnl || 0) >= 0 ? 'text-green-400' : 'text-red-400'}`}>${((transaction.pnl || 0)).toFixed(2)}</span></div>
+                                                    <div>Exit Fees: ${((transaction.tradeFees || 0)).toFixed(2)}</div>
+                                                    <div>Borrow Fees: ${((transaction.borrowFees || 0)).toFixed(6)}</div>
+                                                </>
+                                            )}
+                                        </div>
+
+                                        <div className="mt-2 text-[10px] text-gray-500">
+                                            Signature: {transaction.signature.slice(0, 40)}...
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

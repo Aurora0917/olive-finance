@@ -2895,6 +2895,7 @@ export type OptionContract = {
         },
         {
           "name": "tpSlOrderbook",
+          "writable": true,
           "optional": true
         },
         {
@@ -4399,6 +4400,10 @@ export type OptionContract = {
           "signer": true
         },
         {
+          "name": "owner",
+          "writable": true
+        },
+        {
           "name": "ownerSettlementAccount",
           "writable": true
         },
@@ -4669,6 +4674,7 @@ export type OptionContract = {
         },
         {
           "name": "tpSlOrderbook",
+          "writable": true,
           "optional": true
         },
         {
@@ -10911,6 +10917,14 @@ export type OptionContract = {
             "type": "u8"
           },
           {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "index",
             "type": "u8"
           },
@@ -11091,6 +11105,14 @@ export type OptionContract = {
             "type": "pubkey"
           },
           {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
+          },
+          {
             "name": "contractType",
             "type": "u8"
           },
@@ -11129,6 +11151,14 @@ export type OptionContract = {
           {
             "name": "index",
             "type": "u8"
+          },
+          {
+            "name": "accruedBorrowFees",
+            "type": "u64"
+          },
+          {
+            "name": "lastBorrowFeesUpdateTime",
+            "type": "i64"
           },
           {
             "name": "newPrice",

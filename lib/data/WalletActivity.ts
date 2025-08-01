@@ -32,6 +32,8 @@ export interface FuturePos{
     entryPrice: number;
     LiqPrice: number;
     size: number;
+    lockedAmount: number;
+    collateralAmount: number;
     triggerPrice?: number;
     collateral: number;
     TPSL: number;
