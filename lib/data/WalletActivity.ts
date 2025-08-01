@@ -137,6 +137,8 @@ export const futurePos : FuturePos[] = tokenList.map((token) => {
         futureType,
         position,
         entryPrice,
+        lockedAmount: 5,
+        collateralAmount: 4,
         LiqPrice,
         size,
         collateral,

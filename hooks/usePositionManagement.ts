@@ -130,6 +130,8 @@ export const usePositionManagement = (
             futureType: 'perps',
             position: position.side.hasOwnProperty("long") ? "long" : "short",
             entryPrice: Number(entryPrice.toFixed(2)),
+            lockedAmount: 5,
+            collateralAmount: 4,
             LiqPrice: Number(liquidationPrice.toFixed(2)),
             size: Number(positionSizeUSD.toFixed(6)),
             collateral: Number(collateralUSD.toFixed(2)),
